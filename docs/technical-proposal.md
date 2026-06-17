@@ -180,11 +180,14 @@ adding each dependency.
 
 The order front-loads the riskiest unknowns and keeps a working artifact at every step.
 
-1. **Spike — emitter shoot-out.** Hand-build the DevBrain mascot as (a) React+GSAP and
-   (b) SVG+CSS *by hand* from a manually-segmented SVG. Resolves the output question
-   empirically and produces the golden-file target. *(No pipeline yet — pure learning.)*
-2. **Phase 3 first (codegen).** Define `rigged.json`; build both emitters to reproduce
-   the spike output from that JSON. Lowest-risk, highest-confidence part.
+1. ✅ **Spike — emitter shoot-out (done 2026-06-17).** Built the DevBrain mascot as both
+   (a) React+GSAP and (b) SVG+CSS by hand from a shared segmented SVG. Resolved the output
+   question empirically (ADR-0007: both; SVG+CSS default) and produced the golden target.
+   See `spikes/01-emitter/FINDINGS.md`.
+2. **Phase 3 (codegen) — in progress.** Define `rigged.json`; build both emitters to
+   reproduce the spike output from that JSON. **SVG+CSS emitter shipped**
+   (`tools/emit-svg-css.ps1`); **React+GSAP emitter + schema-lock are next**
+   (`docs/research/react-gsap-emitter-prompt.md`). Lowest-risk, highest-confidence part.
 3. **Phase 1 (vectorize).** Pixel-art `<rect>` path; output `flat.svg` for the DevBrain
    asset.
 4. **Phase 2 (assisted segmentation).** Start with colour-cluster + connected-components
@@ -213,7 +216,8 @@ parts (segmentation) feed a *known-good* code generator, so failures are isolate
 
 ## 9. Open questions (tracked)
 
-1. **React+GSAP vs SVG+CSS vs both** for the v1 use case → resolve via Step-1 spike. *(open)*
+1. ~~React+GSAP vs SVG+CSS vs both for v1?~~ **Resolved (ADR-0007):** both; SVG+CSS default,
+   React+GSAP opt-in for interruptible/rich React mascots. Settled empirically by Spike 01.
 2. ~~Does pixel art need SAM?~~ **Resolved:** colour threshold + CCL is enough; SAM2 (Apache-2.0) is fallback only.
 3. **GSAP vs CSS runtime cost** on low-power dashboard clients → micro-benchmark. *(open, empirical)*
 4. ~~`rigged.json` schema?~~ **Resolved:** adopt the Spine bones-array model (parent-before-child, transform inheritance).

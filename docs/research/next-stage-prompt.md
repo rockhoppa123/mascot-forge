@@ -1,5 +1,10 @@
 # Next Stage Prompt - Dependency-Free SVG+CSS Emitter Implementation
 
+> ✅ **COMPLETED (2026-06-17).** This stage shipped: `tools/emit-svg-css.ps1`,
+> `tools/check-buildable-slice.ps1`, and `docs/buildable-slice/generated/` all exist.
+> The current next stage is **schema-lock + the React+GSAP emitter** —
+> see [`react-gsap-emitter-prompt.md`](react-gsap-emitter-prompt.md). Kept here for provenance.
+
 Target: Codex agentic coding session
 
 Optimized for: a fresh Codex session working in this repo after the SVG+CSS

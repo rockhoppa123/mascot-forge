@@ -8,6 +8,10 @@ build/
 out/
 *.tsbuildinfo
 
+# tsc -b emit artifacts from vite.config.ts (composite project)
+**/vite.config.js
+**/vite.config.d.ts
+
 # Environment / secrets
 .env
 .env.local

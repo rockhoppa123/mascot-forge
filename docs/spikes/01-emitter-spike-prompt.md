@@ -113,8 +113,19 @@ text.
 
 ---
 
+## Status — ✅ DONE (2026-06-17)
+Implemented (reconciled with the later "Buildable Slice" convention): reused the accepted
+`docs/buildable-slice/devbrain-manual-part.svg` + `devbrain-rigged.json` as shared geometry,
+added the missing React+GSAP target beside the existing SVG+CSS one, side-by-side Vite
+harness. See [`../../spikes/01-emitter/FINDINGS.md`](../../spikes/01-emitter/FINDINGS.md).
+- **Verdict:** both; SVG+CSS default, React+GSAP opt-in → recorded in
+  [`../adr/0007-output-target-verdict-both-svg-css-default.md`](../adr/0007-output-target-verdict-both-svg-css-default.md)
+  (ADR-0006 was already taken by "research-first-buildable-slice", so the verdict is **0007**).
+- **Q1 → 🟢** in `docs/research/research-log.md`. `rigged.json` carried forward as the
+  Phase-3 contract (with 3 schema fixes pending — see FINDINGS §8).
+- **Next stage:** schema-lock + React+GSAP emitter →
+  [`../research/react-gsap-emitter-prompt.md`](../research/react-gsap-emitter-prompt.md).
+
 ## Where this lives / next
-- Spike code: `spikes/01-emitter/` in this repo (throwaway; keep `mascot.svg`,
+- Spike code: `spikes/01-emitter/` in this repo (throwaway; keepers: `mascot.svg`,
   `rigged.json`, `FINDINGS.md`).
-- After the spike: write **ADR-0006** (output-format verdict), flip **Q1 → 🟢** in
-  `docs/research/research-log.md`, and carry `rigged.json` forward as the Phase-3 contract.
