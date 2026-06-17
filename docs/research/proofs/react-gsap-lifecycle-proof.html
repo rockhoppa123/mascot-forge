@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>React+GSAP Lifecycle Local Proof</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f6f8;
+      color: #182436;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(260px, 390px);
+      gap: 20px;
+      min-height: 100vh;
+      padding: 24px;
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    .stage,
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d6dce8;
+      border-radius: 8px;
+      box-shadow: 0 16px 40px rgb(22 33 47 / 10%);
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 14px;
+      line-height: 1.45;
+    }
+
+    button {
+      min-width: 76px;
+      margin: 0 6px 8px 0;
+      padding: 8px 10px;
+      border: 1px solid #9aa8bd;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #182436;
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      background: #18324f;
+      color: #ffffff;
+      border-color: #18324f;
+    }
+
+    code {
+      font-family: Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    svg {
+      width: min(82vw, 520px);
+      max-height: 80vh;
+      overflow: visible;
+    }
+
+    ol,
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 7px;
+    }
+
+    .status {
+      display: grid;
+      gap: 6px;
+      margin: 12px 0;
+      padding: 10px;
+      border: 1px solid #d6dce8;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .status span {
+      font-family: Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+
+      .stage {
+        min-height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import React, { StrictMode, useEffect, useRef, useState } from "https://esm.sh/react@18.3.1";
+    import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+    import gsap from "https://esm.sh/gsap@3.13.0";
+    import { useGSAP } from "https://esm.sh/@gsap/react@2.1.2?deps=react@18.3.1,gsap@3.13.0";
+
+    gsap.registerPlugin(useGSAP);
+
+    const h = React.createElement;
+    const params = new URLSearchParams(window.location.search);
+    const initialState = params.get("state") || "idle";
+    const initialReduced = params.get("reduce") === "1" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const autoRun = params.get("auto") === "1";
+    const allowedStates = ["idle", "active", "alert"];
+
+    window.__proofStats = {
+      setupCount: 0,
+      cleanupCount: 0,
+      currentTimeline: "none",
+      events: []
+    };
+
+    function record(event) {
+      const now = new Date().toISOString().slice(11, 19);
+      window.__proofStats.events.unshift(`${now} ${event}`);
+      window.__proofStats.events = window.__proofStats.events.slice(0, 8);
+
+      const setup = document.getElementById("setup-count");
+      const cleanup = document.getElementById("cleanup-count");
+      const timeline = document.getElementById("current-timeline");
+      const eventList = document.getElementById("proof-events");
+
+      if (setup) setup.textContent = String(window.__proofStats.setupCount);
+      if (cleanup) cleanup.textContent = String(window.__proofStats.cleanupCount);
+      if (timeline) timeline.textContent = window.__proofStats.currentTimeline;
+      if (eventList) {
+        eventList.innerHTML = "";
+        window.__proofStats.events.forEach((entry) => {
+          const item = document.createElement("li");
+          item.textContent = entry;
+          eventList.appendChild(item);
+        });
+      }
+    }
+
+    function MascotSvg({ state }) {
+      return h("svg", {
+        id: "mascot",
+        "data-state": state,
+        viewBox: "0 0 160 120",
+        role: "img",
+        "aria-label": "React GSAP proof mascot"
+      },
+        h("rect", { width: 160, height: 120, fill: "#f8fafc" }),
+        h("g", { id: "rig-root", transform: "translate(80 66)" },
+          h("g", { id: "part-leg-left" },
+            h("rect", { x: -24, y: 21, width: 9, height: 25, rx: 3, fill: "#314256" }),
+            h("rect", { x: -28, y: 42, width: 15, height: 6, rx: 2, fill: "#314256" })
+          ),
+          h("g", { id: "part-leg-right" },
+            h("rect", { x: 15, y: 21, width: 9, height: 25, rx: 3, fill: "#314256" }),
+            h("rect", { x: 13, y: 42, width: 15, height: 6, rx: 2, fill: "#314256" })
+          ),
+          h("g", { id: "part-body" },
+            h("ellipse", { cx: 0, cy: 0, rx: 38, ry: 24, fill: "#df7f2d" }),
+            h("path", { d: "M -44 1 C -34 -13 -15 -14 0 -5 C 15 -14 34 -13 44 1 C 31 14 14 13 0 6 C -14 13 -31 14 -44 1 Z", fill: "#b95f24" }),
+            h("g", { id: "part-moustache" },
+              h("path", { d: "M -39 4 C -26 -5 -14 -4 0 5 C 14 -4 26 -5 39 4 C 25 15 10 14 0 8 C -10 14 -25 15 -39 4 Z", fill: "#7d3519" })
+            )
+          ),
+          h("g", { id: "part-eyes" },
+            h("rect", { x: -14, y: -8, width: 8, height: 7, rx: 2, fill: "#152033" }),
+            h("rect", { x: 6, y: -8, width: 8, height: 7, rx: 2, fill: "#152033" })
+          ),
+          h("g", { id: "part-antenna" },
+            h("path", { d: "M 0 -22 C 2 -35 14 -39 18 -50", fill: "none", stroke: "#2a9667", strokeWidth: 5, strokeLinecap: "round" }),
+            h("circle", { cx: 20, cy: -53, r: 6, fill: "#51c58f" })
+          )
+        )
+      );
+    }
+
+    function App() {
+      const scope = useRef(null);
+      const activeTimeline = useRef(null);
+      const [state, setState] = useState(allowedStates.includes(initialState) ? initialState : "idle");
+      const [reducedMotion, setReducedMotion] = useState(initialReduced);
+
+      useEffect(() => {
+        const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const onChange = () => setReducedMotion(media.matches);
+        media.addEventListener("change", onChange);
+        return () => media.removeEventListener("change", onChange);
+      }, []);
+
+      useEffect(() => {
+        if (!autoRun) return undefined;
+        const timers = [
+          window.setTimeout(() => setState("active"), 250),
+          window.setTimeout(() => setState("alert"), 600),
+          window.setTimeout(() => setState("idle"), 1000)
+        ];
+        return () => timers.forEach(window.clearTimeout);
+      }, []);
+
+      useGSAP(() => {
+        const targets = "#part-body,#part-leg-left,#part-leg-right,#part-antenna,#part-eyes,#part-moustache";
+        window.__proofStats.setupCount += 1;
+        gsap.killTweensOf(targets);
+        gsap.set(targets, { clearProps: "transform,opacity" });
+
+        if (activeTimeline.current) {
+          activeTimeline.current.kill();
+          activeTimeline.current = null;
+        }
+
+        if (reducedMotion) {
+          gsap.set("#part-antenna", { scale: state === "alert" ? 1.08 : 1, transformOrigin: "50% 100%" });
+          window.__proofStats.currentTimeline = `static:${state}`;
+          record(`setup static ${state}`);
+          return () => {
+            window.__proofStats.cleanupCount += 1;
+            window.__proofStats.currentTimeline = "cleaned";
+            record(`cleanup static ${state}`);
+          };
+        }
+
+        const tl = gsap.timeline({
+          defaults: {
+            ease: "power1.inOut",
+            overwrite: "auto",
+            transformOrigin: "50% 50%"
+          }
+        });
+
+        activeTimeline.current = tl;
+        window.__proofStats.currentTimeline = `timeline:${state}`;
+        record(`setup timeline ${state}`);
+
+        if (state === "idle") {
+          tl.to("#part-body", { scaleY: 1.04, scaleX: 0.985, duration: 0.9, repeat: -1, yoyo: true }, 0)
+            .to("#part-eyes", { scaleY: 0.08, duration: 0.08, repeat: -1, repeatDelay: 3.2, yoyo: true }, 0);
+        }
+
+        if (state === "active") {
+          tl.to("#part-leg-left", { rotate: 16, duration: 0.24, repeat: -1, yoyo: true, transformOrigin: "50% 0%" }, 0)
+            .to("#part-leg-right", { rotate: -16, duration: 0.24, repeat: -1, yoyo: true, transformOrigin: "50% 0%" }, 0.12)
+            .to("#part-body", { y: -2, duration: 0.24, repeat: -1, yoyo: true }, 0);
+        }
+
+        if (state === "alert") {
+          tl.addLabel("alert-pop", 0)
+            .to("#part-antenna", { scale: 1.18, duration: 0.12, repeat: 5, yoyo: true, transformOrigin: "50% 100%" }, "alert-pop")
+            .to("#part-moustache", { x: -6, duration: 0.08, repeat: 3, yoyo: true }, "alert-pop")
+            .to("#part-eyes", { scaleY: 0.45, duration: 0.12 }, "alert-pop");
+        }
+
+        return () => {
+          window.__proofStats.cleanupCount += 1;
+          tl.kill();
+          activeTimeline.current = null;
+          window.__proofStats.currentTimeline = "cleaned";
+          record(`cleanup timeline ${state}`);
+        };
+      }, { scope, dependencies: [state, reducedMotion], revertOnUpdate: true });
+
+      return h("main", null,
+        h("section", { className: "stage", ref: scope, "aria-label": "React GSAP proof stage" },
+          h(MascotSvg, { state })
+        ),
+        h("aside", { className: "panel" },
+          h("h1", null, "React+GSAP Local Proof"),
+          h("p", null, "Use ", h("code", null, "?auto=1&reduce=1"), " for a deterministic static screenshot path."),
+          h("div", null,
+            allowedStates.map((name) => h("button", {
+              key: name,
+              type: "button",
+              "aria-pressed": String(state === name),
+              onClick: () => setState(name)
+            }, name)),
+            h("button", {
+              type: "button",
+              "aria-pressed": String(reducedMotion),
+              onClick: () => setReducedMotion((value) => !value)
+            }, "reduce")
+          ),
+          h("div", { className: "status" },
+            h("span", null, "setup count: ", h("strong", { id: "setup-count" }, "0")),
+            h("span", null, "cleanup count: ", h("strong", { id: "cleanup-count" }, "0")),
+            h("span", null, "current: ", h("strong", { id: "current-timeline" }, "none"))
+          ),
+          h("ul", null,
+            h("li", null, "useGSAP scopes selectors and reverts on dependency changes."),
+            h("li", null, "State changes interrupt and replace the active timeline."),
+            h("li", null, "Reduced motion switches to a static pose."),
+            h("li", null, "Semantic SVG group IDs remain readable.")
+          ),
+          h("ol", { id: "proof-events", "aria-live": "polite" })
+        )
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(h(StrictMode, null, h(App)));
+  </script>
+</body>
+</html>

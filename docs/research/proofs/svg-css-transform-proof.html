@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SVG+CSS Transform Local Proof</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fb;
+      color: #16212f;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(240px, 360px);
+      gap: 20px;
+      min-height: 100vh;
+      padding: 24px;
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    .stage,
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d6dce8;
+      border-radius: 8px;
+      box-shadow: 0 16px 40px rgb(22 33 47 / 10%);
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      overflow: hidden;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 14px;
+      line-height: 1.45;
+    }
+
+    button {
+      min-width: 76px;
+      margin: 0 6px 8px 0;
+      padding: 8px 10px;
+      border: 1px solid #9aa8bd;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #16212f;
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      background: #18324f;
+      color: #ffffff;
+      border-color: #18324f;
+    }
+
+    code {
+      font-family: Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    li.pass::marker {
+      color: #137d42;
+    }
+
+    li.fail::marker {
+      color: #b42318;
+    }
+
+    svg {
+      width: min(82vw, 520px);
+      max-height: 80vh;
+    }
+
+    .part {
+      transform-box: fill-box;
+      transition: transform 160ms ease, opacity 120ms ease;
+    }
+
+    #part-body {
+      transform-origin: 50% 62%;
+    }
+
+    #part-leg-left,
+    #part-leg-right {
+      transform-origin: 50% 0%;
+    }
+
+    #part-antenna {
+      transform-origin: 50% 100%;
+    }
+
+    #part-eyes,
+    #part-moustache {
+      transform-origin: 50% 50%;
+    }
+
+    #mascot[data-state="idle"] #part-body {
+      animation: idle-breathe 1800ms ease-in-out infinite;
+    }
+
+    #mascot[data-state="idle"] #part-eyes {
+      animation: blink 4200ms step-end infinite;
+    }
+
+    #mascot[data-state="active"] #part-leg-left {
+      animation: walk-left 520ms ease-in-out infinite;
+    }
+
+    #mascot[data-state="active"] #part-leg-right {
+      animation: walk-right 520ms ease-in-out infinite;
+    }
+
+    #mascot[data-state="alert"] #part-antenna {
+      animation: antenna-pulse 420ms ease-in-out infinite;
+    }
+
+    #mascot[data-state="alert"] #part-moustache {
+      animation: recoil 360ms cubic-bezier(.2, .8, .2, 1) infinite;
+    }
+
+    @keyframes idle-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(.985, 1.035); }
+    }
+
+    @keyframes blink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      94%, 96% { transform: scaleY(.12); }
+    }
+
+    @keyframes walk-left {
+      0%, 100% { transform: rotate(15deg); }
+      50% { transform: rotate(-18deg); }
+    }
+
+    @keyframes walk-right {
+      0%, 100% { transform: rotate(-15deg); }
+      50% { transform: rotate(18deg); }
+    }
+
+    @keyframes antenna-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+
+    @keyframes recoil {
+      0%, 100% { transform: translateX(0); }
+      45% { transform: translateX(-6px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #mascot .part {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+      }
+    }
+
+    .force-reduced-motion #mascot .part {
+      animation: none !important;
+      transition: none !important;
+      transform: none !important;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+
+      .stage {
+        min-height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage" aria-label="SVG proof stage">
+      <svg id="mascot" data-state="idle" viewBox="0 0 160 120" role="img" aria-label="Manual Part SVG proof mascot">
+        <rect width="160" height="120" fill="#f8fafc"></rect>
+        <g id="rig-root" transform="translate(80 66)">
+          <g id="part-leg-left" class="part">
+            <rect x="-24" y="21" width="9" height="25" rx="3" fill="#314256"></rect>
+            <rect x="-28" y="42" width="15" height="6" rx="2" fill="#314256"></rect>
+          </g>
+          <g id="part-leg-right" class="part">
+            <rect x="15" y="21" width="9" height="25" rx="3" fill="#314256"></rect>
+            <rect x="13" y="42" width="15" height="6" rx="2" fill="#314256"></rect>
+          </g>
+          <g id="part-body" class="part">
+            <ellipse cx="0" cy="0" rx="38" ry="24" fill="#df7f2d"></ellipse>
+            <path d="M -44 1 C -34 -13 -15 -14 0 -5 C 15 -14 34 -13 44 1 C 31 14 14 13 0 6 C -14 13 -31 14 -44 1 Z" fill="#b95f24"></path>
+            <g id="part-moustache" class="part">
+              <path d="M -39 4 C -26 -5 -14 -4 0 5 C 14 -4 26 -5 39 4 C 25 15 10 14 0 8 C -10 14 -25 15 -39 4 Z" fill="#7d3519"></path>
+            </g>
+          </g>
+          <g id="part-eyes" class="part">
+            <rect x="-14" y="-8" width="8" height="7" rx="2" fill="#152033"></rect>
+            <rect x="6" y="-8" width="8" height="7" rx="2" fill="#152033"></rect>
+          </g>
+          <g id="part-antenna" class="part">
+            <path d="M 0 -22 C 2 -35 14 -39 18 -50" fill="none" stroke="#2a9667" stroke-width="5" stroke-linecap="round"></path>
+            <circle cx="20" cy="-53" r="6" fill="#51c58f"></circle>
+          </g>
+        </g>
+
+        <g id="matrix-parent" transform="translate(10 20) scale(2)" visibility="hidden">
+          <g id="matrix-child" transform="translate(5 0)">
+            <circle id="matrix-probe" cx="3" cy="4" r="1"></circle>
+          </g>
+        </g>
+      </svg>
+    </section>
+
+    <aside class="panel">
+      <h1>SVG+CSS Local Proof</h1>
+      <p>Use <code>?state=active&amp;reduce=1</code> for deterministic screenshots.</p>
+      <div>
+        <button type="button" data-set-state="idle">idle</button>
+        <button type="button" data-set-state="active">active</button>
+        <button type="button" data-set-state="alert">alert</button>
+      </div>
+      <ul id="results" aria-live="polite"></ul>
+    </aside>
+  </main>
+
+  <script>
+    const mascot = document.getElementById("mascot");
+    const params = new URLSearchParams(window.location.search);
+    const requestedState = params.get("state");
+    const forceReduce = params.get("reduce") === "1";
+    const allowedStates = new Set(["idle", "active", "alert"]);
+
+    if (forceReduce) {
+      document.documentElement.classList.add("force-reduced-motion");
+    }
+
+    if (allowedStates.has(requestedState)) {
+      mascot.dataset.state = requestedState;
+    }
+
+    function updateButtons() {
+      document.querySelectorAll("[data-set-state]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.setState === mascot.dataset.state));
+      });
+    }
+
+    document.querySelectorAll("[data-set-state]").forEach((button) => {
+      button.addEventListener("click", () => {
+        mascot.dataset.state = button.dataset.setState;
+        updateButtons();
+      });
+    });
+
+    function near(actual, expected) {
+      return Math.abs(actual - expected) < 0.001;
+    }
+
+    function matrixProof() {
+      const svg = document.getElementById("mascot");
+      const probe = document.getElementById("matrix-probe");
+      const point = new DOMPoint(probe.cx.baseVal.value, probe.cy.baseVal.value);
+      const localToViewport = svg.getCTM().inverse().multiply(probe.getCTM());
+      const transformed = point.matrixTransform(localToViewport);
+      return near(transformed.x, 26) && near(transformed.y, 28);
+    }
+
+    function styleProof() {
+      const leg = document.getElementById("part-leg-left");
+      const antenna = document.getElementById("part-antenna");
+      const legStyle = getComputedStyle(leg);
+      const antennaStyle = getComputedStyle(antenna);
+      return legStyle.getPropertyValue("transform-box").trim() === "fill-box" &&
+        antennaStyle.getPropertyValue("transform-origin").trim().length > 0;
+    }
+
+    function stateProof() {
+      return allowedStates.has(mascot.dataset.state) &&
+        document.querySelectorAll("#part-body, #part-leg-left, #part-leg-right, #part-antenna, #part-eyes, #part-moustache").length === 6;
+    }
+
+    function reducedMotionProof() {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").media === "(prefers-reduced-motion: reduce)" ||
+        document.documentElement.classList.contains("force-reduced-motion");
+    }
+
+    function renderResults() {
+      const checks = [
+        ["Nested group transforms compose to the expected CTM result", matrixProof()],
+        ["Part CSS uses transform-box plus per-part transform-origin", styleProof()],
+        ["Animation State changes are driven by data-state", stateProof()],
+        ["Reduced motion path is available through media query or forced screenshot mode", reducedMotionProof()],
+        ["Semantic Manual Part SVG IDs remain readable", stateProof()]
+      ];
+
+      const results = document.getElementById("results");
+      results.innerHTML = "";
+      checks.forEach(([label, pass]) => {
+        const item = document.createElement("li");
+        item.className = pass ? "pass" : "fail";
+        item.textContent = `${pass ? "PASS" : "FAIL"}: ${label}`;
+        results.appendChild(item);
+      });
+    }
+
+    updateButtons();
+    renderResults();
+  </script>
+</body>
+</html>

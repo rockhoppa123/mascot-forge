@@ -42,7 +42,7 @@ Status: 🔴 not started · 🟡 partial · 🟢 resolved
 
 | # | Question | Status | Notes / next tool |
 |---|---|---|---|
-| Q1 | React+GSAP vs SVG+CSS vs both for v1 | 🟡 | Decided to settle empirically via the Step-1 build spike, not desk research |
+| Q1 | React+GSAP vs SVG+CSS vs both for v1 | 🟢 | **Both; SVG+CSS is the default**, React+GSAP opt-in for interruptible/rich React mascots. Settled empirically by Spike 01 (built both from one shared rig). See `spikes/01-emitter/FINDINGS.md` + ADR-0007. |
 | Q2 | Does pixel art need SAM, or is colour-cluster + connected-components enough? | 🟢 | **CCL after colour threshold is sufficient** for colour-separable pixel art; SAM reserved for complex flat art. (pass 2, q10) |
 | Q3 | GSAP vs CSS runtime cost on low-power clients | 🔴 | Empirical — micro-benchmark on actual dashboard hardware (not desk-researchable) |
 | Q4 | `rigged.json` schema for parent/child motion inheritance | 🟢 | **Adopt the Spine model**: ordered bones array, parent-before-child, each `{name, parent, x, y, rotation, length}`; SVG part nodes attach to a bone. (pass 2, q9) |

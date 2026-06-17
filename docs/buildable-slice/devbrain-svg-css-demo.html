@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevBrain SVG+CSS Buildable Slice</title>
+  <link rel="preload" href="devbrain-svg-css.css" as="style">
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #eef3f8;
+      color: #16212f;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px);
+      gap: 18px;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+      align-items: center;
+    }
+
+    .stage,
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d6dce8;
+      border-radius: 8px;
+      box-shadow: 0 14px 32px rgb(22 33 47 / 10%);
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      overflow: hidden;
+    }
+
+    .mascot-object {
+      width: min(72vw, 520px);
+      max-height: 76vh;
+      aspect-ratio: 1;
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .state-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      min-width: 74px;
+      min-height: 36px;
+      padding: 7px 10px;
+      border: 1px solid #9aa8bd;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #16212f;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button[aria-pressed="true"] {
+      background: #18324f;
+      color: #ffffff;
+      border-color: #18324f;
+    }
+
+    .status {
+      min-height: 20px;
+      margin: 0;
+      color: #4d5b6d;
+      font-size: 14px;
+    }
+
+    @media (max-width: 760px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+
+      .stage {
+        min-height: 320px;
+      }
+
+      .mascot-object {
+        width: min(86vw, 420px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage" aria-label="DevBrain mascot SVG stage">
+      <object id="mascot-object" class="mascot-object" type="image/svg+xml" data="devbrain-manual-part.svg" aria-label="DevBrain mascot"></object>
+    </section>
+
+    <aside class="panel">
+      <h1>DevBrain SVG+CSS</h1>
+      <div class="state-controls" aria-label="Animation State">
+        <button type="button" data-set-state="idle">idle</button>
+        <button type="button" data-set-state="active">active</button>
+        <button type="button" data-set-state="alert">alert</button>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </aside>
+  </main>
+
+  <script>
+    const mascotObject = document.getElementById("mascot-object");
+    const statusText = document.getElementById("status");
+    const params = new URLSearchParams(window.location.search);
+    const allowedStates = new Set(["idle", "active", "alert"]);
+    const requestedState = params.get("state");
+    const forceReduce = params.get("reduce") === "1";
+    let selectedState = allowedStates.has(requestedState) ? requestedState : "idle";
+
+    if (forceReduce) {
+      document.documentElement.classList.add("force-reduced-motion");
+    }
+
+    function svgDataFor(state) {
+      const suffix = forceReduce ? "&reduce=1" : "";
+      return `devbrain-manual-part.svg?state=${encodeURIComponent(state)}${suffix}`;
+    }
+
+    function updateButtons() {
+      document.querySelectorAll("[data-set-state]").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.setState === selectedState));
+      });
+    }
+
+    function applyState(nextState) {
+      if (!allowedStates.has(nextState)) {
+        return;
+      }
+
+      selectedState = nextState;
+      mascotObject.data = svgDataFor(selectedState);
+      statusText.textContent = `${selectedState}${forceReduce ? " / reduced" : ""}`;
+      updateButtons();
+    }
+
+    document.querySelectorAll("[data-set-state]").forEach((button) => {
+      button.addEventListener("click", () => applyState(button.dataset.setState));
+    });
+
+    mascotObject.addEventListener("load", () => {
+      statusText.textContent = `${selectedState}${forceReduce ? " / reduced" : ""}`;
+    });
+    applyState(selectedState);
+  </script>
+</body>
+</html>
