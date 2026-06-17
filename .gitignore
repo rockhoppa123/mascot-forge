@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Scratch / generated artifacts (keep curated assets in assets/)
+/scratch/
+/tmp/
+*.tmp
+
+# Python (segmentation/tracing experiments)
+__pycache__/
+*.pyc
+.venv/
+venv/
