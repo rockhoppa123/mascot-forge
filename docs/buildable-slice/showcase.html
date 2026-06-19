@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mascot-forge — before / after vs the PNG baseline</title>
+  <!--
+    Phase 6 showcase: the visual proof that mascot-forge beats its own baseline.
+    BEFORE = the DevBrain flipbook baseline (assets/devbrain-mascot-reference-v1.png): a whole-sprite
+    pre-rendered PNG pose. The legs and antenna cannot move independently.
+    AFTER  = the SAME asset, forged. This panel REUSES the locked generated SVG+CSS Output Target
+    read-only (fetched + injected, no duplicated geometry) and drives it with the dependency-free
+    Phase-4 orchestrator core (../../runtime/mascot-state.js) from a MOCK telemetry feed. Same
+    fetch+inject mechanism as orchestrator-demo.html — no new rendering code.
+    Serve this folder over http (e.g. `python -m http.server` from the repo root) — fetch() is
+    blocked on file://.
+  -->
+  <style>
+    :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #eef3f8; color: #16212f; }
+    body { margin: 0; }
+    header { padding: 22px 24px 4px; }
+    header h1 { margin: 0 0 4px; font-size: 22px; }
+    header p { margin: 0; color: #4d5b6d; font-size: 14px; max-width: 60ch; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 24px 28px; box-sizing: border-box; align-items: stretch; }
+    .panel { background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 14px 32px rgb(22 33 47 / 10%); display: flex; flex-direction: column; overflow: hidden; }
+    .tag { padding: 6px 14px; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+    .tag.before { background: #e4ebf4; color: #4d5b6d; }
+    .tag.after { background: #1f6feb; color: #fff; }
+    .stage { display: grid; place-items: center; min-height: 360px; padding: 16px; }
+    .stage img { width: min(60%, 260px); height: auto; image-rendering: pixelated; }
+    .stage svg#mascot { width: min(72%, 360px); max-height: 52vh; height: auto; }
+    .caption { padding: 12px 16px 16px; border-top: 1px solid #eef1f6; }
+    .caption p { margin: 0; font-size: 13px; color: #4d5b6d; line-height: 1.45; }
+    .badge { display: inline-block; min-width: 64px; text-align: center; padding: 5px 12px; margin-top: 8px; border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; background: #e4ebf4; color: #18324f; }
+    .badge[data-state="active"] { background: #1f6feb; color: #fff; }
+    .badge[data-state="alert"] { background: #d6453b; color: #fff; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>mascot-forge: before / after</h1>
+    <p>The same DevBrain mascot, baseline vs forged. Left is the pre-rendered flipbook PNG.
+       Right is the forged Output Target: semantic parts that articulate independently and a state
+       machine that reacts to live telemetry — auto-cycling idle &rarr; active &rarr; alert.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <div class="tag before">Before — flipbook baseline</div>
+      <div class="stage">
+        <img src="../../assets/devbrain-mascot-reference-v1.png" alt="DevBrain flipbook baseline PNG (whole-sprite pose)">
+      </div>
+      <div class="caption">
+        <p>Whole-sprite pre-rendered PNG. Motion is a flipbook of full-frame poses — the legs and
+           antenna cannot move independently, and it knows nothing about live data.</p>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="tag after">After — forged &amp; data-reactive</div>
+      <div class="stage" id="stage" aria-label="Forged DevBrain mascot driven by a live telemetry source"></div>
+      <div class="caption">
+        <p>Independent part articulation + reacts to live data via the Phase-4 orchestrator.
+           Priority <code>alert &gt; active &gt; idle</code>; downgrades hold for hysteresis.</p>
+        <span id="badge" class="badge" data-state="idle">idle</span>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createMascot } from "../../runtime/mascot-state.js";
+
+    const STATES = ["idle", "active", "alert"]; // matches devbrain-rigged.json.states
+    const GENERATED = "generated/";
+
+    const stage = document.getElementById("stage");
+    const badge = document.getElementById("badge");
+
+    // Reuse the locked SVG+CSS Output Target read-only: fetch the generated CSS into a <style>
+    // and the generated SVG markup into the stage (strip the XML prolog so it inlines cleanly;
+    // injecting via innerHTML also means the SVG's own standalone script never runs — we drive it).
+    async function mountMascot() {
+      const [svgText, cssText] = await Promise.all([
+        fetch(GENERATED + "devbrain-svg-css.generated.svg").then((r) => r.text()),
+        fetch(GENERATED + "devbrain-svg-css.generated.css").then((r) => r.text()),
+      ]);
+      const style = document.createElement("style");
+      style.textContent = cssText;
+      document.head.appendChild(style);
+      stage.innerHTML = svgText.slice(svgText.indexOf("<svg"));
+      return stage.querySelector("#mascot");
+    }
+
+    // Mock telemetry: a synthetic activity metric that ramps 0 -> 1 -> 0 over ~9s, the shape a
+    // DevBrain feed would push. >0.66 => alert, >0.25 => active, else nothing asserted (idle).
+    function metricToState(load) {
+      if (load > 0.66) return "alert";
+      if (load > 0.25) return "active";
+      return null;
+    }
+
+    const start = performance.now();
+    function currentLoad() {
+      const t = ((performance.now() - start) / 9000) % 1; // 9s loop
+      return 1 - Math.abs(t * 2 - 1); // triangle wave 0 -> 1 -> 0
+    }
+
+    const mockSource = (emit) => {
+      const id = setInterval(() => emit(metricToState(currentLoad())), 150);
+      return () => clearInterval(id);
+    };
+
+    const root = await mountMascot();
+    const mascot = createMascot({
+      root,
+      states: STATES,
+      rules: {
+        onState(state) {
+          badge.textContent = state;
+          badge.dataset.state = state;
+        },
+      },
+    });
+    mascot.bind(mockSource);
+    window.__mascot = mascot; // expose for live verification (preview_eval)
+  </script>
+</body>
+</html>

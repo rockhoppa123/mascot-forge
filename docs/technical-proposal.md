@@ -50,18 +50,29 @@ debuggable and the human able to intervene at any boundary.
 **Goal:** turn the raster image into a clean, layer-able SVG with as few, as meaningful
 shapes as possible.
 
-**Approach (decision: pixel-art first — [ADR-0005](adr/0005-pixel-art-poc-first.md)):**
+**Approach (decision: pixel-art first — [ADR-0005](adr/0005-pixel-art-poc-first.md), amended
+by [ADR-0009](adr/0009-vectorize-quantize-anti-aliased-source.md)):**
 
-- **Pixel-art path (v1):** map the pixel grid directly to SVG geometry. Use
-  run-length-encoding / greedy-meshing so contiguous same-colour pixels collapse into a
-  single `<rect>` (prior art: GLORP, pixel2svg, Blocky). This is **mathematically exact**
-  — no curve-fitting, so no scaling artifacts. The DevBrain mascot is pixel art, so this
-  is the reliable PoC route.
+- **Quantized colour-cluster path (v1, shipped):** the Clean Mascot Source turned out to be
+  an anti-aliased raster (2,381 colours), not flat pixel art, so exact same-colour clustering
+  degenerates to ~1 rect per pixel. v1 instead quantizes to a small palette via deterministic
+  median-cut (largest-gap split, which preserves small accents like the green antenna tip),
+  then RLE + greedy-meshes equal runs into `<rect>`s (prior art: GLORP, pixel2svg). Output is
+  a faithful colour-clustered reduction, not bit-exact. Dependency-free
+  (`tools/vectorize-pixel.ps1`, PowerShell + `System.Drawing`). The exact pixel-RLE path
+  remains valid for genuinely flat inputs.
 - **General flat-art path (later):** **VTracer** (Rust, MIT). Chosen over Potrace
   because Potrace is black-and-white only and O(n²); VTracer is O(n), does K-means
   **colour clustering** into stacked layers, produces 30–70% smaller output than Adobe
   Image Trace, and explicitly supports pixel art. Its per-colour layering is a useful
   *head start* on segmentation (Phase 2).
+
+**Clean-Mascot-Source contract**
+
+Source must be a transparent PNG, flat/pixel-art-friendly (no gradients, no anti-aliased edges).
+Oversized sources must be downscaled with **nearest-neighbor** interpolation (not bicubic) before vectorizing. Bicubic blends flat cartoon colours into smooth gradients; the median-cut quantizer (ADR-0009 largest-gap split) then slices each gradient into visible colour bands ("hatching"). Nearest-neighbor preserves hard colour edges so vertical runs merge and no banding occurs.
+
+Reference: `spikes/03-second-asset/prep-source.ps1` for a worked background-keying + nearest-neighbor downscale example.
 
 **Output contract:** `flat.svg` — a single SVG, colours preserved, geometry grouped by
 colour cluster, viewBox matching source dimensions.
@@ -184,16 +195,37 @@ The order front-loads the riskiest unknowns and keeps a working artifact at ever
    (a) React+GSAP and (b) SVG+CSS by hand from a shared segmented SVG. Resolved the output
    question empirically (ADR-0007: both; SVG+CSS default) and produced the golden target.
    See `spikes/01-emitter/FINDINGS.md`.
-2. **Phase 3 (codegen) — in progress.** Define `rigged.json`; build both emitters to
-   reproduce the spike output from that JSON. **SVG+CSS emitter shipped**
-   (`tools/emit-svg-css.ps1`); **React+GSAP emitter + schema-lock are next**
-   (`docs/research/react-gsap-emitter-prompt.md`). Lowest-risk, highest-confidence part.
-3. **Phase 1 (vectorize).** Pixel-art `<rect>` path; output `flat.svg` for the DevBrain
-   asset.
-4. **Phase 2 (assisted segmentation).** Start with colour-cluster + connected-components
-   + a minimal confirm UI. Add SAM only if needed.
-5. **Phase 4 (orchestrator).** State machine + binding hook; wire to DevBrain telemetry.
-6. **Polish & demo.** README demo, docs, tests, before/after vs. the PNG baseline.
+2. ✅ **Phase 3 (codegen) — done 2026-06-17.** One `rigged.json` (schema **v2**: canonical
+   pivots + structured channel keyframes + explicit yoyo/iteration) drives both emitters.
+   **SVG+CSS emitter** (`tools/emit-svg-css.ps1`) and **React+GSAP emitter**
+   (`tools/emit-react-gsap/`, live-verified) both reproduce the spike golden around
+   identical pivots. Schema-lock recorded in [ADR-0008](adr/0008-rigged-json-schema-v2-lock.md).
+3. ✅ **Phase 1 (vectorize) — done 2026-06-18.** `tools/vectorize-pixel.ps1` turns the
+   read-only Clean Mascot Source PNG into `docs/buildable-slice/generated/devbrain-flat.svg`
+   — colour-clustered `<rect>` geometry, deterministic. The source is anti-aliased (2,381
+   colours), not flat pixel art, so v1 vectorizes by **deterministic colour quantization**
+   (median-cut, largest-gap split), recorded in
+   [ADR-0009](adr/0009-vectorize-quantize-anti-aliased-source.md) (amends 0005). Default
+   palette 6 → 89 rects (98.8% reduction), silhouette + accents preserved. Plan:
+   [`phase-1-vectorize-implementation-plan.md`](phase-1-vectorize-implementation-plan.md).
+4. ✅ **Phase 2 (assisted segmentation) — done 2026-06-18.** `tools/segment-parts.ps1`
+   *proposes* named parts from `devbrain-flat.svg` by **connected-component labeling over the
+   palette-thresholded `<rect>` geometry** (deterministic, no ML/SAM — `data-render-method=
+   "ccl-color-threshold"`), names candidates by geometry, and defaults each pivot to the
+   parent-joint. Output is `devbrain-segmented.svg` + a `devbrain-segmented-review.html`
+   confirm page for the human (ADR-0002: assisted, not full-auto). `tools/check-segmented.ps1`
+   guards the artifact. Naming rules are tuned to the single DevBrain input and generalise
+   when a second asset exists — friction reported, not hidden.
+5. ✅ **Phase 4 (orchestrator) — done 2026-06-18.** Dependency-free state machine
+   (`runtime/mascot-state.js`) + binding hook (`tools/emit-react-gsap/src/useMascotState.ts`)
+   driving the locked Output Target from a (mock) telemetry feed under priority + hysteresis
+   rules; node determinism self-check green. Plan:
+   [`phase-4-orchestrator-implementation-plan.md`](phase-4-orchestrator-implementation-plan.md).
+6. ✅ **Polish & demo — done 2026-06-18.** Truthful README + Run/Quickstart, one-command
+   `tools/check-all.ps1` over all five checks, and a static before/after showcase
+   (`docs/buildable-slice/showcase.html`) contrasting the flipbook PNG with the forged,
+   data-reactive mascot. Packaging only — no new pipeline capability. Plan:
+   [`phase-6-polish-demo-implementation-plan.md`](phase-6-polish-demo-implementation-plan.md).
 
 Rationale: building **Phase 3 before Phases 1–2** means the hardest-to-verify creative
 parts (segmentation) feed a *known-good* code generator, so failures are isolated.
@@ -219,9 +251,14 @@ parts (segmentation) feed a *known-good* code generator, so failures are isolate
 1. ~~React+GSAP vs SVG+CSS vs both for v1?~~ **Resolved (ADR-0007):** both; SVG+CSS default,
    React+GSAP opt-in for interruptible/rich React mascots. Settled empirically by Spike 01.
 2. ~~Does pixel art need SAM?~~ **Resolved:** colour threshold + CCL is enough; SAM2 (Apache-2.0) is fallback only.
-3. **GSAP vs CSS runtime cost** on low-power dashboard clients → micro-benchmark. *(open, empirical)*
+3. ~~GSAP vs CSS runtime cost on low-power dashboard clients?~~ **Resolved (validates ADR-0007):**
+   18-cell CPU-throttle benchmark — SVG+CSS = 0 main-thread long tasks / 0 ms scripting at every
+   throttle (pure compositor); React+GSAP pins the main thread at ~13 fps under 6×. SVG+CSS-default
+   holds. One-device hardware calibration flagged as follow-up. See `spikes/02-runtime-cost/FINDINGS.md`.
 4. ~~`rigged.json` schema?~~ **Resolved:** adopt the Spine bones-array model (parent-before-child, transform inheritance).
-5. **Where the human-confirm UI lives** — CLI + browser preview, or a small local web app? *(open, decide in Phase-2 spike)*
+5. ~~Where the human-confirm UI lives — CLI + preview or a local web app?~~ **Resolved:** CLI +
+   a static browser-preview review page (`devbrain-segmented-review.html`), no server/app. Settled
+   by the Phase-2 implementation; matches ADR-0002 (assisted) and the dependency-light house style.
 
 These are logged with their research status in
 [`research/research-log.md`](research/research-log.md).

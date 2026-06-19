@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevBrain mascot — Phase 4 orchestrator (reacts to live data)</title>
+  <!--
+    Phase 4 proof: the mascot REACTS TO LIVE DATA. This page reuses the LOCKED generated SVG+CSS
+    Output Target read-only (fetched + injected — no duplicated geometry), then drives it with the
+    dependency-free orchestrator core (../../runtime/mascot-state.js) bound to a MOCK telemetry
+    source. No manual buttons: the state cycles idle -> active -> alert -> active -> idle under the
+    priority + hysteresis rules. Serve this folder over http (e.g. the project preview) — fetch()
+    is blocked on file://.
+  -->
+  <style>
+    :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #eef3f8; color: #16212f; }
+    body { margin: 0; }
+    main { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(240px, 340px); gap: 18px; min-height: 100vh; padding: 20px; box-sizing: border-box; align-items: center; }
+    .stage, .panel { background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 14px 32px rgb(22 33 47 / 10%); }
+    .stage { display: grid; place-items: center; min-height: 420px; overflow: hidden; }
+    .stage svg#mascot { width: min(72vw, 520px); max-height: 76vh; height: auto; }
+    .panel { padding: 16px; }
+    h1 { margin: 0 0 6px; font-size: 20px; line-height: 1.2; }
+    p.sub { margin: 0 0 16px; color: #4d5b6d; font-size: 13px; }
+    .badge { display: inline-block; min-width: 84px; text-align: center; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; background: #e4ebf4; color: #18324f; }
+    .badge[data-state="active"] { background: #1f6feb; color: #fff; }
+    .badge[data-state="alert"] { background: #d6453b; color: #fff; }
+    .readout { margin: 16px 0 0; font-size: 13px; color: #4d5b6d; }
+    .meter { height: 8px; border-radius: 999px; background: #e4ebf4; overflow: hidden; margin-top: 6px; }
+    .meter > span { display: block; height: 100%; background: #1f6feb; width: 0%; transition: width 140ms linear; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; padding: 14px; } .stage { min-height: 320px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="stage" id="stage" aria-label="DevBrain mascot driven by a live telemetry source"></section>
+    <aside class="panel">
+      <h1>Phase 4 — orchestrator</h1>
+      <p class="sub">Mock telemetry feed drives the state machine. Priority <code>alert &gt; active &gt; idle</code>; downgrades hold for hysteresis.</p>
+      <span id="badge" class="badge" data-state="idle">idle</span>
+      <p class="readout">mock load (telemetry signal)</p>
+      <div class="meter"><span id="meter-fill"></span></div>
+      <p id="status" class="readout" aria-live="polite">starting…</p>
+    </aside>
+  </main>
+
+  <script type="module">
+    import { createMascot } from "../../runtime/mascot-state.js";
+
+    const STATES = ["idle", "active", "alert"]; // matches devbrain-rigged.json.states
+    const GENERATED = "generated/";
+
+    const stage = document.getElementById("stage");
+    const badge = document.getElementById("badge");
+    const status = document.getElementById("status");
+    const meterFill = document.getElementById("meter-fill");
+
+    // Reuse the locked SVG+CSS Output Target read-only: fetch the generated CSS into a <style>
+    // and the generated SVG markup into the stage (strip the XML prolog/PI so it inlines cleanly;
+    // injecting via innerHTML also means the SVG's own standalone script never runs — we drive it).
+    async function mountMascot() {
+      const [svgText, cssText] = await Promise.all([
+        fetch(GENERATED + "devbrain-svg-css.generated.svg").then((r) => r.text()),
+        fetch(GENERATED + "devbrain-svg-css.generated.css").then((r) => r.text()),
+      ]);
+      const style = document.createElement("style");
+      style.textContent = cssText;
+      document.head.appendChild(style);
+      stage.innerHTML = svgText.slice(svgText.indexOf("<svg"));
+      return stage.querySelector("#mascot");
+    }
+
+    // Mock telemetry: a synthetic activity metric that ramps 0 -> 1 -> 0 over ~9s, the shape a
+    // DevBrain feed would push. >0.66 => alert, >0.25 => active, else nothing asserted (idle).
+    function metricToState(load) {
+      if (load > 0.66) return "alert";
+      if (load > 0.25) return "active";
+      return null;
+    }
+
+    const start = performance.now();
+    function currentLoad() {
+      const t = ((performance.now() - start) / 9000) % 1; // 9s loop
+      return 1 - Math.abs(t * 2 - 1); // triangle wave 0 -> 1 -> 0
+    }
+
+    const mockSource = (emit) => {
+      const id = setInterval(() => {
+        const load = currentLoad();
+        meterFill.style.width = (load * 100).toFixed(0) + "%";
+        emit(metricToState(load)); // re-evaluate often so downgrade hysteresis engages
+      }, 150);
+      return () => clearInterval(id);
+    };
+
+    const root = await mountMascot();
+    const mascot = createMascot({
+      root,
+      states: STATES,
+      rules: {
+        onState(state) {
+          badge.textContent = state;
+          badge.dataset.state = state;
+          status.textContent = "state: " + state;
+        },
+      },
+    });
+    mascot.bind(mockSource);
+    window.__mascot = mascot; // expose for live verification (preview_eval)
+  </script>
+</body>
+</html>

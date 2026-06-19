@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "source": {
     "kind": "clean-mascot-source",
     "path": "C:\\Users\\student1\\Dev\\DevBrain\\public\\mascot\\default.png",
@@ -20,12 +20,12 @@
     { "name": "moustache", "parent": "body", "x": 1, "y": 25 }
   ],
   "parts": [
-    { "id": "part-body", "bone": "body", "origin": "50% 62%", "pivot": { "x": 96, "y": 121 } },
-    { "id": "part-leg-left", "bone": "leg_left", "origin": "50% 0%", "pivot": { "x": 66, "y": 137 } },
-    { "id": "part-leg-right", "bone": "leg_right", "origin": "50% 0%", "pivot": { "x": 118, "y": 137 } },
-    { "id": "part-antenna", "bone": "antenna", "origin": "50% 100%", "pivot": { "x": 139, "y": 109 } },
-    { "id": "part-eyes", "bone": "body", "origin": "50% 50%", "pivot": { "x": 93, "y": 108 } },
-    { "id": "part-moustache", "bone": "moustache", "origin": "50% 50%", "pivot": { "x": 97, "y": 146 } }
+    { "id": "part-body", "bone": "body", "origin": "50% 62%", "pivot": { "x": 96, "y": 136.88 } },
+    { "id": "part-leg-left", "bone": "leg_left", "origin": "50% 0%", "pivot": { "x": 72.5, "y": 152 } },
+    { "id": "part-leg-right", "bone": "leg_right", "origin": "50% 0%", "pivot": { "x": 122.5, "y": 152 } },
+    { "id": "part-antenna", "bone": "antenna", "origin": "50% 100%", "pivot": { "x": 143, "y": 125 } },
+    { "id": "part-eyes", "bone": "body", "origin": "50% 50%", "pivot": { "x": 96, "y": 118.5 } },
+    { "id": "part-moustache", "bone": "moustache", "origin": "50% 50%", "pivot": { "x": 97.5, "y": 146.5 } }
   ],
   "animations": {
     "idle": [
@@ -35,11 +35,20 @@
         "durationMs": 1800,
         "timing": "ease-in-out",
         "iteration": "infinite",
+        "ease": "sine.inOut",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 100%", "transform": "scale(1)" },
           { "offset": "50%", "transform": "scale(.985, 1.035)" }
         ],
-        "reduced": { "transform": "scale(1)" }
+        "channels": [
+          { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.5, "rotate": 0, "scaleX": 0.985, "scaleY": 1.035, "x": 0, "y": 0 },
+          { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": { "transform": "scale(1)" },
+        "reducedChannel": { "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
       },
       {
         "part": "part-eyes",
@@ -47,11 +56,22 @@
         "durationMs": 4200,
         "timing": "step-end",
         "iteration": "infinite",
+        "ease": "none",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 92%, 100%", "transform": "scaleY(1)" },
           { "offset": "94%, 96%", "transform": "scaleY(.12)" }
         ],
-        "reduced": {}
+        "channels": [
+          { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.92, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.94, "rotate": 0, "scaleX": 1, "scaleY": 0.12, "x": 0, "y": 0 },
+          { "offset": 0.96, "rotate": 0, "scaleX": 1, "scaleY": 0.12, "x": 0, "y": 0 },
+          { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": {},
+        "reducedChannel": {}
       }
     ],
     "active": [
@@ -61,11 +81,20 @@
         "durationMs": 520,
         "timing": "ease-in-out",
         "iteration": "infinite",
+        "ease": "sine.inOut",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 100%", "transform": "rotate(14deg)" },
           { "offset": "50%", "transform": "rotate(-18deg)" }
         ],
-        "reduced": { "transform": "rotate(10deg)" }
+        "channels": [
+          { "offset": 0, "rotate": 14, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.5, "rotate": -18, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 1, "rotate": 14, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": { "transform": "rotate(10deg)" },
+        "reducedChannel": { "rotate": 10, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
       },
       {
         "part": "part-leg-right",
@@ -73,11 +102,20 @@
         "durationMs": 520,
         "timing": "ease-in-out",
         "iteration": "infinite",
+        "ease": "sine.inOut",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 100%", "transform": "rotate(-14deg)" },
           { "offset": "50%", "transform": "rotate(18deg)" }
         ],
-        "reduced": { "transform": "rotate(-10deg)" }
+        "channels": [
+          { "offset": 0, "rotate": -14, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.5, "rotate": 18, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 1, "rotate": -14, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": { "transform": "rotate(-10deg)" },
+        "reducedChannel": { "rotate": -10, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
       }
     ],
     "alert": [
@@ -87,11 +125,20 @@
         "durationMs": 420,
         "timing": "ease-in-out",
         "iteration": "infinite",
+        "ease": "sine.inOut",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 100%", "transform": "scale(1)" },
           { "offset": "50%", "transform": "scale(1.16)" }
         ],
-        "reduced": { "transform": "scale(1.08)" }
+        "channels": [
+          { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.5, "rotate": 0, "scaleX": 1.16, "scaleY": 1.16, "x": 0, "y": 0 },
+          { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": { "transform": "scale(1.08)" },
+        "reducedChannel": { "rotate": 0, "scaleX": 1.08, "scaleY": 1.08, "x": 0, "y": 0 }
       },
       {
         "part": "part-moustache",
@@ -99,13 +146,58 @@
         "durationMs": 360,
         "timing": "cubic-bezier(.2, .8, .2, 1)",
         "iteration": "infinite",
+        "ease": "power2.out",
+        "repeat": -1,
+        "yoyo": false,
         "keyframes": [
           { "offset": "0%, 100%", "transform": "translateX(0)" },
           { "offset": "45%", "transform": "translateX(-5px)" }
         ],
-        "reduced": { "transform": "translateX(-4px)" }
+        "channels": [
+          { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+          { "offset": 0.45, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": -5, "y": 0 },
+          { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        ],
+        "reduced": { "transform": "translateX(-4px)" },
+        "reducedChannel": { "rotate": 0, "scaleX": 1, "scaleY": 1, "x": -4, "y": 0 }
       }
     ]
+  },
+  "reactGsap": {
+    "note": "Output-Target-specific accents for the React+GSAP target only. The SVG+CSS emitter ignores this block; the six shared recipes in `animations` remain the cross-target contract. These reproduce the Spike 01 React+GSAP golden's richer body motion (ADR-0007 opt-in capability).",
+    "accents": {
+      "active": [
+        {
+          "part": "part-body",
+          "name": "devbrain-body-bob",
+          "durationMs": 520,
+          "ease": "sine.inOut",
+          "repeat": -1,
+          "yoyo": false,
+          "channels": [
+            { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+            { "offset": 0.5, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": -2 },
+            { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+          ],
+          "reducedChannel": { "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        }
+      ],
+      "alert": [
+        {
+          "part": "part-body",
+          "name": "devbrain-body-jitter",
+          "durationMs": 100,
+          "ease": "rough({ strength: 2, points: 12, randomize: true })",
+          "repeat": -1,
+          "yoyo": true,
+          "channels": [
+            { "offset": 0, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 },
+            { "offset": 1, "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 1.2, "y": 0 }
+          ],
+          "reducedChannel": { "rotate": 0, "scaleX": 1, "scaleY": 1, "x": 0, "y": 0 }
+        }
+      ]
+    }
   },
   "accents": {
     "impact": []

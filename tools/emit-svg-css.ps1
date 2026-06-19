@@ -1,7 +1,9 @@
 param(
   [string]$SvgPath = "docs/buildable-slice/devbrain-manual-part.svg",
   [string]$RigPath = "docs/buildable-slice/devbrain-rigged.json",
-  [string]$OutDir = "docs/buildable-slice/generated"
+  [string]$OutDir = "docs/buildable-slice/generated",
+  # Asset identifier for output filenames; default preserves DevBrain behaviour byte-for-byte (ADR-0010).
+  [string]$AssetName = "devbrain"
 )
 
 $ErrorActionPreference = "Stop"
@@ -118,9 +120,12 @@ $resolvedOutDir = Resolve-RepoPath $OutDir
 
 $expectedStates = @("idle", "active", "alert")
 $expectedGeneratedFiles = @(
-  "devbrain-svg-css.generated.svg",
-  "devbrain-svg-css.generated.css",
-  "devbrain-svg-css.generated-demo.html"
+  "$AssetName-svg-css.generated.svg",
+  "$AssetName-svg-css.generated.css",
+  "$AssetName-svg-css.generated-demo.html",
+  "$AssetName-flat.svg",
+  "$AssetName-segmented.svg",
+  "$AssetName-segmented-review.html"
 )
 
 $svg = Read-Svg $resolvedSvgPath
@@ -392,7 +397,7 @@ $demoHtml = @"
 <body>
   <main>
     <section class="stage" aria-label="Generated DevBrain mascot SVG stage">
-      <object id="mascot-object" class="mascot-object" type="image/svg+xml" data="devbrain-svg-css.generated.svg" aria-label="DevBrain mascot"></object>
+      <object id="mascot-object" class="mascot-object" type="image/svg+xml" data="$AssetName-svg-css.generated.svg" aria-label="DevBrain mascot"></object>
     </section>
 
     <aside class="panel">
@@ -419,7 +424,7 @@ $buttonHtml
 
     function svgDataFor(state) {
       const suffix = forceReduce ? "&reduce=1" : "";
-      return "devbrain-svg-css.generated.svg?state=" + encodeURIComponent(state) + suffix;
+      return "$AssetName-svg-css.generated.svg?state=" + encodeURIComponent(state) + suffix;
     }
 
     function updateButtons() {
@@ -452,9 +457,9 @@ $buttonHtml
 </html>
 "@
 
-$generatedSvgPath = Join-Path $resolvedOutDir "devbrain-svg-css.generated.svg"
-$generatedCssPath = Join-Path $resolvedOutDir "devbrain-svg-css.generated.css"
-$generatedDemoPath = Join-Path $resolvedOutDir "devbrain-svg-css.generated-demo.html"
+$generatedSvgPath = Join-Path $resolvedOutDir "$AssetName-svg-css.generated.svg"
+$generatedCssPath = Join-Path $resolvedOutDir "$AssetName-svg-css.generated.css"
+$generatedDemoPath = Join-Path $resolvedOutDir "$AssetName-svg-css.generated-demo.html"
 
 $stylesheetPi = $null
 foreach ($node in @($svg.ChildNodes)) {
@@ -465,10 +470,10 @@ foreach ($node in @($svg.ChildNodes)) {
 }
 
 if ($null -eq $stylesheetPi) {
-  $stylesheetPi = $svg.CreateProcessingInstruction("xml-stylesheet", 'type="text/css" href="devbrain-svg-css.generated.css"')
+  $stylesheetPi = $svg.CreateProcessingInstruction("xml-stylesheet", ('type="text/css" href="' + $AssetName + '-svg-css.generated.css"'))
   $null = $svg.InsertBefore($stylesheetPi, $svg.DocumentElement)
 } else {
-  $stylesheetPi.Data = 'type="text/css" href="devbrain-svg-css.generated.css"'
+  $stylesheetPi.Data = 'type="text/css" href="' + $AssetName + '-svg-css.generated.css"'
 }
 
 $svg.DocumentElement.SetAttribute("data-state", "idle")

@@ -1,0 +1,225 @@
+{
+  "generated": "2026-06-18T19:37:25.719Z",
+  "windowMs": 8000,
+  "reps": 3,
+  "cells": [
+    {
+      "target": "svg-css",
+      "state": "idle",
+      "throttle": "none",
+      "p50": 6.9,
+      "p95": 7,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 1.6,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "idle",
+      "throttle": "4x",
+      "p50": 13.9,
+      "p95": 20.8,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 1.5,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "idle",
+      "throttle": "6x",
+      "p50": 27.7,
+      "p95": 27.8,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 1.5,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "active",
+      "throttle": "none",
+      "p50": 6.9,
+      "p95": 7,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 2.2,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "active",
+      "throttle": "4x",
+      "p50": 7,
+      "p95": 13.9,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 2.7,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "active",
+      "throttle": "6x",
+      "p50": 13.9,
+      "p95": 20.9,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 1.9,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "alert",
+      "throttle": "none",
+      "p50": 6.9,
+      "p95": 7,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 2.5,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "alert",
+      "throttle": "4x",
+      "p50": 13.9,
+      "p95": 14,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 2.7,
+      "reps": 3
+    },
+    {
+      "target": "svg-css",
+      "state": "alert",
+      "throttle": "6x",
+      "p50": 20.8,
+      "p95": 27.8,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 3,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "idle",
+      "throttle": "none",
+      "p50": 7,
+      "p95": 13.9,
+      "longTasks": 1,
+      "longTaskMs": 118,
+      "heapMB": 5.9,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "idle",
+      "throttle": "4x",
+      "p50": 41.8,
+      "p95": 55.6,
+      "longTasks": 27,
+      "longTaskMs": 1493,
+      "heapMB": 5.8,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "idle",
+      "throttle": "6x",
+      "p50": 76.4,
+      "p95": 90.2,
+      "longTasks": 108,
+      "longTaskMs": 8127,
+      "heapMB": 9.7,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "active",
+      "throttle": "none",
+      "p50": 13.8,
+      "p95": 14,
+      "longTasks": 1,
+      "longTaskMs": 98,
+      "heapMB": 6.2,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "active",
+      "throttle": "4x",
+      "p50": 41.7,
+      "p95": 55.5,
+      "longTasks": 12,
+      "longTaskMs": 739,
+      "heapMB": 7.7,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "active",
+      "throttle": "6x",
+      "p50": 76.4,
+      "p95": 90.3,
+      "longTasks": 109,
+      "longTaskMs": 8110,
+      "heapMB": 9.9,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "alert",
+      "throttle": "none",
+      "p50": 7,
+      "p95": 14,
+      "longTasks": 1,
+      "longTaskMs": 98,
+      "heapMB": 6.5,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "alert",
+      "throttle": "4x",
+      "p50": 41.7,
+      "p95": 48.7,
+      "longTasks": 3,
+      "longTaskMs": 208,
+      "heapMB": 9.2,
+      "reps": 3
+    },
+    {
+      "target": "react-gsap",
+      "state": "alert",
+      "throttle": "6x",
+      "p50": 62.4,
+      "p95": 69.5,
+      "longTasks": 135,
+      "longTaskMs": 8000,
+      "heapMB": 7.5,
+      "reps": 3
+    }
+  ],
+  "traces": [
+    {
+      "target": "svg-css",
+      "state": "active",
+      "throttle": "4x",
+      "scriptMs": 0,
+      "layoutMs": 0,
+      "recalcStyleMs": 0,
+      "taskMs": 140.4
+    },
+    {
+      "target": "react-gsap",
+      "state": "active",
+      "throttle": "4x",
+      "scriptMs": 157.4,
+      "layoutMs": 818.6,
+      "recalcStyleMs": 99.9,
+      "taskMs": 7993.9
+    }
+  ]
+}

@@ -8,8 +8,11 @@ React app. Unlike a black-box runtime, the output is **human-readable code you c
 edit, and own**: a `.tsx` component, GSAP timelines (or pure SVG/CSS), and a small
 state machine that binds animation states to your application's live data.
 
-> Status: **pre-alpha / research + design phase.** This repository currently holds the
-> product discovery and technical proposal. No runtime code yet. See [`docs/`](docs/).
+> Status: **v1 buildable slice complete** (pre-1.0, single-asset). The full pipeline
+> runs end-to-end on the DevBrain mascot — vectorize → segment → emit → orchestrate — and
+> is verifiable with one command (`tools/check-all.ps1`). v1 is scoped to one asset and
+> the SVG+CSS / React+GSAP Output Targets; broader automation is post-1.0. See the
+> [Run / Quickstart](#run--quickstart) section and [`docs/`](docs/).
 
 ---
 
@@ -44,20 +47,20 @@ whole-sprite motion — which is exactly why it looks "good but not pro": the le
 antenna can't move independently. That asset is **test case #1**
 (see [`assets/`](assets/)) and the baseline mascot-forge must beat.
 
-## Pipeline (target)
+## Pipeline (shipped — v1 buildable slice)
 
 ```
 [ image.png ]
-      │  Phase 1 — Ingest & Vectorize (VTracer / pixel-grid → SVG)
+      │  ✅ Phase 1 — Ingest & Vectorize (pixel-grid → colour-quantized SVG)
       ▼
 [ flat SVG ]
-      │  Phase 2 — Assisted Segmentation (AI proposes parts, human confirms)
+      │  ✅ Phase 2 — Assisted Segmentation (AI proposes parts, human confirms)
       ▼
 [ semantic <g> layers + transform-origins ]
-      │  Phase 3 — Rig & Emit (pluggable backend)
+      │  ✅ Phase 3 — Rig & Emit (pluggable backend)
       ▼
 [ React+GSAP component ]  ──or──  [ framework-agnostic SVG+CSS ]
-      │  Phase 4 — State Orchestrator (bind states to live telemetry)
+      │  ✅ Phase 4 — State Orchestrator (bind states to live telemetry)
       ▼
 [ mascot that breathes on idle, walks on activity, panics on alert ]
 ```
@@ -73,6 +76,10 @@ See the [Technical Proposal](docs/technical-proposal.md) for the full architectu
 | Output | **Pluggable emitter**: React+GSAP ↔ SVG+CSS | [0003](docs/adr/0003-pluggable-emitter.md) |
 | License | **MIT** (portfolio-first, fully open) | [0004](docs/adr/0004-mit-license.md) |
 | PoC scope | **Pixel-art first** (clean grid → reliable trace) | [0005](docs/adr/0005-pixel-art-poc-first.md) |
+| Build order | **Research-first buildable slice** (prove one path end-to-end) | [0006](docs/adr/0006-research-first-buildable-slice.md) |
+| Output verdict | **Both targets; SVG+CSS default**, React+GSAP opt-in | [0007](docs/adr/0007-output-target-verdict-both-svg-css-default.md) |
+| Rig contract | **`rigged.json` schema v2** (canonical pivots, structured channels) | [0008](docs/adr/0008-rigged-json-schema-v2-lock.md) |
+| Vectorization | **Deterministic colour quantization** for anti-aliased source | [0009](docs/adr/0009-vectorize-quantize-anti-aliased-source.md) |
 
 ## Repository layout
 
@@ -80,17 +87,55 @@ See the [Technical Proposal](docs/technical-proposal.md) for the full architectu
 mascot-forge/
 ├── README.md                  ← you are here
 ├── LICENSE                    ← MIT
+├── CONTEXT.md                 ← project vocabulary + concept glossary
+├── runtime/                   ← dep-free Phase-4 orchestrator core + node self-check
+│   ├── mascot-state.js
+│   └── mascot-state.test.mjs
+├── tools/                     ← emitters + structural checks (PowerShell + node)
+│   ├── vectorize-pixel.ps1    ← P1: PNG → colour-quantized flat.svg
+│   ├── segment-parts.ps1      ← P2: proposed semantic segmentation
+│   ├── emit-svg-css.ps1       ← P3: SVG+CSS Output Target emitter
+│   ├── emit-react-gsap/       ← P3: React+GSAP emitter + useMascotState hook
+│   ├── check-flat-svg.ps1 · check-segmented.ps1 · check-buildable-slice.ps1 · check-orchestrator.ps1
+│   └── check-all.ps1          ← runs every check above + the node determinism test
 ├── docs/
 │   ├── product-discovery.md   ← problem, market gap, personas, scope, success criteria
 │   ├── technical-proposal.md  ← architecture, phases, stack, open questions
-│   ├── research/
-│   │   ├── landscape.md       ← competitor + prior-art analysis (sourced)
-│   │   ├── references.md       ← annotated link library
-│   │   └── research-log.md    ← methodology + tool-per-query trail
-│   └── adr/                   ← architecture decision records
+│   ├── buildable-slice/       ← the v1 slice: rig fixture, emitter output, demos
+│   │   ├── generated/         ← emitted SVG+CSS Output Target + flat/segmented SVGs
+│   │   ├── orchestrator-demo.html  ← Phase-4 data-reactive demo
+│   │   └── showcase.html      ← before (PNG) / after (forged) side-by-side
+│   ├── research/              ← landscape, references, research-log, phase plans
+│   └── adr/                   ← architecture decision records (0001–0009)
 └── assets/
-    └── devbrain-mascot-reference-v1.png   ← test case #1
+    └── devbrain-mascot-reference-v1.png   ← test case #1 (the baseline to beat)
 ```
+
+## Run / Quickstart
+
+Requirements: **PowerShell 7+** (`pwsh`) and **Node.js** (for the orchestrator self-check).
+No npm install, no build step, no dependencies — the runtime core is dependency-free.
+
+```powershell
+# 1. Emit the SVG+CSS Output Target from the rig contract (regenerates docs/buildable-slice/generated/)
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
+
+# 2. Verify the whole pipeline in one command (P1 → P4 + the node determinism test)
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
+```
+
+The demos `fetch()` the generated SVG, so serve them over HTTP (file:// is blocked by CORS):
+
+```powershell
+# from the repo root
+python -m http.server 4178
+```
+
+Then open:
+
+- `http://localhost:4178/docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — the generated SVG+CSS demo (manual state buttons).
+- `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the mascot reacting to a live (mock) telemetry feed.
+- `http://localhost:4178/docs/buildable-slice/showcase.html` — **before (flipbook PNG) vs after (forged, data-reactive)** side-by-side.
 
 ## License
 

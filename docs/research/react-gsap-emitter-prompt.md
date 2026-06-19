@@ -1,5 +1,15 @@
 # Next Stage Prompt — Schema-Lock + React+GSAP Emitter (completes Phase 3)
 
+> ✅ **COMPLETED 2026-06-17.** Both deliverables shipped and live-verified.
+> `rigged.json` is locked to **schema v2** (canonical pivots, structured channel keyframes,
+> explicit yoyo/iteration; legacy CSS fields retained → SVG+CSS goldens byte-unchanged). The
+> React+GSAP emitter lives at `tools/emit-react-gsap/`; the generated component rotates every
+> part around its canonical pivot, walks the legs out-of-phase, interrupts active→alert
+> cleanly, and honours reduced motion. Decision recorded in
+> [ADR-0008](../adr/0008-rigged-json-schema-v2-lock.md). Next stage:
+> [Phase 1 — Vectorize](phase-1-vectorize-prompt.md)
+> ([plan](../phase-1-vectorize-implementation-plan.md)).
+
 Target: fresh Codex or Claude Code session working inside `C:\Users\student1\Dev\mascot-forge`.
 
 Optimized for: the stage after Spike 01 resolved Q1 (ADR-0007: both targets, SVG+CSS

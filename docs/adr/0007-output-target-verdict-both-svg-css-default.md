@@ -4,6 +4,7 @@
 - **Date:** 2026-06-17
 - **Resolves:** Q1 in `docs/research/research-log.md`
 - **Evidence:** `spikes/01-emitter/FINDINGS.md` (built both targets from one shared rig)
+- **Validated empirically 2026-06-18** — 18-cell CPU-throttle runtime benchmark (Q3): SVG+CSS shows 0 main-thread long tasks / 0 ms scripting at every throttle (pure compositor), React+GSAP pins the main thread at ~13 fps under 6× throttle. SVG+CSS-default verdict holds. See `spikes/02-runtime-cost/FINDINGS.md`.
 
 ## Context
 Q1 asked whether mascot-forge's first Output Target should be **React+GSAP**, **SVG+CSS**,
