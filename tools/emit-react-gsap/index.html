@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>mascot-forge — React+GSAP generated Mascot</title>
+    <style>
+      :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #eef3f8; color: #16212f; }
+      body { margin: 0; }
+      main { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px); gap: 18px; min-height: 100vh; padding: 20px; box-sizing: border-box; align-items: center; }
+      .stage, .panel { background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 14px 32px rgb(22 33 47 / 10%); }
+      .stage { display: grid; place-items: center; min-height: 420px; overflow: hidden; }
+      .mascot-stage { width: min(72vw, 520px); }
+      .mascot-stage svg { width: 100%; height: auto; }
+      .panel { padding: 16px; }
+      h1 { margin: 0 0 14px; font-size: 20px; }
+      .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+      button { min-width: 74px; min-height: 36px; padding: 7px 10px; border: 1px solid #9aa8bd; border-radius: 6px; background: #fff; color: #16212f; cursor: pointer; font: inherit; }
+      button[aria-pressed="true"] { background: #18324f; color: #fff; border-color: #18324f; }
+      pre#probe { background: #0d1b2a; color: #d6e2f0; padding: 10px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; min-height: 40px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/demo/main.tsx"></script>
+  </body>
+</html>

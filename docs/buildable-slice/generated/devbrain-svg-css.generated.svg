@@ -4,7 +4,7 @@
   <title id="title">DevBrain Manual Part SVG fixture</title>
   <desc id="desc">Source-pixel buildable-slice mascot fixture with semantic rig parts for SVG and CSS animation.</desc>
   <g id="rig-root">
-    <g id="part-leg-left" class="part" data-bone="leg_left" data-origin="50% 0%" data-pivot-x="66" data-pivot-y="137">
+    <g id="part-leg-left" class="part" data-bone="leg_left" data-origin="50% 0%" data-pivot-x="72.5" data-pivot-y="152">
       <rect x="72" y="152" width="1" height="1" fill="#18262A" />
       <rect x="73" y="152" width="1" height="1" fill="#343C3D" />
       <rect x="74" y="152" width="1" height="1" fill="#343938" />
@@ -241,7 +241,7 @@
       <rect x="77" y="177" width="2" height="1" fill="#373C3D" />
       <rect x="79" y="177" width="1" height="1" fill="#2E3232" />
     </g>
-    <g id="part-leg-right" class="part" data-bone="leg_right" data-origin="50% 0%" data-pivot-x="118" data-pivot-y="137">
+    <g id="part-leg-right" class="part" data-bone="leg_right" data-origin="50% 0%" data-pivot-x="122.5" data-pivot-y="152">
       <rect x="115" y="152" width="1" height="1" fill="#5B6665" />
       <rect x="116" y="152" width="1" height="1" fill="#353E3F" />
       <rect x="117" y="152" width="1" height="1" fill="#363E3D" />
@@ -462,7 +462,7 @@
       <rect x="128" y="177" width="1" height="1" fill="#303536" />
       <rect x="129" y="177" width="1" height="1" fill="#1A1E1F" />
     </g>
-    <g id="part-antenna" class="part" data-bone="antenna" data-origin="50% 100%" data-pivot-x="139" data-pivot-y="109">
+    <g id="part-antenna" class="part" data-bone="antenna" data-origin="50% 100%" data-pivot-x="143" data-pivot-y="125">
       <rect x="157" y="77" width="1" height="1" fill="#A7DE87" />
       <rect x="158" y="77" width="1" height="1" fill="#73E330" />
       <rect x="159" y="77" width="1" height="1" fill="#73DD33" />
@@ -741,7 +741,7 @@
       <rect x="122" y="124" width="1" height="1" fill="#303738" />
       <rect x="123" y="124" width="1" height="1" fill="#1C2D3E" />
     </g>
-    <g id="part-body" class="part" data-bone="body" data-origin="50% 62%" data-pivot-x="96" data-pivot-y="121">
+    <g id="part-body" class="part" data-bone="body" data-origin="50% 62%" data-pivot-x="96" data-pivot-y="136.88">
       <rect x="151" y="91" width="1" height="1" fill="#959695" />
       <rect x="67" y="93" width="1" height="1" fill="#EDBB85" />
       <rect x="68" y="93" width="1" height="1" fill="#EBB97E" />
@@ -6410,7 +6410,7 @@
       <rect x="115" y="163" width="1" height="1" fill="#5F6262" />
       <rect x="115" y="164" width="1" height="1" fill="#5F6262" />
     </g>
-    <g id="part-moustache" class="part" data-bone="moustache" data-origin="50% 50%" data-pivot-x="97" data-pivot-y="146">
+    <g id="part-moustache" class="part" data-bone="moustache" data-origin="50% 50%" data-pivot-x="97.5" data-pivot-y="146.5">
       <rect x="160" y="128" width="1" height="1" fill="#C9730C" />
       <rect x="161" y="128" width="1" height="1" fill="#CA740F" />
       <rect x="162" y="128" width="1" height="1" fill="#C97310" />
@@ -7346,7 +7346,7 @@
       <rect x="115" y="163" width="1" height="1" fill="#5F6262" />
       <rect x="115" y="164" width="1" height="1" fill="#5F6262" />
     </g>
-    <g id="part-eyes" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="93" data-pivot-y="108">
+    <g id="part-eyes" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="96" data-pivot-y="118.5">
       <rect x="112" y="112" width="1" height="1" fill="#5E5034" />
       <rect x="72" y="113" width="1" height="1" fill="#1A2E38" />
       <rect x="73" y="113" width="1" height="1" fill="#1A2A33" />

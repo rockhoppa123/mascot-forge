@@ -1,0 +1,12 @@
+{
+  "assetName": "land-rover",
+  "viewBoxSize": 256,
+  "parts": [
+    { "id": "part-body",       "bone": "body",      "hint": "largest-blob" },
+    { "id": "part-leg-left",   "bone": "leg_left",  "hint": "below-body-left" },
+    { "id": "part-leg-right",  "bone": "leg_right", "hint": "below-body-right" },
+    { "id": "part-antenna",    "bone": "antenna",   "hint": "above-body" },
+    { "id": "part-eyes",       "bone": "body",      "hint": "colour-island-upper" },
+    { "id": "part-moustache",  "bone": "moustache", "hint": "below-eyes" }
+  ]
+}

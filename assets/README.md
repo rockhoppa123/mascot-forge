@@ -1,4 +1,21 @@
-# Assets
+# assets/
+
+Per-asset source files. Each subdirectory is one mascot.
+
+## Clean-Mascot-Source contract
+
+- Source must be a **transparent PNG**, flat/pixel-art-friendly (no gradients, no anti-aliased edges)
+- Oversized sources: downscale with **nearest-neighbor** interpolation before vectorizing — NOT bicubic
+  - Bicubic blends flat cartoon colours into smooth gradients; median-cut (ADR-0009) then slices each into visible colour bands
+  - Nearest-neighbor preserves hard colour edges → flat runs merge → no banding
+- Reference: `spikes/03-second-asset/prep-source.ps1` — worked background-keying + NN-downscale example
+
+## Layout
+
+| Directory | Asset |
+|---|---|
+| `devbrain/` | DevBrain mascot (reference asset, v1 pipeline) |
+| `land-rover/` | Land Rover Series III (Spike 03 second-asset validation) |
 
 ## Test case #1 — DevBrain mascot
 

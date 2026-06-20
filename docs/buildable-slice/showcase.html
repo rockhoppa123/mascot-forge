@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mascot-forge — before / after, two assets</title>
+  <!--
+    Showcase: the visual proof that mascot-forge is an ENGINE, not one hand-tuned demo.
+    Two visually different assets, each shown baseline-vs-forged:
+      • DevBrain   — pixel-art creature (the origin asset, test case #1).
+      • Land Rover — cartoon vehicle (the second-asset validation, spikes/03-second-asset).
+    BEFORE = the original raster (a whole-sprite PNG; parts can't move independently, no live data).
+    AFTER  = the SAME asset, forged. Each "after" panel fetch+injects the locked generated SVG+CSS
+    read-only (no duplicated geometry) and drives it with the dependency-free Phase-4 orchestrator
+    (../../runtime/mascot-state.js) from one MOCK telemetry feed. The two forged assets share the
+    same part-id namespace by design (one rig schema), so each panel's ids are prefixed at inject
+    time (#mascot -> #mascot-db / #mascot-lr) to let both coexist on one page.
+    Serve over http (e.g. `python -m http.server` from the repo root) — fetch() is blocked on file://.
+  -->
+  <style>
+    :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #eef3f8; color: #16212f; }
+    body { margin: 0; }
+    header { padding: 22px 24px 4px; }
+    header h1 { margin: 0 0 4px; font-size: 22px; }
+    header p { margin: 0; color: #4d5b6d; font-size: 14px; max-width: 64ch; }
+    h2.asset { margin: 20px 24px 0; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: #18324f; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 10px 24px 28px; box-sizing: border-box; align-items: stretch; }
+    .panel { background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 14px 32px rgb(22 33 47 / 10%); display: flex; flex-direction: column; overflow: hidden; }
+    .tag { padding: 6px 14px; font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+    .tag.before { background: #e4ebf4; color: #4d5b6d; }
+    .tag.after { background: #1f6feb; color: #fff; }
+    .stage { display: grid; place-items: center; min-height: 320px; padding: 16px; }
+    .stage img { width: min(60%, 240px); height: auto; image-rendering: pixelated; }
+    .stage svg { width: min(72%, 340px); max-height: 48vh; height: auto; }
+    .caption { padding: 12px 16px 16px; border-top: 1px solid #eef1f6; }
+    .caption p { margin: 0; font-size: 13px; color: #4d5b6d; line-height: 1.45; }
+    .badge { display: inline-block; min-width: 64px; text-align: center; padding: 5px 12px; margin-top: 8px; border-radius: 999px; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; background: #e4ebf4; color: #18324f; }
+    .badge[data-state="active"] { background: #1f6feb; color: #fff; }
+    .badge[data-state="alert"] { background: #d6453b; color: #fff; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>mascot-forge: before / after</h1>
+    <p>One pipeline, two visually different assets — a pixel-art creature and a cartoon vehicle —
+       each shown baseline (left) vs forged (right). The forged panels have semantic parts that
+       articulate independently and a state machine reacting to one live (mock) telemetry feed,
+       auto-cycling idle &rarr; active &rarr; alert. Same engine, zero per-asset render code.</p>
+  </header>
+
+  <h2 class="asset">DevBrain — pixel-art creature (origin asset)</h2>
+  <main>
+    <section class="panel">
+      <div class="tag before">Before — flipbook baseline</div>
+      <div class="stage"><img src="../../assets/devbrain-mascot-reference-v1.png" alt="DevBrain flipbook baseline PNG (whole-sprite pose)"></div>
+      <div class="caption"><p>Whole-sprite pre-rendered PNG. Motion is a flipbook of full-frame poses — the legs and
+         antenna cannot move independently, and it knows nothing about live data.</p></div>
+    </section>
+    <section class="panel">
+      <div class="tag after">After — forged &amp; data-reactive</div>
+      <div class="stage" id="stage-db" aria-label="Forged DevBrain mascot driven by a live telemetry source"></div>
+      <div class="caption">
+        <p>Independent part articulation + reacts to live data via the Phase-4 orchestrator.
+           Priority <code>alert &gt; active &gt; idle</code>; downgrades hold for hysteresis.</p>
+        <span id="badge-db" class="badge" data-state="idle">idle</span>
+      </div>
+    </section>
+  </main>
+
+  <h2 class="asset">Land Rover — cartoon vehicle (second-asset validation)</h2>
+  <main>
+    <section class="panel">
+      <div class="tag before">Before — flat source sticker</div>
+      <div class="stage"><img src="../../assets/land-rover/land-rover.png" alt="Land Rover cartoon source sticker (flat raster)"></div>
+      <div class="caption"><p>A flat cartoon sticker — a completely different asset (vehicle, not creature;
+         olive/Union-Jack palette; 1024&sup2; JPEG source). Forged by the same engine with zero engine edits.</p></div>
+    </section>
+    <section class="panel">
+      <div class="tag after">After — forged &amp; data-reactive</div>
+      <div class="stage" id="stage-lr" aria-label="Forged Land Rover mascot driven by a live telemetry source"></div>
+      <div class="caption">
+        <p>The DevBrain rig slots remapped onto vehicle anatomy (wheels, flag, headlight eyes, grille) —
+           same schema, same orchestrator, same mock feed.</p>
+        <span id="badge-lr" class="badge" data-state="idle">idle</span>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createMascot } from "../../runtime/mascot-state.js";
+
+    const STATES = ["idle", "active", "alert"]; // matches both assets' rigged.json.states
+
+    // The two forged assets share one rig schema, so their SVGs reuse the same #mascot / #part-* ids.
+    // Prefix those ids per panel at inject time so both can live in one document without collision.
+    function scope(text, p, isCss) {
+      let out = text.replace(/id="mascot"/g, `id="mascot-${p}"`).replace(/id="part-/g, `id="part-${p}-`);
+      if (isCss) out = out.replace(/#mascot/g, `#mascot-${p}`).replace(/#part-/g, `#part-${p}-`);
+      return out;
+    }
+
+    // Reuse each locked SVG+CSS Output Target read-only: fetch the generated CSS into a <style> and
+    // the generated SVG markup into the stage (strip the XML prolog so it inlines; injecting via
+    // innerHTML also means the SVG's own standalone script never runs — the orchestrator drives it).
+    async function mountForged(stageId, badgeId, prefix, svgUrl, cssUrl) {
+      const stage = document.getElementById(stageId);
+      const badge = document.getElementById(badgeId);
+      const [svgText, cssText] = await Promise.all([
+        fetch(svgUrl).then((r) => r.text()),
+        fetch(cssUrl).then((r) => r.text()),
+      ]);
+      const style = document.createElement("style");
+      style.textContent = scope(cssText, prefix, true);
+      document.head.appendChild(style);
+      stage.innerHTML = scope(svgText.slice(svgText.indexOf("<svg")), prefix, false);
+      const root = stage.querySelector("svg");
+      const mascot = createMascot({
+        root,
+        states: STATES,
+        rules: {
+          onState(state) {
+            badge.textContent = state;
+            badge.dataset.state = state;
+          },
+        },
+      });
+      mascot.bind(mockSource);
+      return mascot;
+    }
+
+    // Mock telemetry: a synthetic activity metric that ramps 0 -> 1 -> 0 over ~9s — the shape a real
+    // feed would push. >0.66 => alert, >0.25 => active, else nothing asserted (idle). Both forged
+    // panels bind the same feed, so they react in lockstep to one "load".
+    function metricToState(load) {
+      if (load > 0.66) return "alert";
+      if (load > 0.25) return "active";
+      return null;
+    }
+    const start = performance.now();
+    function currentLoad() {
+      const t = ((performance.now() - start) / 9000) % 1; // 9s loop
+      return 1 - Math.abs(t * 2 - 1); // triangle wave 0 -> 1 -> 0
+    }
+    const mockSource = (emit) => {
+      const id = setInterval(() => emit(metricToState(currentLoad())), 150);
+      return () => clearInterval(id);
+    };
+
+    const mascots = await Promise.all([
+      mountForged("stage-db", "badge-db", "db",
+        "generated/devbrain-svg-css.generated.svg", "generated/devbrain-svg-css.generated.css"),
+      mountForged("stage-lr", "badge-lr", "lr",
+        "generated-land-rover/land-rover-svg-css.generated.svg", "generated-land-rover/land-rover-svg-css.generated.css"),
+    ]);
+    window.__mascots = mascots; // expose for live verification (preview_eval)
+  </script>
+</body>
+</html>

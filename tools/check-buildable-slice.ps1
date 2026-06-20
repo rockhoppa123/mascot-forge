@@ -106,9 +106,12 @@ $generatedFileNames = @(Get-ChildItem -LiteralPath $generatedPath -File | Select
 $expectedGeneratedFileNames = @(
   "devbrain-svg-css.generated.svg",
   "devbrain-svg-css.generated.css",
-  "devbrain-svg-css.generated-demo.html"
+  "devbrain-svg-css.generated-demo.html",
+  "devbrain-flat.svg",
+  "devbrain-segmented.svg",
+  "devbrain-segmented-review.html"
 )
-Assert-Set $generatedFileNames $expectedGeneratedFileNames "generated/ must contain only the generated SVG+CSS demo files."
+Assert-Set $generatedFileNames $expectedGeneratedFileNames "generated/ must contain only the generated SVG+CSS demo files, the Phase 1 flat.svg, and the Phase 2 segmentation artifacts."
 
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $repoRoot "package.json") -PathType Leaf)) "Root package.json must not be created for this pass."
 
@@ -150,7 +153,7 @@ foreach ($id in $expectedPartIds) {
 Assert-True ($null -eq $svg.SelectSingleNode("//*[@id='impact']")) "Manual Part SVG must not expose impact as a semantic state or part id."
 
 $rig = Read-JsonFile $rigPath
-Assert-True ($rig.version -eq 1) "rigged.json version must be 1."
+Assert-True ($rig.version -eq 2) "rigged.json version must be 2 (schema-lock: canonical pivots + structured channels + explicit yoyo/iteration)."
 Assert-True ($rig.source.kind -eq "clean-mascot-source") "rigged.json source.kind must be clean-mascot-source."
 Assert-True ($rig.source.path -eq "C:\Users\student1\Dev\DevBrain\public\mascot\default.png") "rigged.json source.path must record the approved Clean Mascot Source."
 Assert-True ($rig.source.metadata.width -eq 192) "Clean Mascot Source width must be recorded as 192."
@@ -226,6 +229,47 @@ foreach ($state in $expectedStates) {
 }
 
 Assert-True (@($allRecipes).Count -eq 6) "rigged.json must include the six minimal SVG+CSS motion recipes."
+
+# --- Schema v2: structured channels + explicit loop semantics (emitter-neutral contract) ---
+$channelKeys = @("rotate", "scaleX", "scaleY", "x", "y")
+foreach ($entry in $allRecipes) {
+  $recipe = $entry.Recipe
+  foreach ($v2Property in @("ease", "repeat", "yoyo", "channels", "reducedChannel")) {
+    Assert-True ($recipe.PSObject.Properties.Name -contains $v2Property) "v2 recipe '$($recipe.name)' is missing required property '$v2Property'."
+  }
+  Assert-True ([string]::IsNullOrWhiteSpace($recipe.ease) -eq $false) "v2 recipe '$($recipe.name)' must include a GSAP ease."
+  Assert-True ($recipe.yoyo -is [bool]) "v2 recipe '$($recipe.name)' yoyo must be a boolean."
+  [int]$recipe.repeat | Out-Null
+  $channels = @($recipe.channels)
+  Assert-True ($channels.Count -ge 2) "v2 recipe '$($recipe.name)' must include at least two channel keyframes."
+  $previousOffset = -1
+  foreach ($channel in $channels) {
+    [double]$channel.offset | Out-Null
+    Assert-True ([double]$channel.offset -ge $previousOffset) "v2 recipe '$($recipe.name)' channel offsets must be non-decreasing."
+    $previousOffset = [double]$channel.offset
+    foreach ($key in $channelKeys) {
+      Assert-True ($channel.PSObject.Properties.Name -contains $key) "v2 recipe '$($recipe.name)' channel keyframe missing '$key'."
+    }
+  }
+  Assert-True ([double]$channels[0].offset -eq 0) "v2 recipe '$($recipe.name)' first channel offset must be 0."
+  Assert-True ([double]$channels[-1].offset -eq 1) "v2 recipe '$($recipe.name)' last channel offset must be 1."
+}
+
+# Pivot is canonical and must resolve back to the accepted CSS origin (no drift between targets).
+Assert-True ($null -ne $rig.parts[0].pivot.x) "Parts must carry canonical absolute pivots for the React+GSAP target."
+
+# reactGsap accents are an optional, Output-Target-specific block. If present, validate lightly:
+# the SVG+CSS emitter ignores it, so it must not smuggle new states or unknown parts.
+if ($rig.PSObject.Properties.Name -contains "reactGsap") {
+  $accentStates = @($rig.reactGsap.accents.PSObject.Properties.Name)
+  foreach ($state in $accentStates) {
+    Assert-True ($expectedStates -contains $state) "reactGsap accent state '$state' is not an allowed Animation State."
+    foreach ($accent in @($rig.reactGsap.accents.$state)) {
+      Assert-True ($partIds -contains $accent.part) "reactGsap accent '$($accent.name)' references unknown part '$($accent.part)'."
+      Assert-True (@($accent.channels).Count -ge 2) "reactGsap accent '$($accent.name)' must include channel keyframes."
+    }
+  }
+}
 
 $css = Get-Content -Raw -LiteralPath $cssPath
 Assert-True ($css -match "transform-box:\s*fill-box") "CSS must use transform-box: fill-box."
@@ -316,5 +360,17 @@ Assert-True ($generatedDemo.Contains('statusText.textContent = selectedState + (
 $generatedDemoStates = @([regex]::Matches($generatedDemo, 'data-set-state="([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
 Assert-Sequence $generatedDemoStates $states "Generated demo state controls must come from rigged.json states."
 Assert-True (-not $generatedDemo.Contains("data-set-state=`"impact`"")) "Generated demo must not expose impact as a state switcher button."
+
+# --- Showcase: every generated SVG/CSS it fetches must exist on disk (catches a broken copy/path
+# before a viewer sees a blank panel). Scoped to the generated*/ references it injects. ---
+$showcasePath = Join-Path $sliceRoot "showcase.html"
+Assert-File $showcasePath
+$showcase = Get-Content -Raw -LiteralPath $showcasePath
+$showcaseRefs = @([regex]::Matches($showcase, '"(generated[-A-Za-z0-9_/]*/[A-Za-z0-9._-]+\.(?:svg|css))"') |
+  ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+Assert-True ($showcaseRefs.Count -ge 2) "showcase.html must fetch the generated SVG+CSS for both assets."
+foreach ($ref in $showcaseRefs) {
+  Assert-File (Join-Path $sliceRoot ($ref -replace "/", "\"))
+}
 
 Write-Host "Buildable Slice structural checks passed."

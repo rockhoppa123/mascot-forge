@@ -41,6 +41,9 @@ claim of production-quality automated vectorization or segmentation.
 | `generated/devbrain-svg-css.generated.svg` | Generated SVG+CSS Output Target SVG emitted from the Manual Part SVG and `rigged.json`. |
 | `generated/devbrain-svg-css.generated.css` | Generated stylesheet emitted from `rigged.json` part origins and animation recipes. |
 | `generated/devbrain-svg-css.generated-demo.html` | Generated browser harness with state controls emitted from `rigged.json`. |
+| `generated/devbrain-flat.svg` | Phase 1 generated `flat.svg`: colour-clustered `<rect>` geometry vectorized from the Clean Mascot Source PNG by `tools/vectorize-pixel.ps1` (deterministic median-cut quantization — see [ADR-0009](../adr/0009-vectorize-quantize-anti-aliased-source.md)). |
+| `orchestrator-demo.html` | Phase 4 demo: reuses the locked generated SVG and drives `data-state` from a mock telemetry feed via the orchestrator core. *Needs a static HTTP server (fetches the generated SVG).* |
+| `showcase.html` | Phase 6 before/after: the flipbook PNG baseline beside the forged, auto-cycling data-reactive mascot (reuses the locked generated SVG + the orchestrator core). *Needs a static HTTP server (fetches the generated SVG).* |
 | `goldens/` | Stored reduced-motion screenshot baselines from explicitly accepted review passes. |
 
 ## Golden Acceptance
@@ -60,6 +63,27 @@ docs/buildable-slice/goldens/devbrain-svg-css-alert-reduced.png
 
 Only explicitly accepted `?state=<idle|active|alert>&reduce=1` captures belong in
 `goldens/`. New source-pixel captures should stay in a temp review folder until accepted.
+
+## Schema v2 (rig contract lock)
+
+`devbrain-rigged.json` was locked to **version 2** so one rig contract drives **both** Output
+Targets (SVG+CSS and React+GSAP) around identical pivots. The change is **additive and
+goldens-safe** — the accepted reduced-motion PNGs are byte-unchanged and `emit-svg-css.ps1`
+is untouched.
+
+| Fix (FINDINGS §8) | What changed | Why goldens are safe |
+|---|---|---|
+| Canonical pivot | `parts[].pivot` corrected so each pivot equals the point its accepted CSS `origin` % resolves to in the part bbox (e.g. leg hip → `72.5, 152`). `data-pivot-*` on the SVG updated in lockstep. | `pivot` is metadata; the SVG+CSS target still renders from the unchanged `origin` %, so reduced poses are identical. The React+GSAP target uses the absolute pivot as a GSAP `svgOrigin`, so both targets rotate around the **same** point with no %-resolution drift. |
+| Structured channels | Added `channels[] {offset, rotate, scaleX, scaleY, x, y}` per recipe, plus explicit `ease` / `repeat` / `yoyo` / `reducedChannel`. | The legacy CSS-string `keyframes` / `iteration` / `reduced` fields are **retained** as the back-compat contract `emit-svg-css.ps1` consumes verbatim. |
+| `reactGsap.accents` | New optional block carrying React+GSAP-only body bob (active) and body jitter (alert). | The SVG+CSS emitter ignores it; the six shared recipes remain the cross-target contract. |
+
+> Pivot-vs-origin reconciliation: the accepted goldens were rendered from the CSS `origin` %,
+> so the previously-drifted absolute pivots were corrected **to match the accepted look**
+> rather than re-baking the goldens. Any future move to a truer anatomical hip is a separate
+> reviewed golden-acceptance pass.
+
+The `check-buildable-slice.ps1` guard now asserts version 2, the structured channel fields,
+and the optional `reactGsap` block, in addition to all prior SVG+CSS invariants.
 
 ## Run
 

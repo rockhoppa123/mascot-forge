@@ -29,6 +29,10 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Local tooling / agent config (not part of the public repo)
+.claude/
+.codegraph/
+
 # Scratch / generated artifacts (keep curated assets in assets/)
 /scratch/
 /tmp/
