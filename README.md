@@ -2,17 +2,27 @@
 
 **Turn a static image into a rigged, articulated, telemetry-aware web mascot — as code you own.**
 
+![A mascot forged by mascot-forge — semantic parts that articulate and react to live state](docs/hero-mascot.png)
+
+> _Interim still. The live before/after showcase animates two assets side by side — serve the repo
+> and open [`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html). An animated
+> GIF/screenshot of that page is the one remaining capture step (see [CONTRIBUTING](CONTRIBUTING.md))._
+
 mascot-forge is an open-source pipeline that takes a flat raster image (PNG, pixel-art
 first) and produces an **animated, component-segmented mascot** that you drop into a
 React app. Unlike a black-box runtime, the output is **human-readable code you can read,
 edit, and own**: a `.tsx` component, GSAP timelines (or pure SVG/CSS), and a small
 state machine that binds animation states to your application's live data.
 
-> Status: **v1 buildable slice complete** (pre-1.0, single-asset). The full pipeline
-> runs end-to-end on the DevBrain mascot — vectorize → segment → emit → orchestrate — and
-> is verifiable with one command (`tools/check-all.ps1`). v1 is scoped to one asset and
-> the SVG+CSS / React+GSAP Output Targets; broader automation is post-1.0. See the
-> [Run / Quickstart](#run--quickstart) section and [`docs/`](docs/).
+**Proven on two visually different assets** — a pixel-art creature (DevBrain) and a cartoon
+vehicle (Land Rover) — forged by the same engine with **zero engine edits** (see the
+[second-asset validation](spikes/03-second-asset/FINDINGS.md)). That is the difference between
+*one hand-tuned demo* and *an engine*.
+
+> Status: **v1 complete** (pre-1.0). The full pipeline runs end-to-end — vectorize → segment →
+> emit → orchestrate — and is verifiable with one command (`tools/check-all.ps1`). Two assets are
+> proven; the engine is asset-agnostic. Scoped to the SVG+CSS / React+GSAP Output Targets; broader
+> automation is post-1.0. See the [Run / Quickstart](#run--quickstart) section and [`docs/`](docs/).
 
 ---
 
@@ -124,6 +134,24 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
 ```
 
+### Forge a new asset (the `mf` CLI)
+
+`mf.ps1` is a dependency-free dispatcher over the pipeline scripts (v1.2) — no Node CLI, no install:
+
+```powershell
+pwsh ./mf.ps1 forge <asset>   # P1 vectorize → P2 segment, then stops for the human review (ADR-0002)
+#   → open assets/<asset>/<asset>-segmented-review.html, confirm parts/pivots, author the rig
+pwsh ./mf.ps1 emit  <asset>    # P3 emit SVG+CSS + React+GSAP from the confirmed rig
+pwsh ./mf.ps1 check            # full regression gate (alias for tools/check-all.ps1)
+```
+
+- It assumes `assets/<asset>/parts-spec.json` exists; source PNG, rig, and out-dir default by
+  convention and are overridable (`-SourcePath`, `-RigPath`, `-OutDir`, …). `mf forge devbrain`
+  reproduces the committed DevBrain output byte-for-byte.
+- **Oversized sources:** segmentation's CCL is O(n²) over flat `<rect>`s, so `segment-parts.ps1`
+  fails fast above `-MaxRects` (default 8000). Downscale a large source with **nearest-neighbor**
+  first (`spikes/03-second-asset/prep-source.ps1`, ADR-0009) before forging.
+
 The demos `fetch()` the generated SVG, so serve them over HTTP (file:// is blocked by CORS):
 
 ```powershell
@@ -135,7 +163,7 @@ Then open:
 
 - `http://localhost:4178/docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — the generated SVG+CSS demo (manual state buttons).
 - `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the mascot reacting to a live (mock) telemetry feed.
-- `http://localhost:4178/docs/buildable-slice/showcase.html` — **before (flipbook PNG) vs after (forged, data-reactive)** side-by-side.
+- `http://localhost:4178/docs/buildable-slice/showcase.html` — **before vs after for both assets** (DevBrain + Land Rover), forged and data-reactive side-by-side — the engine proof.
 
 ## License
 

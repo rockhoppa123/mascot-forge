@@ -5,7 +5,12 @@ param(
   # Optional per-asset taxonomy; default "" runs the existing DevBrain heuristic unchanged.
   [string]$Spec = "",
   # Locked ground-truth, read-only — used only to print a recovery + pivot-delta report.
-  [string]$RiggedPath = "docs/buildable-slice/devbrain-rigged.json"
+  [string]$RiggedPath = "docs/buildable-slice/devbrain-rigged.json",
+  # Scale guard (v1.2 / W4a). The CCL union below is O(n^2) over n flat rects. n=89 (DevBrain)
+  # is instant; n=3540 (Land Rover, 256^2) takes ~49 s; a native-resolution source (1024^2 →
+  # tens of thousands of rects) would grind for minutes. Above this cap we fail fast with an
+  # actionable message instead of hanging. 8000 sits above Land Rover and below a blow-up.
+  [int]$MaxRects = 8000
 )
 
 # Phase 2 (Assisted Semantic Segmentation) — PROPOSE named parts from flat.svg for a human
@@ -83,8 +88,17 @@ foreach ($r in $rectNodes) {
 }
 $n = $rects.Count
 
+# Scale guard (v1.2 / W4a) — refuse to silently grind on an over-large flat.svg. Fires before
+# the O(n^2) union below, so the failure is instant, not after minutes.
+if ($n -gt $MaxRects) {
+  Fail ("flat.svg has $n rects (> -MaxRects $MaxRects). The segmenter's CCL union is O(n^2) and " +
+    "would take minutes at this size. Downscale the source with nearest-neighbor before vectorizing " +
+    "(see spikes/03-second-asset/prep-source.ps1 and ADR-0009), or raise -MaxRects deliberately.")
+}
+
 # --- Connected-component labeling: union same-colour rects that touch (8-adjacency) -------
-# ponytail: O(n^2) pairwise union over ~89 rects is instant; a grid/sweep is premature.
+# ponytail: O(n^2) pairwise union; guarded by -MaxRects. Replace with a grid/sweep (W4b) only if a
+# non-downscalable asset genuinely needs >8000 rects and profiling confirms this is the bottleneck.
 $parent = 0..($n - 1)
 function Find-Root { param([int]$i) while ($parent[$i] -ne $i) { $parent[$i] = $parent[$parent[$i]]; $i = $parent[$i] }; return $i }
 function Union-Set { param([int]$a, [int]$b) $ra = Find-Root $a; $rb = Find-Root $b; if ($ra -ne $rb) { $parent[$ra] = $rb } }

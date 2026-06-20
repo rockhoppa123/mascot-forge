@@ -361,4 +361,16 @@ $generatedDemoStates = @([regex]::Matches($generatedDemo, 'data-set-state="([^"]
 Assert-Sequence $generatedDemoStates $states "Generated demo state controls must come from rigged.json states."
 Assert-True (-not $generatedDemo.Contains("data-set-state=`"impact`"")) "Generated demo must not expose impact as a state switcher button."
 
+# --- Showcase: every generated SVG/CSS it fetches must exist on disk (catches a broken copy/path
+# before a viewer sees a blank panel). Scoped to the generated*/ references it injects. ---
+$showcasePath = Join-Path $sliceRoot "showcase.html"
+Assert-File $showcasePath
+$showcase = Get-Content -Raw -LiteralPath $showcasePath
+$showcaseRefs = @([regex]::Matches($showcase, '"(generated[-A-Za-z0-9_/]*/[A-Za-z0-9._-]+\.(?:svg|css))"') |
+  ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+Assert-True ($showcaseRefs.Count -ge 2) "showcase.html must fetch the generated SVG+CSS for both assets."
+foreach ($ref in $showcaseRefs) {
+  Assert-File (Join-Path $sliceRoot ($ref -replace "/", "\"))
+}
+
 Write-Host "Buildable Slice structural checks passed."

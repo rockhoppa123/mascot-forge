@@ -1,0 +1,255 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DevBrain &mdash; Phase 2 segmentation review</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; color: #1a1a1a; }
+  h1 { font-size: 18px; }
+  .panels { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .panel { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+  .panel h2 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #666; }
+  .panel svg { width: 256px; height: 256px; background: #fafafa; border-radius: 4px; }
+  ul { list-style: none; padding: 0; }
+  li { padding: 2px 0; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; }
+  .warn { background: #fff6e5; border-left: 3px solid #e0a106; padding: 8px 12px; border-radius: 4px; }
+  #status { font-weight: 600; }
+</style>
+<h1>DevBrain mascot &mdash; proposed parts (confirm before Phase 3)</h1>
+<p>Deterministic colour-threshold + connected-component proposal. Review the grouping, tick the parts that look right, adjust pivots by hand in <code>devbrain-rigged.json</code>. The tool proposes; you confirm (ADR-0002).</p>
+<div class="panels">
+  <div class="panel"><h2>Clean source (flat.svg)</h2><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" data-render-method="quantized-color-rle" data-source-bounds="21,77,170,177" data-palette-size="6">
+  <g data-color="#2e3335">
+    <rect x="154" y="86" width="4" height="4" fill="#2e3335"/>
+    <rect x="152" y="90" width="6" height="5" fill="#2e3335"/>
+    <rect x="147" y="95" width="6" height="11" fill="#2e3335"/>
+    <rect x="143" y="106" width="10" height="2" fill="#2e3335"/>
+    <rect x="143" y="108" width="6" height="3" fill="#2e3335"/>
+    <rect x="143" y="111" width="4" height="1" fill="#2e3335"/>
+    <rect x="72" y="113" width="12" height="12" fill="#2e3335"/>
+    <rect x="112" y="113" width="12" height="12" fill="#2e3335"/>
+    <rect x="72" y="152" width="8" height="20" fill="#2e3335"/>
+    <rect x="116" y="152" width="6" height="20" fill="#2e3335"/>
+    <rect x="65" y="172" width="15" height="6" fill="#2e3335"/>
+    <rect x="116" y="172" width="14" height="6" fill="#2e3335"/>
+  </g>
+  <g data-color="#4eed1d">
+    <rect x="158" y="78" width="1" height="1" fill="#4eed1d"/>
+    <rect x="160" y="78" width="1" height="1" fill="#4eed1d"/>
+    <rect x="165" y="78" width="1" height="7" fill="#4eed1d"/>
+    <rect x="158" y="85" width="3" height="1" fill="#4eed1d"/>
+    <rect x="163" y="85" width="3" height="1" fill="#4eed1d"/>
+  </g>
+  <g data-color="#5c6060">
+    <rect x="151" y="91" width="1" height="1" fill="#5c6060"/>
+    <rect x="72" y="112" width="12" height="1" fill="#5c6060"/>
+    <rect x="112" y="112" width="12" height="1" fill="#5c6060"/>
+    <rect x="124" y="118" width="1" height="1" fill="#5c6060"/>
+    <rect x="115" y="152" width="1" height="26" fill="#5c6060"/>
+  </g>
+  <g data-color="#6ccb2e">
+    <rect x="158" y="77" width="8" height="1" fill="#6ccb2e"/>
+    <rect x="159" y="78" width="1" height="1" fill="#6ccb2e"/>
+    <rect x="161" y="78" width="4" height="1" fill="#6ccb2e"/>
+    <rect x="158" y="79" width="7" height="4" fill="#6ccb2e"/>
+    <rect x="157" y="83" width="8" height="2" fill="#6ccb2e"/>
+    <rect x="161" y="85" width="2" height="1" fill="#6ccb2e"/>
+  </g>
+  <g data-color="#e28419">
+    <rect x="67" y="94" width="20" height="5" fill="#e28419"/>
+    <rect x="107" y="94" width="20" height="6" fill="#e28419"/>
+    <rect x="28" y="98" width="7" height="7" fill="#e28419"/>
+    <rect x="160" y="98" width="7" height="7" fill="#e28419"/>
+    <rect x="62" y="99" width="1" height="1" fill="#e28419"/>
+    <rect x="64" y="99" width="23" height="1" fill="#e28419"/>
+    <rect x="60" y="100" width="33" height="6" fill="#e28419"/>
+    <rect x="102" y="100" width="32" height="6" fill="#e28419"/>
+    <rect x="23" y="105" width="5" height="7" fill="#e28419"/>
+    <rect x="167" y="105" width="4" height="7" fill="#e28419"/>
+    <rect x="54" y="106" width="86" height="6" fill="#e28419"/>
+    <rect x="22" y="112" width="13" height="1" fill="#e28419"/>
+    <rect x="54" y="112" width="18" height="1" fill="#e28419"/>
+    <rect x="84" y="112" width="28" height="13" fill="#e28419"/>
+    <rect x="124" y="112" width="23" height="6" fill="#e28419"/>
+    <rect x="160" y="112" width="1" height="1" fill="#e28419"/>
+    <rect x="164" y="112" width="7" height="1" fill="#e28419"/>
+    <rect x="21" y="113" width="14" height="6" fill="#e28419"/>
+    <rect x="48" y="113" width="24" height="6" fill="#e28419"/>
+    <rect x="160" y="113" width="11" height="6" fill="#e28419"/>
+    <rect x="125" y="118" width="22" height="1" fill="#e28419"/>
+    <rect x="21" y="119" width="51" height="6" fill="#e28419"/>
+    <rect x="124" y="119" width="47" height="6" fill="#e28419"/>
+    <rect x="21" y="125" width="150" height="3" fill="#e28419"/>
+    <rect x="22" y="128" width="145" height="1" fill="#e28419"/>
+    <rect x="28" y="129" width="139" height="7" fill="#e28419"/>
+    <rect x="35" y="136" width="58" height="8" fill="#e28419"/>
+    <rect x="102" y="136" width="58" height="8" fill="#e28419"/>
+    <rect x="42" y="144" width="45" height="7" fill="#e28419"/>
+    <rect x="108" y="144" width="45" height="7" fill="#e28419"/>
+    <rect x="42" y="151" width="44" height="1" fill="#e28419"/>
+    <rect x="108" y="151" width="14" height="1" fill="#e28419"/>
+    <rect x="123" y="151" width="30" height="1" fill="#e28419"/>
+  </g>
+  <g data-color="#e9c791">
+    <rect x="157" y="77" width="1" height="6" fill="#e9c791"/>
+    <rect x="157" y="85" width="1" height="1" fill="#e9c791"/>
+    <rect x="67" y="93" width="20" height="1" fill="#e9c791"/>
+    <rect x="107" y="93" width="20" height="1" fill="#e9c791"/>
+    <rect x="60" y="99" width="2" height="1" fill="#e9c791"/>
+    <rect x="63" y="99" width="1" height="1" fill="#e9c791"/>
+    <rect x="87" y="99" width="6" height="1" fill="#e9c791"/>
+    <rect x="102" y="99" width="5" height="1" fill="#e9c791"/>
+    <rect x="127" y="99" width="7" height="1" fill="#e9c791"/>
+    <rect x="93" y="100" width="1" height="6" fill="#e9c791"/>
+    <rect x="101" y="100" width="1" height="6" fill="#e9c791"/>
+    <rect x="22" y="105" width="1" height="7" fill="#e9c791"/>
+    <rect x="28" y="106" width="1" height="6" fill="#e9c791"/>
+    <rect x="21" y="112" width="1" height="1" fill="#e9c791"/>
+    <rect x="48" y="112" width="6" height="1" fill="#e9c791"/>
+    <rect x="161" y="112" width="3" height="1" fill="#e9c791"/>
+    <rect x="35" y="118" width="13" height="1" fill="#e9c791"/>
+    <rect x="147" y="118" width="13" height="1" fill="#e9c791"/>
+    <rect x="21" y="128" width="1" height="1" fill="#e9c791"/>
+    <rect x="167" y="128" width="4" height="1" fill="#e9c791"/>
+    <rect x="28" y="136" width="7" height="1" fill="#e9c791"/>
+    <rect x="93" y="136" width="1" height="8" fill="#e9c791"/>
+    <rect x="101" y="136" width="1" height="8" fill="#e9c791"/>
+    <rect x="160" y="136" width="7" height="1" fill="#e9c791"/>
+    <rect x="107" y="144" width="1" height="2" fill="#e9c791"/>
+    <rect x="107" y="148" width="1" height="3" fill="#e9c791"/>
+    <rect x="86" y="151" width="1" height="1" fill="#e9c791"/>
+    <rect x="122" y="151" width="1" height="1" fill="#e9c791"/>
+  </g>
+</svg>
+</div>
+  <div class="panel"><h2>Proposed parts</h2><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" data-render-method="ccl-color-threshold" data-source="docs/buildable-slice/generated/devbrain-flat.svg" data-parts="5">
+  <g data-part="part-body" data-pivot="96,123" fill="#c9ced1">
+    <rect x="67" y="94" width="20" height="5" fill="#c9ced1"/>
+    <rect x="107" y="94" width="20" height="6" fill="#c9ced1"/>
+    <rect x="28" y="98" width="7" height="7" fill="#c9ced1"/>
+    <rect x="160" y="98" width="7" height="7" fill="#c9ced1"/>
+    <rect x="60" y="99" width="2" height="1" fill="#c9ced1"/>
+    <rect x="62" y="99" width="1" height="1" fill="#c9ced1"/>
+    <rect x="63" y="99" width="1" height="1" fill="#c9ced1"/>
+    <rect x="64" y="99" width="23" height="1" fill="#c9ced1"/>
+    <rect x="87" y="99" width="6" height="1" fill="#c9ced1"/>
+    <rect x="102" y="99" width="5" height="1" fill="#c9ced1"/>
+    <rect x="127" y="99" width="7" height="1" fill="#c9ced1"/>
+    <rect x="60" y="100" width="33" height="6" fill="#c9ced1"/>
+    <rect x="93" y="100" width="1" height="6" fill="#c9ced1"/>
+    <rect x="101" y="100" width="1" height="6" fill="#c9ced1"/>
+    <rect x="102" y="100" width="32" height="6" fill="#c9ced1"/>
+    <rect x="22" y="105" width="1" height="7" fill="#c9ced1"/>
+    <rect x="23" y="105" width="5" height="7" fill="#c9ced1"/>
+    <rect x="167" y="105" width="4" height="7" fill="#c9ced1"/>
+    <rect x="28" y="106" width="1" height="6" fill="#c9ced1"/>
+    <rect x="54" y="106" width="86" height="6" fill="#c9ced1"/>
+    <rect x="21" y="112" width="1" height="1" fill="#c9ced1"/>
+    <rect x="22" y="112" width="13" height="1" fill="#c9ced1"/>
+    <rect x="48" y="112" width="6" height="1" fill="#c9ced1"/>
+    <rect x="54" y="112" width="18" height="1" fill="#c9ced1"/>
+    <rect x="84" y="112" width="28" height="13" fill="#c9ced1"/>
+    <rect x="124" y="112" width="23" height="6" fill="#c9ced1"/>
+    <rect x="160" y="112" width="1" height="1" fill="#c9ced1"/>
+    <rect x="161" y="112" width="3" height="1" fill="#c9ced1"/>
+    <rect x="164" y="112" width="7" height="1" fill="#c9ced1"/>
+    <rect x="21" y="113" width="14" height="6" fill="#c9ced1"/>
+    <rect x="48" y="113" width="24" height="6" fill="#c9ced1"/>
+    <rect x="160" y="113" width="11" height="6" fill="#c9ced1"/>
+    <rect x="35" y="118" width="13" height="1" fill="#c9ced1"/>
+    <rect x="125" y="118" width="22" height="1" fill="#c9ced1"/>
+    <rect x="147" y="118" width="13" height="1" fill="#c9ced1"/>
+    <rect x="21" y="119" width="51" height="6" fill="#c9ced1"/>
+    <rect x="124" y="119" width="47" height="6" fill="#c9ced1"/>
+    <rect x="21" y="125" width="150" height="3" fill="#c9ced1"/>
+    <rect x="21" y="128" width="1" height="1" fill="#c9ced1"/>
+    <rect x="22" y="128" width="145" height="1" fill="#c9ced1"/>
+    <rect x="167" y="128" width="4" height="1" fill="#c9ced1"/>
+    <rect x="28" y="129" width="139" height="7" fill="#c9ced1"/>
+    <rect x="28" y="136" width="7" height="1" fill="#c9ced1"/>
+    <rect x="35" y="136" width="58" height="8" fill="#c9ced1"/>
+    <rect x="93" y="136" width="1" height="8" fill="#c9ced1"/>
+    <rect x="101" y="136" width="1" height="8" fill="#c9ced1"/>
+    <rect x="102" y="136" width="58" height="8" fill="#c9ced1"/>
+    <rect x="160" y="136" width="7" height="1" fill="#c9ced1"/>
+    <rect x="42" y="144" width="45" height="7" fill="#c9ced1"/>
+    <rect x="107" y="144" width="1" height="2" fill="#c9ced1"/>
+    <rect x="108" y="144" width="45" height="7" fill="#c9ced1"/>
+    <rect x="107" y="148" width="1" height="3" fill="#c9ced1"/>
+    <rect x="42" y="151" width="44" height="1" fill="#c9ced1"/>
+    <rect x="86" y="151" width="1" height="1" fill="#c9ced1"/>
+    <rect x="108" y="151" width="14" height="1" fill="#c9ced1"/>
+    <rect x="123" y="151" width="30" height="1" fill="#c9ced1"/>
+  </g>
+  <g data-part="part-leg-left" data-pivot="72.5,152" fill="#ff7f0e">
+    <rect x="72" y="152" width="8" height="20" fill="#ff7f0e"/>
+    <rect x="65" y="172" width="15" height="6" fill="#ff7f0e"/>
+  </g>
+  <g data-part="part-leg-right" data-pivot="122.5,151" fill="#1f77b4">
+    <rect x="122" y="151" width="1" height="1" fill="#1f77b4"/>
+    <rect x="115" y="152" width="1" height="26" fill="#1f77b4"/>
+    <rect x="116" y="152" width="6" height="20" fill="#1f77b4"/>
+    <rect x="116" y="172" width="14" height="6" fill="#1f77b4"/>
+  </g>
+  <g data-part="part-antenna" data-pivot="145,112" fill="#2ca02c">
+    <rect x="157" y="77" width="1" height="6" fill="#2ca02c"/>
+    <rect x="158" y="77" width="8" height="1" fill="#2ca02c"/>
+    <rect x="158" y="78" width="1" height="1" fill="#2ca02c"/>
+    <rect x="159" y="78" width="1" height="1" fill="#2ca02c"/>
+    <rect x="160" y="78" width="1" height="1" fill="#2ca02c"/>
+    <rect x="161" y="78" width="4" height="1" fill="#2ca02c"/>
+    <rect x="165" y="78" width="1" height="7" fill="#2ca02c"/>
+    <rect x="158" y="79" width="7" height="4" fill="#2ca02c"/>
+    <rect x="157" y="83" width="8" height="2" fill="#2ca02c"/>
+    <rect x="157" y="85" width="1" height="1" fill="#2ca02c"/>
+    <rect x="158" y="85" width="3" height="1" fill="#2ca02c"/>
+    <rect x="161" y="85" width="2" height="1" fill="#2ca02c"/>
+    <rect x="163" y="85" width="3" height="1" fill="#2ca02c"/>
+    <rect x="154" y="86" width="4" height="4" fill="#2ca02c"/>
+    <rect x="152" y="90" width="6" height="5" fill="#2ca02c"/>
+    <rect x="151" y="91" width="1" height="1" fill="#2ca02c"/>
+    <rect x="67" y="93" width="20" height="1" fill="#2ca02c"/>
+    <rect x="107" y="93" width="20" height="1" fill="#2ca02c"/>
+    <rect x="147" y="95" width="6" height="11" fill="#2ca02c"/>
+    <rect x="143" y="106" width="10" height="2" fill="#2ca02c"/>
+    <rect x="143" y="108" width="6" height="3" fill="#2ca02c"/>
+    <rect x="143" y="111" width="4" height="1" fill="#2ca02c"/>
+  </g>
+  <g data-part="part-eyes" data-pivot="98.5,118.5" fill="#d62728">
+    <rect x="72" y="112" width="12" height="1" fill="#d62728"/>
+    <rect x="112" y="112" width="12" height="1" fill="#d62728"/>
+    <rect x="72" y="113" width="12" height="12" fill="#d62728"/>
+    <rect x="112" y="113" width="12" height="12" fill="#d62728"/>
+    <rect x="124" y="118" width="1" height="1" fill="#d62728"/>
+  </g>
+  <g data-role="pivot-markers" fill="none" stroke="#111" stroke-width="0.6">
+    <circle cx="96" cy="123" r="2.5"/>
+    <circle cx="72.5" cy="152" r="2.5"/>
+    <circle cx="122.5" cy="151" r="2.5"/>
+    <circle cx="145" cy="112" r="2.5"/>
+    <circle cx="98.5" cy="118.5" r="2.5"/>
+  </g>
+</svg>
+</div>
+  <div class="panel" style="min-width:280px">
+    <h2>Confirm parts</h2>
+    <ul>
+      <li><label><input type="checkbox" class="confirm" checked> <b style="color:#c9ced1">part-body</b> &mdash; proposed pivot <code>96,123</code></label></li>
+      <li><label><input type="checkbox" class="confirm" checked> <b style="color:#ff7f0e">part-leg-left</b> &mdash; proposed pivot <code>72.5,152</code></label></li>
+      <li><label><input type="checkbox" class="confirm" checked> <b style="color:#1f77b4">part-leg-right</b> &mdash; proposed pivot <code>122.5,151</code></label></li>
+      <li><label><input type="checkbox" class="confirm" checked> <b style="color:#2ca02c">part-antenna</b> &mdash; proposed pivot <code>145,112</code></label></li>
+      <li><label><input type="checkbox" class="confirm" checked> <b style="color:#d62728">part-eyes</b> &mdash; proposed pivot <code>98.5,118.5</code></label></li>
+    </ul>
+    <p class="warn">Not colour-separable (CCL cannot split &mdash; same colour / fused with a neighbour): <b>part-moustache</b>. Add by hand or fall back to SAM (ADR-0002).</p>
+    <p id="status"></p>
+  </div>
+</div>
+<script>
+  const boxes = [...document.querySelectorAll('.confirm')];
+  const status = document.getElementById('status');
+  function update() {
+    const ok = boxes.filter(b => b.checked).length;
+    status.textContent = ok + ' / ' + boxes.length + ' parts confirmed';
+  }
+  boxes.forEach(b => b.addEventListener('change', update));
+  update();
+</script>
