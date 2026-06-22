@@ -32,9 +32,10 @@ pwsh ./mf.ps1 emit <asset>      →   animated SVG+CSS / React+GSAP mascot
    - **Split a fused part:** when `mf forge` colour-fuses regions into one part (e.g. wheels stuck in
      `part-body`), **drag a marquee** on the canvas to select the enclosed rects, type a target part id,
      and press **move** to peel them into their own part. (Plain click = part-select; drag = marquee.)
-5. **Export** — downloads `<asset>-manual-part.svg`, `<asset>-rigged.json`, and a `parts-spec.json`
-   write-back. Drop them into `assets/<asset>/`.
-6. `pwsh ./mf.ps1 emit <asset>`.
+5. **Export animated mascot** — one click downloads a **self-contained animated `.svg`** (it animates on
+   its own — CSS is inlined) plus a standalone demo `.html` with state buttons. No terminal, no `mf emit`.
+   - **Advanced — `rig files…`** — exports the raw `<asset>-manual-part.svg` + `<asset>-rigged.json` +
+     `parts-spec.json` for `pwsh ./mf.ps1 emit <asset>` (the React+GSAP path / batch pipeline).
 
 Unassigned rects are never lost — they land in a still `part-background` group.
 
@@ -55,6 +56,7 @@ node-tested (`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `a
 | `presets.js` | role-keyed recipe templates (generalised from devbrain + land-rover), stamped with the chosen part id at export |
 | `validator.js` | pre-flight the load-bearing `rigged.json` v2 invariants (`mf check` stays canonical) |
 | `exporter.js` | serialise model → the `mf emit` input pair + `parts-spec.json` |
+| `emit.js` | rig → animation CSS (shared by live preview + export) → a self-contained animated SVG + demo HTML |
 
 Run the self-checks directly: `node tools/rig-editor/exporter.test.mjs` (the golden round-trip:
 committed devbrain `segmented.svg` → export → validate → `mf emit`).

@@ -1,0 +1,54 @@
+// Self-check for the in-browser emitter (P1). No framework — node:assert. Asserts the shared CSS
+// generator stays equivalent to the canonical emit-svg-css golden, and the self-contained outputs are
+// well-formed. Run: `node tools/rig-editor/emit.test.mjs`.
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { emitCss, emitAnimatedSvg, emitDemoHtml } from "./emit.js";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = join(here, "..", "..");
+const rig = JSON.parse(readFileSync(join(root, "docs/buildable-slice/devbrain-rigged.json"), "utf8"));
+const goldenCss = readFileSync(join(root, "docs/buildable-slice/generated/devbrain-svg-css.generated.css"), "utf8");
+const manualSvg = readFileSync(join(root, "docs/buildable-slice/devbrain-manual-part.svg"), "utf8");
+
+// --- emitCss equivalence to the canonical emit-svg-css golden (no drift) -------------------------
+{
+  const css = emitCss(rig, { scope: "#mascot" });
+  for (const p of rig.parts) {
+    assert.ok(css.includes(`#${p.id} { transform-origin: ${p.origin}; }`), `emit has origin for ${p.id}`);
+    assert.ok(goldenCss.includes(`transform-origin: ${p.origin};`), `golden has the same origin for ${p.id}`);
+  }
+  for (const s of rig.states) for (const rec of rig.animations[s]) {
+    assert.ok(css.includes(`@keyframes ${rec.name} {`), `emit has @keyframes ${rec.name}`);
+    assert.ok(goldenCss.includes(`@keyframes ${rec.name} {`), `golden has @keyframes ${rec.name} (same recipe names)`);
+    assert.ok(css.includes(`#mascot[data-state="${s}"] #${rec.part} { animation: ${rec.name}`),
+      `emit has the ${s}/${rec.part} animation rule`);
+  }
+}
+
+// --- scope is configurable (editor preview vs standalone export use one generator) ---------------
+{
+  assert.ok(emitCss(rig, { scope: "#stage" }).includes(`#stage[data-state="idle"]`), "scope -> #stage for preview");
+  assert.ok(emitCss(rig, { scope: "#mascot" }).includes(`#mascot[data-state="idle"]`), "scope -> #mascot for export");
+}
+
+// --- self-contained animated SVG ----------------------------------------------------------------
+{
+  const svg = emitAnimatedSvg(rig, manualSvg);
+  assert.ok(/<svg[^>]*id="mascot"/.test(svg), "keeps the #mascot root");
+  assert.ok(/data-state="idle"/.test(svg), "defaults to the idle state");
+  assert.ok(/<style>[\s\S]*@keyframes[\s\S]*<\/style>/.test(svg), "CSS is inlined (self-contained)");
+  assert.ok(!/<\?xml-stylesheet/.test(svg), "external stylesheet reference dropped");
+  assert.ok(svg.includes("part-body"), "geometry retained");
+}
+
+// --- standalone demo page with state toggles ----------------------------------------------------
+{
+  const html = emitDemoHtml(rig, emitAnimatedSvg(rig, manualSvg), "devbrain");
+  for (const s of rig.states) assert.ok(html.includes(`data-s="${s}"`), `demo has a ${s} button`);
+  assert.ok(/<svg[^>]*id="mascot"/.test(html), "demo inlines the animated svg");
+}
+
+console.log("emit.test.mjs: all assertions passed.");
