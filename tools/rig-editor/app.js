@@ -24,6 +24,7 @@ let assetName = "mascot";
 let selected = null;        // selected part id
 let pivotMode = false;      // next canvas click places the selected part's pivot
 let rectSel = [];           // marquee rect-selection (rect ids) pending a split/move
+let clickMode = null;       // null | "paint" | "erase" — per-shape reassignment by clicking
 const colours = new Map();  // partId -> hsl colour
 
 // ---------- load -------------------------------------------------------------------------------
@@ -51,8 +52,79 @@ function showModel(msg) {
   render();
   renderParts();
   regenCss();
+  updateBanner();
   status(msg);
 }
+
+// ---------- onboarding helpers -----------------------------------------------------------------
+// After a load, if few parts were detected, tell the user auto-detect is a starting point and how to
+// split — the single most-missed step (council 2026-06-22).
+function updateBanner() {
+  const b = $("banner");
+  const n = visibleParts().length;
+  if (n <= 3) {
+    b.innerHTML = `Auto-detect found <strong>${n}</strong> part(s). If parts look fused, ` +
+      `<strong>drag a box</strong> over a region on the canvas, then press <em>move</em> to split it ` +
+      `into its own part. <button id="banner-x" type="button">got it</button>`;
+    b.hidden = false;
+    $("banner-x").onclick = () => { b.hidden = true; };
+  } else {
+    b.hidden = true;
+  }
+}
+
+function setState(s) {
+  $("stage").setAttribute("data-state", s);
+  $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.state === s));
+}
+
+// Always-visible rig health: which states have a valid animation, and how many parts animate.
+// Surfaces export blockers live instead of only at export time (UX playthrough finding #2).
+function updateRigStatus() {
+  const el = $("rigstatus");
+  if (!model || !el) return;
+  const sel = model.selections();
+  const parts = model.parts();
+  const valid = (pid, s, name) => name && presetsFor((parts[pid] || {}).role || "passive", s).includes(name);
+  const animated = new Set();
+  const badges = model.states().map((s) => {
+    let ok = false;
+    for (const [pid, name] of Object.entries(sel[s] || {})) if (valid(pid, s, name)) { ok = true; animated.add(pid); }
+    return `<span class="${ok ? "ok" : "bad"}">${s} ${ok ? "✓" : "✗"}</span>`;
+  }).join(" ");
+  el.innerHTML = `${badges} · ${animated.size}/${visibleParts().length} animated`;
+}
+
+const EXAMPLE_PLAN = [
+  ["part-body", "body", "core", "idle", "breathe"],
+  ["part-eyes", "eyes", "accent", "idle", "blink"],
+  ["part-leg-left", "leg_left", "limb", "active", "walk"],
+  ["part-leg-right", "leg_right", "limb", "active", "walk-mirror"],
+  ["part-antenna", "antenna", "accent", "alert", "pulse"],
+];
+
+// One-click payoff: load the committed DevBrain segmented.svg and apply a known-good rig so a finished,
+// animated, data-reactive mascot appears with zero decisions — "what good looks like."
+async function loadExample() {
+  try {
+    const res = await fetch("../../docs/buildable-slice/generated/devbrain-segmented.svg");
+    if (!res.ok) throw new Error("example asset not found — serve from the repo root");
+    loadText(await res.text(), "devbrain");
+    for (const [id, bone, role, state, preset] of EXAMPLE_PLAN) {
+      if (!model.parts()[id]) continue;
+      model.setRole(id, role); model.setBone(id, bone); model.setPreset(state, id, preset);
+    }
+    regenCss();
+    setState("active");
+    status("Example rigged — DevBrain is walking (active state). This is a finished rig; now load your own art.");
+  } catch (e) { status("✗ " + (e && e.message ? e.message : e)); }
+}
+$("loadexample").onclick = loadExample;
+$("placepivot").onclick = () => {
+  if (!selected) { status("Select a part first, then place its pivot."); return; }
+  pivotMode = true;
+  status("Pivot mode: click the canvas to place the pivot.");
+};
 
 function nodeFromMarkup(markup) {
   const doc = new DOMParser().parseFromString(`<svg xmlns="${SVGNS}">${markup}</svg>`, "image/svg+xml");
@@ -209,7 +281,19 @@ function refreshPivotInfo() {
 }
 
 // ---------- editing ops ------------------------------------------------------------------------
-$("role").onchange = (e) => { if (selected) { model.setRole(selected, e.target.value); refreshPresetPickers(); regenCss(); } };
+$("role").onchange = (e) => {
+  if (!selected) return;
+  const role = e.target.value;
+  model.setRole(selected, role);
+  // Drop any preset no longer valid for the new role — otherwise it lingers (picker shows blank but
+  // the model keeps it) and export later throws. Keep model + UI in sync. (UX playthrough bug #1.)
+  for (const s of model.states()) {
+    const cur = model.preset(s, selected);
+    if (cur && !presetsFor(role, s).includes(cur)) model.setPreset(s, selected, null);
+  }
+  refreshPresetPickers();
+  regenCss();
+};
 $("bone").onchange = (e) => { if (selected) model.setBone(selected, e.target.value.trim()); };
 for (const s of ["idle", "active", "alert"]) {
   $(`preset-${s}`).onchange = (e) => { if (selected) { model.setPreset(s, selected, e.target.value || null); regenCss(); } };
@@ -249,6 +333,31 @@ function clearRectSel() {
   highlightRects();
   $("selectbar").hidden = true;
 }
+
+// Clear both selections: the marquee rect-selection and the selected part. Bound to Esc and to a
+// click on empty canvas.
+function deselect() {
+  pivotMode = false;
+  setClickMode(null);
+  clearRectSel();
+  if (selected) { selected = null; $("partedit").hidden = true; }
+  highlight();
+}
+
+// Per-shape reassignment modes: "paint" moves a clicked shape into the selected part; "erase" sends
+// it to the static background (geometry is kept — D6). Toggling the active mode off returns to select.
+function setClickMode(mode) {
+  clickMode = clickMode === mode ? null : mode;
+  if (clickMode) pivotMode = false;
+  $("paintmode").classList.toggle("on", clickMode === "paint");
+  $("erasemode").classList.toggle("on", clickMode === "erase");
+  $("stage").classList.toggle("mode-paint", clickMode === "paint");
+  $("stage").classList.toggle("mode-erase", clickMode === "erase");
+  if (clickMode === "paint") status(`Paint: click shapes to add them to ${selected || "the selected part"}.`);
+  else if (clickMode === "erase") status("Erase: click shapes to send them to the static background.");
+}
+$("paintmode").onclick = () => setClickMode("paint");
+$("erasemode").onclick = () => setClickMode("erase");
 function highlightRects() {
   const set = new Set(rectSel);
   $("stage").querySelectorAll("[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
@@ -315,9 +424,24 @@ $("stage").addEventListener("click", (e) => {
     status(`Pivot for ${selected} set to ${pivot.x}, ${pivot.y}.`);
     return;
   }
+  if (clickMode) {                                            // paint / erase individual shapes
+    const el = e.target.closest && e.target.closest("[data-rid]");
+    if (!el) return;                                          // empty click in a mode: ignore (Esc exits)
+    if (clickMode === "paint") {
+      if (!selected) { status("Select a part first, then paint shapes into it."); return; }
+      model.assign([el.dataset.rid], selected);
+    } else {
+      model.assign([el.dataset.rid], BACKGROUND_PART);
+    }
+    render(); renderParts(); regenCss();
+    return;
+  }
   const g = e.target.closest && e.target.closest("g.part");   // native O(1) hit-test (perf note)
   if (g) selectPart(g.id);
+  else deselect();                                            // click empty canvas to deselect
 });
+
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") deselect(); });
 
 function svgPoint(e) {
   const stage = $("stage");
@@ -332,6 +456,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "p" && selected) { p
 // ---------- live preview -----------------------------------------------------------------------
 function regenCss() {
   if (!model) return;
+  updateRigStatus();
   let rig;
   try { rig = exportRig(model, { assetName, recipeFor }).riggedJson; } catch { return; }
   const css = [`#stage g.part { transform-box: fill-box; }`];
@@ -362,13 +487,15 @@ $("reduce").onchange = (e) => $("stage").classList.toggle("force-reduced-motion"
 $("export").onclick = () => {
   const ungrouped = model.ungroupedRects();
   if (ungrouped.length && !confirm(`${ungrouped.length} rect(s) are unassigned and will go to part-background. Export anyway?`)) return;
-  const out = exportRig(model, { assetName, recipeFor });
+  let out;
+  try { out = exportRig(model, { assetName, recipeFor }); }
+  catch (e) { status("✗ Export failed: " + (e && e.message ? e.message : e)); alert("Export failed:\n\n" + (e && e.message ? e.message : e)); return; }
   const v = validate(out.riggedJson);
   if (!v.ok) { status("✗ " + v.errors[0]); alert("Validation failed:\n\n" + v.errors.join("\n")); return; }
   download(`${assetName}-manual-part.svg`, out.manualSvg, "image/svg+xml");
   download(`${assetName}-rigged.json`, JSON.stringify(out.riggedJson, null, 2), "application/json");
   download(`parts-spec.json`, JSON.stringify(out.partsSpec, null, 2), "application/json");
-  status(`✓ Exported ${assetName} — valid rig. Now run: mf emit ${assetName}`);
+  status(`✓ Exported 3 files (${assetName}-manual-part.svg + ${assetName}-rigged.json + parts-spec.json). Put them in assets/${assetName}/, then run:  mf emit ${assetName}`);
 };
 
 function download(name, text, type) {
@@ -433,4 +560,4 @@ const dz = $("dropzone");
 dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
-window.__rigEditor = { loadText, loadLayeredSvg, loadFile, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
+window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
