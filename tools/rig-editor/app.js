@@ -369,6 +369,7 @@ function showSelection() {
 
 $("stage").addEventListener("pointerdown", (e) => {
   if (pivotMode) return;                 // pivot placement uses the click handler
+  suppressClick = false;                 // new interaction — never let a stale drag-suppress eat this click
   const pt = svgPoint(e);
   marquee = { x0: pt.x, y0: pt.y, el: null };
 });
