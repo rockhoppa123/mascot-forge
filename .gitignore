@@ -33,6 +33,9 @@ Thumbs.db
 .claude/
 .codegraph/
 
+# Internal working docs (council critique, strategy report, impl plan) — local only, not public
+docs/internal/
+
 # Scratch / generated artifacts (keep curated assets in assets/)
 /scratch/
 /tmp/
