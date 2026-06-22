@@ -78,6 +78,23 @@ function setState(s) {
   $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.state === s));
 }
 
+// Always-visible rig health: which states have a valid animation, and how many parts animate.
+// Surfaces export blockers live instead of only at export time (UX playthrough finding #2).
+function updateRigStatus() {
+  const el = $("rigstatus");
+  if (!model || !el) return;
+  const sel = model.selections();
+  const parts = model.parts();
+  const valid = (pid, s, name) => name && presetsFor((parts[pid] || {}).role || "passive", s).includes(name);
+  const animated = new Set();
+  const badges = model.states().map((s) => {
+    let ok = false;
+    for (const [pid, name] of Object.entries(sel[s] || {})) if (valid(pid, s, name)) { ok = true; animated.add(pid); }
+    return `<span class="${ok ? "ok" : "bad"}">${s} ${ok ? "✓" : "✗"}</span>`;
+  }).join(" ");
+  el.innerHTML = `${badges} · ${animated.size}/${visibleParts().length} animated`;
+}
+
 const EXAMPLE_PLAN = [
   ["part-body", "body", "core", "idle", "breathe"],
   ["part-eyes", "eyes", "accent", "idle", "blink"],
@@ -264,7 +281,19 @@ function refreshPivotInfo() {
 }
 
 // ---------- editing ops ------------------------------------------------------------------------
-$("role").onchange = (e) => { if (selected) { model.setRole(selected, e.target.value); refreshPresetPickers(); regenCss(); } };
+$("role").onchange = (e) => {
+  if (!selected) return;
+  const role = e.target.value;
+  model.setRole(selected, role);
+  // Drop any preset no longer valid for the new role — otherwise it lingers (picker shows blank but
+  // the model keeps it) and export later throws. Keep model + UI in sync. (UX playthrough bug #1.)
+  for (const s of model.states()) {
+    const cur = model.preset(s, selected);
+    if (cur && !presetsFor(role, s).includes(cur)) model.setPreset(s, selected, null);
+  }
+  refreshPresetPickers();
+  regenCss();
+};
 $("bone").onchange = (e) => { if (selected) model.setBone(selected, e.target.value.trim()); };
 for (const s of ["idle", "active", "alert"]) {
   $(`preset-${s}`).onchange = (e) => { if (selected) { model.setPreset(s, selected, e.target.value || null); regenCss(); } };
@@ -427,6 +456,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "p" && selected) { p
 // ---------- live preview -----------------------------------------------------------------------
 function regenCss() {
   if (!model) return;
+  updateRigStatus();
   let rig;
   try { rig = exportRig(model, { assetName, recipeFor }).riggedJson; } catch { return; }
   const css = [`#stage g.part { transform-box: fill-box; }`];
@@ -457,7 +487,9 @@ $("reduce").onchange = (e) => $("stage").classList.toggle("force-reduced-motion"
 $("export").onclick = () => {
   const ungrouped = model.ungroupedRects();
   if (ungrouped.length && !confirm(`${ungrouped.length} rect(s) are unassigned and will go to part-background. Export anyway?`)) return;
-  const out = exportRig(model, { assetName, recipeFor });
+  let out;
+  try { out = exportRig(model, { assetName, recipeFor }); }
+  catch (e) { status("✗ Export failed: " + (e && e.message ? e.message : e)); alert("Export failed:\n\n" + (e && e.message ? e.message : e)); return; }
   const v = validate(out.riggedJson);
   if (!v.ok) { status("✗ " + v.errors[0]); alert("Validation failed:\n\n" + v.errors.join("\n")); return; }
   download(`${assetName}-manual-part.svg`, out.manualSvg, "image/svg+xml");

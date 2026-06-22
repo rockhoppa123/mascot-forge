@@ -31,6 +31,8 @@ main { display:flex; gap:0; height:calc(100vh - 120px); }
 #paintmode, #erasemode { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:3px 9px; cursor:pointer; margin-left:4px; }
 #paintmode.on, #erasemode.on { border-color:var(--accent); color:var(--accent); }
 #stage.mode-paint, #stage.mode-erase { cursor:crosshair; }
+.rigstatus { font-size:12px; color:var(--mut); margin-right:14px; }
+.rigstatus .ok { color:#34d399; } .rigstatus .bad { color:#e0a106; font-weight:600; }
 .shortcuts { margin-top:12px; border-top:1px solid var(--line); padding-top:8px; line-height:1.7; }
 kbd { background:#1b2429; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; font:12px ui-monospace,monospace; }
 #states { display:flex; gap:8px; align-items:center; padding-top:10px; color:var(--mut); }
