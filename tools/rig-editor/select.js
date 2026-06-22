@@ -13,7 +13,8 @@ export function rectsInMarquee(rects, box) {
   const y2 = Math.max(box.y, box.y + box.h);
   const ids = [];
   for (const r of rects) {
-    if (r.x >= x1 && r.y >= y1 && r.x + r.w <= x2 && r.y + r.h <= y2) ids.push(r.id);
+    const b = r.bbox || r; // bbox-aware: geometry-agnostic elements carry a cached bbox (ADR-0011)
+    if (b.x >= x1 && b.y >= y1 && b.x + b.w <= x2 && b.y + b.h <= y2) ids.push(r.id);
   }
   return ids;
 }

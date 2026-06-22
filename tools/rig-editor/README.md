@@ -18,10 +18,14 @@ pwsh ./mf.ps1 emit <asset>      →   animated SVG+CSS / React+GSAP mascot
 
 1. Serve the repo over HTTP (ESM + `fetch`, so `file://` is blocked by CORS):
    `python -m http.server 4178` then open `http://localhost:4178/tools/rig-editor/index.html`.
-2. Give it an asset, either way:
-   - **Drop a PNG** — it is vectorised + segmented in-browser into proposed parts (no terminal). Set
-     **max px** (nearest-neighbour downscale cap, default 256) and **colours** (palette size, default 6).
-   - **Or drop a `segmented.svg`** produced by `pwsh ./mf.ps1 forge <asset>` (better for large assets).
+2. Give it an asset (recommended order — highest fidelity first):
+   - **Drop a layered SVG** (Figma / Inkscape / Illustrator) — *recommended*. Each top-level layer/group
+     becomes a named part automatically, with its real geometry (paths, curves, anything) carried
+     through verbatim (ADR-0011). This is the cleanest path: the anatomy is already in the file.
+   - **Drop a PNG** — vectorised + segmented in-browser into *best-effort* proposed parts (no terminal).
+     Set **max px** (nearest-neighbour downscale cap, default 256) and **colours** (palette size, 6).
+     Same-colour regions fuse — split them with the marquee (below).
+   - **Or drop a `segmented.svg`** produced by `pwsh ./mf.ps1 forge <asset>` (good for large flat assets).
 4. For each part: pick a **role** (`core` breathes · `limb` walks/rotates · `accent`
    shakes/blinks/recoils · `passive` still), set a **bone** name, press **p** then click the canvas
    to place its **pivot**, and choose a **preset** per state. Use the preview buttons to watch it move.
@@ -43,7 +47,8 @@ node-tested (`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `a
 |---|---|
 | `model.js` | rect-granular rig state (assign/split/rename/role/pivot/preset); every rect stays in exactly one group |
 | `loader.js` | parse `segmented.svg` → model; merge a `parts-spec.json` vocabulary |
-| `pivot.js` | dragged handle → CSS `transform-origin` + canonical pivot |
+| `layer-ingest.js` | layered vector SVG → model; layer name → part id; geometry-agnostic elements (ADR-0011) |
+| `pivot.js` | dragged handle → CSS `transform-origin` + canonical pivot (bbox-aware) |
 | `select.js` | marquee hit-test: rects fully enclosed by a drag box (full-containment policy) |
 | `vectorize.js` | PNG RGBA grid → flat rects (median-cut quantize + RLE/greedy-mesh); browser port of `vectorize-pixel.ps1` |
 | `segment.js` | flat rects → proposed parts (CCL + geometry naming + joint pivots) → segmented.svg; port of `segment-parts.ps1` |
