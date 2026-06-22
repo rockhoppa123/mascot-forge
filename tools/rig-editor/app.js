@@ -303,6 +303,15 @@ function clearRectSel() {
   highlightRects();
   $("selectbar").hidden = true;
 }
+
+// Clear both selections: the marquee rect-selection and the selected part. Bound to Esc and to a
+// click on empty canvas.
+function deselect() {
+  pivotMode = false;
+  clearRectSel();
+  if (selected) { selected = null; $("partedit").hidden = true; }
+  highlight();
+}
 function highlightRects() {
   const set = new Set(rectSel);
   $("stage").querySelectorAll("[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
@@ -371,7 +380,10 @@ $("stage").addEventListener("click", (e) => {
   }
   const g = e.target.closest && e.target.closest("g.part");   // native O(1) hit-test (perf note)
   if (g) selectPart(g.id);
+  else deselect();                                            // click empty canvas to deselect
 });
+
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") deselect(); });
 
 function svgPoint(e) {
   const stage = $("stage");
