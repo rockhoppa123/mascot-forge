@@ -69,6 +69,10 @@
         <label title="A name for this part's joint in the exported skeleton (e.g. leg_left). Free text.">bone <input id="bone" placeholder="bone name" /></label>
         <p class="hint" title="The point this part rotates / scales around — e.g. a leg's hip.">
           <button id="placepivot" type="button">Place pivot</button> then click the canvas (or press <kbd>p</kbd>).</p>
+        <p class="hint" title="Fix mis-grouped shapes by clicking them on the canvas.">fix shapes:
+          <button id="paintmode" type="button" title="Click shapes on the canvas to move them into this part">＋ paint in</button>
+          <button id="erasemode" type="button" title="Click shapes to pull them out of any animated part (kept as a static background layer)">－ erase</button>
+        </p>
         <p id="pivotinfo" class="hint">pivot: —</p>
         <fieldset>
           <legend title="How this part animates in each app state.">presets — motion per state</legend>

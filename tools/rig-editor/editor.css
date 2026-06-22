@@ -28,6 +28,9 @@ main { display:flex; gap:0; height:calc(100vh - 120px); }
 #banner { background:#2a2113; border:1px solid #e0a106; color:#f5e6c8; border-radius:8px; padding:10px 14px; margin-top:10px; font-size:13px; max-width:520px; }
 #banner button { margin-left:10px; background:none; border:1px solid #e0a106; color:#f5e6c8; border-radius:5px; padding:1px 9px; cursor:pointer; }
 #placepivot { background:#1b2429; color:var(--fg); border:1px solid var(--accent); border-radius:6px; padding:3px 10px; cursor:pointer; }
+#paintmode, #erasemode { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:3px 9px; cursor:pointer; margin-left:4px; }
+#paintmode.on, #erasemode.on { border-color:var(--accent); color:var(--accent); }
+#stage.mode-paint, #stage.mode-erase { cursor:crosshair; }
 .shortcuts { margin-top:12px; border-top:1px solid var(--line); padding-top:8px; line-height:1.7; }
 kbd { background:#1b2429; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; font:12px ui-monospace,monospace; }
 #states { display:flex; gap:8px; align-items:center; padding-top:10px; color:var(--mut); }

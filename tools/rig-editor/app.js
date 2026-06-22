@@ -24,6 +24,7 @@ let assetName = "mascot";
 let selected = null;        // selected part id
 let pivotMode = false;      // next canvas click places the selected part's pivot
 let rectSel = [];           // marquee rect-selection (rect ids) pending a split/move
+let clickMode = null;       // null | "paint" | "erase" — per-shape reassignment by clicking
 const colours = new Map();  // partId -> hsl colour
 
 // ---------- load -------------------------------------------------------------------------------
@@ -308,10 +309,26 @@ function clearRectSel() {
 // click on empty canvas.
 function deselect() {
   pivotMode = false;
+  setClickMode(null);
   clearRectSel();
   if (selected) { selected = null; $("partedit").hidden = true; }
   highlight();
 }
+
+// Per-shape reassignment modes: "paint" moves a clicked shape into the selected part; "erase" sends
+// it to the static background (geometry is kept — D6). Toggling the active mode off returns to select.
+function setClickMode(mode) {
+  clickMode = clickMode === mode ? null : mode;
+  if (clickMode) pivotMode = false;
+  $("paintmode").classList.toggle("on", clickMode === "paint");
+  $("erasemode").classList.toggle("on", clickMode === "erase");
+  $("stage").classList.toggle("mode-paint", clickMode === "paint");
+  $("stage").classList.toggle("mode-erase", clickMode === "erase");
+  if (clickMode === "paint") status(`Paint: click shapes to add them to ${selected || "the selected part"}.`);
+  else if (clickMode === "erase") status("Erase: click shapes to send them to the static background.");
+}
+$("paintmode").onclick = () => setClickMode("paint");
+$("erasemode").onclick = () => setClickMode("erase");
 function highlightRects() {
   const set = new Set(rectSel);
   $("stage").querySelectorAll("[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
@@ -376,6 +393,18 @@ $("stage").addEventListener("click", (e) => {
     pivotMode = false;
     refreshPivotInfo(); drawPivot(); regenCss();
     status(`Pivot for ${selected} set to ${pivot.x}, ${pivot.y}.`);
+    return;
+  }
+  if (clickMode) {                                            // paint / erase individual shapes
+    const el = e.target.closest && e.target.closest("[data-rid]");
+    if (!el) return;                                          // empty click in a mode: ignore (Esc exits)
+    if (clickMode === "paint") {
+      if (!selected) { status("Select a part first, then paint shapes into it."); return; }
+      model.assign([el.dataset.rid], selected);
+    } else {
+      model.assign([el.dataset.rid], BACKGROUND_PART);
+    }
+    render(); renderParts(); regenCss();
     return;
   }
   const g = e.target.closest && e.target.closest("g.part");   // native O(1) hit-test (perf note)
