@@ -1,0 +1,11 @@
+{
+  "name": "mascot-forge-tests",
+  "private": true,
+  "description": "Dev-only e2e tooling for the rig editor — kept out of the repo root so the project stays dependency-free.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
+  }
+}

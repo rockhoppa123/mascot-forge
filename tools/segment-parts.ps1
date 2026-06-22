@@ -1,3 +1,7 @@
+# LEGACY / batch-only (ADR-0011 + ease-and-quality plan P3). The CANONICAL segmenter is now the browser
+# module tools/rig-editor/segment.js (cross-platform, node-tested, what the editor + product use). This
+# PowerShell port is kept only for the `mf forge` terminal/batch path; do not add features here —
+# change segment.js and mirror if needed.
 param(
   [string]$FlatPath = "docs/buildable-slice/generated/devbrain-flat.svg",
   [string]$Out = "docs/buildable-slice/generated/devbrain-segmented.svg",
