@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mascot-forge · rig editor</title>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <header>
+    <h1>mascot-forge <span>rig editor</span></h1>
+    <p class="flow"><code>mf forge</code> → <strong>edit here</strong> → <code>mf emit</code></p>
+  </header>
+
+  <main>
+    <section id="canvas-pane">
+      <div id="dropzone">
+        <p>Drop a <code>&lt;asset&gt;-segmented.svg</code> here, or
+          <label class="filebtn">choose a file<input type="file" id="file" accept=".svg" hidden /></label>
+        </p>
+        <p class="hint">Produced by <code>pwsh ./mf.ps1 forge &lt;asset&gt;</code>.</p>
+      </div>
+      <div id="stagewrap" hidden>
+        <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div id="states" hidden>
+        <span>preview:</span>
+        <button data-state="idle" class="on">idle</button>
+        <button data-state="active">active</button>
+        <button data-state="alert">alert</button>
+        <label><input type="checkbox" id="reduce" /> reduced motion</label>
+      </div>
+    </section>
+
+    <aside id="panel" hidden>
+      <h2>Parts</h2>
+      <div id="selectbar" hidden>
+        <span id="selcount">0 rects selected</span>
+        <p class="hint">Drag on the canvas to marquee-select rects; move them to split a fused part.</p>
+        <div class="row">
+          <input id="splitname" placeholder="move to part id, e.g. part-front-wheel" />
+          <button id="split">move</button>
+        </div>
+      </div>
+      <ul id="parts"></ul>
+      <div id="newpart">
+        <input id="newname" placeholder="new part id, e.g. part-front-wheel" />
+        <button id="addpart">add</button>
+      </div>
+
+      <div id="partedit" hidden>
+        <h3 id="selname">—</h3>
+        <label>role
+          <select id="role">
+            <option value="core">core (breathes)</option>
+            <option value="limb">limb (walks/rotates)</option>
+            <option value="accent">accent (shakes/blinks/recoils)</option>
+            <option value="passive">passive (still)</option>
+          </select>
+        </label>
+        <label>bone <input id="bone" placeholder="bone name" /></label>
+        <p class="hint">Click on the canvas to place this part's <strong>pivot</strong>.</p>
+        <p id="pivotinfo" class="hint">pivot: —</p>
+        <fieldset>
+          <legend>presets</legend>
+          <label>idle <select id="preset-idle"></select></label>
+          <label>active <select id="preset-active"></select></label>
+          <label>alert <select id="preset-alert"></select></label>
+        </fieldset>
+        <button id="rename">rename…</button>
+        <button id="remove" class="danger">remove (→ background)</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer hidden id="exportbar">
+    <span id="status"></span>
+    <button id="export" class="primary">Export rig (svg + json + spec)</button>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

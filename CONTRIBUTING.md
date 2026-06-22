@@ -18,10 +18,14 @@ before a rig is authored (see [ADR-0002](docs/adr/0002-assisted-not-full-auto.md
 
 ```powershell
 pwsh ./mf.ps1 forge <asset>   # P1 vectorize → P2 segment, then STOPS for your review
-#   → open assets/<asset>/<asset>-segmented-review.html, confirm parts/pivots, author the rig JSON
+#   → drop <asset>-segmented.svg into the browser rig editor (below) instead of hand-writing JSON
 pwsh ./mf.ps1 emit  <asset>   # P3 emit SVG+CSS + React+GSAP from the confirmed rig
 pwsh ./mf.ps1 check           # full regression gate
 ```
+
+Author the rig **visually** with the [browser rig editor](tools/rig-editor/README.md) (forge → edit
+→ emit) rather than hand-writing `rigged.json` — it exports the `manual-part.svg` + `rigged.json` pair
+`mf emit` consumes.
 
 `assets/<asset>/parts-spec.json` must exist; source PNG, rig, and out-dir default by convention and
 are overridable (`-SourcePath`, `-RigPath`, `-OutDir`, …). Oversized sources: segmentation's CCL is

@@ -140,10 +140,15 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
 
 ```powershell
 pwsh ./mf.ps1 forge <asset>   # P1 vectorize → P2 segment, then stops for the human review (ADR-0002)
-#   → open assets/<asset>/<asset>-segmented-review.html, confirm parts/pivots, author the rig
+#   → drop <asset>-segmented.svg into the browser rig editor (below), then export the rig
 pwsh ./mf.ps1 emit  <asset>    # P3 emit SVG+CSS + React+GSAP from the confirmed rig
 pwsh ./mf.ps1 check            # full regression gate (alias for tools/check-all.ps1)
 ```
+
+Between `forge` and `emit`, author the rig **visually** in the
+[browser rig editor](tools/rig-editor/README.md) (`tools/rig-editor/index.html`) — assign parts,
+roles, pivots, and animation presets, preview the motion, and export the
+`manual-part.svg` + `rigged.json` pair instead of hand-writing JSON.
 
 - It assumes `assets/<asset>/parts-spec.json` exists; source PNG, rig, and out-dir default by
   convention and are overridable (`-SourcePath`, `-RigPath`, `-OutDir`, …). `mf forge devbrain`

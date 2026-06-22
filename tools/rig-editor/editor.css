@@ -1,0 +1,49 @@
+/* editor.css — minimal layout for the rig editor. ponytail: just enough to be usable; visual
+   polish is deferred owner work (W-docs screenshot). */
+:root { --bg:#0f1417; --fg:#e6edf0; --mut:#8aa0a8; --line:#23323a; --accent:#4fb6c4; --danger:#c45a5a; }
+* { box-sizing: border-box; }
+body { margin:0; font:14px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+code { background:#1b2429; padding:1px 5px; border-radius:4px; }
+header { padding:12px 18px; border-bottom:1px solid var(--line); }
+header h1 { margin:0; font-size:18px; } header h1 span { color:var(--accent); font-weight:400; }
+header .flow { margin:4px 0 0; color:var(--mut); }
+main { display:flex; gap:0; height:calc(100vh - 120px); }
+#canvas-pane { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; }
+#dropzone { border:2px dashed var(--line); border-radius:10px; padding:48px; text-align:center; color:var(--mut); }
+#dropzone.drag { border-color:var(--accent); color:var(--fg); }
+.filebtn { color:var(--accent); cursor:pointer; text-decoration:underline; }
+.hint { color:var(--mut); font-size:12px; }
+#stagewrap { flex:1; width:100%; display:flex; align-items:center; justify-content:center; }
+#stage { max-width:100%; max-height:100%; background:#fff; border-radius:8px; }
+#stage g.part.sel { outline:2px solid var(--accent); }
+#stage .pivot { fill:var(--accent); stroke:#fff; stroke-width:1; cursor:grab; }
+#stage .marquee { fill:rgba(94,234,212,.12); stroke:var(--accent); stroke-width:.5; stroke-dasharray:2 2; pointer-events:none; }
+#stage rect.rsel { stroke:var(--accent); stroke-width:1; paint-order:stroke; }
+#selectbar { background:#1b2429; border:1px solid var(--accent); border-radius:6px; padding:8px; margin-bottom:12px; }
+#selectbar .row { display:flex; gap:6px; margin-top:6px; }
+#selectbar input { flex:1; }
+#states { display:flex; gap:8px; align-items:center; padding-top:10px; color:var(--mut); }
+#states button { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:4px 12px; cursor:pointer; }
+#states button.on { border-color:var(--accent); color:var(--accent); }
+aside#panel { width:320px; border-left:1px solid var(--line); padding:14px; overflow:auto; }
+aside h2 { font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); }
+#parts { list-style:none; margin:0 0 10px; padding:0; }
+#parts li { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; }
+#parts li:hover { background:#1b2429; }
+#parts li.sel { background:#1b2429; outline:1px solid var(--accent); }
+#parts .swatch { width:14px; height:14px; border-radius:3px; flex:none; }
+#parts .count { margin-left:auto; color:var(--mut); font-size:12px; }
+#newpart { display:flex; gap:6px; margin-bottom:14px; }
+#newpart input { flex:1; }
+input, select { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+#partedit label { display:block; margin:8px 0; }
+#partedit select, #partedit input { width:100%; }
+fieldset { border:1px solid var(--line); border-radius:8px; margin:12px 0; }
+legend { color:var(--mut); }
+button { cursor:pointer; }
+#partedit button { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 10px; margin-right:6px; }
+.danger { color:var(--danger) !important; }
+footer { display:flex; align-items:center; gap:14px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line); }
+#status { color:var(--mut); margin-right:auto; }
+.primary { background:var(--accent); color:#06222a; border:none; border-radius:6px; padding:8px 16px; font-weight:600; }
+.primary:disabled { opacity:.5; cursor:not-allowed; }

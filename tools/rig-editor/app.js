@@ -1,0 +1,341 @@
+// app.js — browser glue for the rig editor. Wires the tested core modules (model, loader, pivot,
+// presets, validator, exporter) to a minimal DOM. The pure logic lives in those modules and is
+// node-tested; this file is unverified UI glue, deliberately small.
+//
+// Part ops: rename/role/pivot/preset/merge/remove (part-level) plus drag-marquee rect-level SPLIT
+// (peel colour-fused rects — e.g. land-rover wheels stuck in part-body — into their own part via
+// model.assign). Geometry/selection logic is in the node-tested modules; this stays thin glue.
+import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
+import { parseSegmented, applyPartsSpec } from "./loader.js";
+import { bboxOf, dragToPivot, pivotToOrigin } from "./pivot.js";
+import { presetsFor, recipeFor } from "./presets.js";
+import { validate } from "./validator.js";
+import { exportRig } from "./exporter.js";
+import { rectsInMarquee } from "./select.js";
+
+const $ = (id) => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
+
+let model = null;
+let assetName = "mascot";
+let selected = null;        // selected part id
+let pivotMode = false;      // next canvas click places the selected part's pivot
+let rectSel = [];           // marquee rect-selection (rect ids) pending a split/move
+const colours = new Map();  // partId -> hsl colour
+
+// ---------- load -------------------------------------------------------------------------------
+function paletteFor(ids) {
+  colours.clear();
+  ids.forEach((id, i) => colours.set(id, `hsl(${(i * 67) % 360} 70% 55%)`));
+}
+
+function loadText(text, name) {
+  assetName = (name || "mascot").replace(/-segmented\.svg$/i, "").replace(/\.svg$/i, "");
+  model = parseSegmented(text);
+  selected = null;
+  pivotMode = false;
+  $("dropzone").hidden = true;
+  $("stagewrap").hidden = false;
+  $("states").hidden = false;
+  $("panel").hidden = false;
+  $("exportbar").hidden = false;
+  render();
+  renderParts();
+  regenCss();
+  status(`Loaded ${model.rects().length} rects, ${visibleParts().length} proposed parts.`);
+}
+
+// ---------- render canvas ----------------------------------------------------------------------
+function visibleParts() {
+  const p = model.parts();
+  return Object.keys(p).filter((id) => model.rectsOf(id).length > 0);
+}
+
+function render() {
+  const stage = $("stage");
+  stage.setAttribute("viewBox", model.viewBox());
+  stage.replaceChildren();
+  paletteFor([...visibleParts(), BACKGROUND_PART]);
+
+  const root = document.createElementNS(SVGNS, "g");
+  root.id = "rig-root";
+  for (const id of visibleParts()) {
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "part");
+    g.setAttribute("id", id);
+    g.setAttribute("data-part", id);
+    for (const r of model.rectsOf(id)) {
+      const rect = document.createElementNS(SVGNS, "rect");
+      rect.setAttribute("x", r.x); rect.setAttribute("y", r.y);
+      rect.setAttribute("width", r.w); rect.setAttribute("height", r.h);
+      rect.setAttribute("fill", colours.get(id)); // colour-by-part view
+      rect.setAttribute("data-rid", r.id);
+      g.appendChild(rect);
+    }
+    root.appendChild(g);
+  }
+  stage.appendChild(root);
+  drawPivot();
+  highlight();
+  highlightRects();
+}
+
+function drawPivot() {
+  $("stage").querySelectorAll(".pivot").forEach((n) => n.remove());
+  if (!selected) return;
+  const meta = model.parts()[selected];
+  const pv = meta && meta.pivot ? meta.pivot : centreOf(selected);
+  const c = document.createElementNS(SVGNS, "circle");
+  c.setAttribute("class", "pivot");
+  c.setAttribute("cx", pv.x); c.setAttribute("cy", pv.y); c.setAttribute("r", 3);
+  $("stage").appendChild(c);
+}
+
+function centreOf(id) {
+  const bb = bboxOf(model.rectsOf(id));
+  return { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 };
+}
+
+function highlight() {
+  $("stage").querySelectorAll("g.part").forEach((g) => g.classList.toggle("sel", g.id === selected));
+  $("parts").querySelectorAll("li").forEach((li) => li.classList.toggle("sel", li.dataset.id === selected));
+}
+
+// ---------- parts panel ------------------------------------------------------------------------
+function renderParts() {
+  const ul = $("parts");
+  ul.replaceChildren();
+  for (const id of visibleParts()) {
+    const li = document.createElement("li");
+    li.dataset.id = id;
+    li.innerHTML = `<span class="swatch" style="background:${colours.get(id)}"></span>` +
+      `<span class="name">${id}</span><span class="count">${model.rectsOf(id).length}</span>`;
+    li.onclick = () => selectPart(id);
+    ul.appendChild(li);
+  }
+  highlight();
+}
+
+function selectPart(id) {
+  selected = id;
+  pivotMode = false;
+  clearRectSel();
+  const meta = model.parts()[id] || {};
+  $("partedit").hidden = false;
+  $("selname").textContent = id;
+  $("role").value = meta.role || "passive";
+  $("bone").value = meta.bone || "";
+  refreshPresetPickers();
+  refreshPivotInfo();
+  drawPivot();
+  highlight();
+}
+
+function refreshPresetPickers() {
+  const meta = model.parts()[selected] || {};
+  for (const s of model.states()) {
+    const sel = $(`preset-${s}`);
+    const names = presetsFor(meta.role || "passive", s);
+    sel.replaceChildren();
+    const none = new Option("(none)", "");
+    sel.appendChild(none);
+    for (const n of names) sel.appendChild(new Option(n, n));
+    sel.value = model.preset(s, selected) || "";
+    sel.disabled = names.length === 0;
+  }
+}
+
+function refreshPivotInfo() {
+  const meta = model.parts()[selected] || {};
+  $("pivotinfo").textContent = meta.pivot
+    ? `pivot: ${meta.pivot.x}, ${meta.pivot.y} · origin ${meta.origin || ""}`
+    : "pivot: (default centre) — click canvas to place";
+}
+
+// ---------- editing ops ------------------------------------------------------------------------
+$("role").onchange = (e) => { if (selected) { model.setRole(selected, e.target.value); refreshPresetPickers(); regenCss(); } };
+$("bone").onchange = (e) => { if (selected) model.setBone(selected, e.target.value.trim()); };
+for (const s of ["idle", "active", "alert"]) {
+  $(`preset-${s}`).onchange = (e) => { if (selected) { model.setPreset(s, selected, e.target.value || null); regenCss(); } };
+}
+$("rename").onclick = () => {
+  if (!selected) return;
+  const next = prompt("Rename part id to:", selected);
+  if (!next || next === selected) return;
+  model.rename(selected, next);
+  const was = selected; selected = next;
+  render(); renderParts(); selectPart(next); regenCss();
+  status(`Renamed ${was} → ${next}.`);
+};
+$("remove").onclick = () => {
+  if (!selected || selected === BACKGROUND_PART) return;
+  model.remove(selected);
+  status(`Removed ${selected} → ${BACKGROUND_PART}.`);
+  selected = null; $("partedit").hidden = true;
+  render(); renderParts(); regenCss();
+};
+$("addpart").onclick = () => {
+  const id = $("newname").value.trim();
+  if (!id) return;
+  model.assign([], id);           // creates an empty candidate part (assign rects via merge below)
+  $("newname").value = "";
+  renderParts(); selectPart(id);
+};
+
+// ---------- marquee rect-selection (split fused parts) -----------------------------------------
+// Drag = marquee (select rects to peel out); plain click = part-select (kept below). The enclosed
+// set is computed once on release (perf note: no per-pointermove rect loop).
+let marquee = null;          // { x0, y0, el } while dragging
+let suppressClick = false;   // a completed drag must not fall through to the click part-select
+
+function clearRectSel() {
+  rectSel = [];
+  highlightRects();
+  $("selectbar").hidden = true;
+}
+function highlightRects() {
+  const set = new Set(rectSel);
+  $("stage").querySelectorAll("rect[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
+}
+function showSelection() {
+  $("selectbar").hidden = rectSel.length === 0;
+  $("selcount").textContent = `${rectSel.length} rect(s) selected`;
+}
+
+$("stage").addEventListener("pointerdown", (e) => {
+  if (pivotMode) return;                 // pivot placement uses the click handler
+  const pt = svgPoint(e);
+  marquee = { x0: pt.x, y0: pt.y, el: null };
+});
+$("stage").addEventListener("pointermove", (e) => {
+  if (!marquee) return;
+  const pt = svgPoint(e);
+  if (!marquee.el) {
+    if (Math.hypot(pt.x - marquee.x0, pt.y - marquee.y0) < 1) return; // ignore jitter; click stays a click
+    marquee.el = document.createElementNS(SVGNS, "rect");
+    marquee.el.setAttribute("class", "marquee");
+    $("stage").appendChild(marquee.el);
+  }
+  marquee.el.setAttribute("x", Math.min(pt.x, marquee.x0));
+  marquee.el.setAttribute("y", Math.min(pt.y, marquee.y0));
+  marquee.el.setAttribute("width", Math.abs(pt.x - marquee.x0));
+  marquee.el.setAttribute("height", Math.abs(pt.y - marquee.y0));
+});
+$("stage").addEventListener("pointerup", (e) => {
+  if (!marquee) return;
+  if (marquee.el) {                       // it was a real drag, not a click
+    const pt = svgPoint(e);
+    rectSel = rectsInMarquee(model.rects(), { x: marquee.x0, y: marquee.y0, w: pt.x - marquee.x0, h: pt.y - marquee.y0 });
+    marquee.el.remove();
+    highlightRects();
+    showSelection();
+    suppressClick = true;
+    status(`${rectSel.length} rect(s) selected — set a target part id and press move.`);
+  }
+  marquee = null;
+});
+
+$("split").onclick = () => {
+  if (!rectSel.length) return;
+  const target = $("splitname").value.trim();
+  if (!target) { status("Enter a target part id first."); return; }
+  const n = rectSel.length;
+  model.assign(rectSel, target);
+  $("splitname").value = "";
+  clearRectSel();
+  render(); renderParts(); selectPart(target); regenCss();
+  status(`Moved ${n} rect(s) → ${target}.`);
+};
+
+// canvas: click selects a part; in pivot mode the click places the selected part's pivot.
+$("stage").addEventListener("click", (e) => {
+  if (suppressClick) { suppressClick = false; return; }
+  const pt = svgPoint(e);
+  if (pivotMode && selected) {
+    const { pivot, origin } = dragToPivot(pt, bboxOf(model.rectsOf(selected)));
+    model.setPivot(selected, pivot, origin);
+    pivotMode = false;
+    refreshPivotInfo(); drawPivot(); regenCss();
+    status(`Pivot for ${selected} set to ${pivot.x}, ${pivot.y}.`);
+    return;
+  }
+  const g = e.target.closest && e.target.closest("g.part");   // native O(1) hit-test (perf note)
+  if (g) selectPart(g.id);
+});
+
+function svgPoint(e) {
+  const stage = $("stage");
+  const r = stage.getBoundingClientRect();
+  const [minX, minY, w, h] = model.viewBox().split(/\s+/).map(Number);
+  return { x: minX + ((e.clientX - r.left) / r.width) * w, y: minY + ((e.clientY - r.top) / r.height) * h };
+}
+
+// place-pivot toggle (added to the hint area)
+document.addEventListener("keydown", (e) => { if (e.key === "p" && selected) { pivotMode = true; status("Pivot mode: click the canvas to place the pivot."); } });
+
+// ---------- live preview -----------------------------------------------------------------------
+function regenCss() {
+  if (!model) return;
+  let rig;
+  try { rig = exportRig(model, { assetName, recipeFor }).riggedJson; } catch { return; }
+  const css = [`#stage g.part { transform-box: fill-box; }`];
+  for (const p of rig.parts) css.push(`#stage #${p.id} { transform-origin: ${p.origin}; }`);
+  for (const s of rig.states) {
+    for (const rec of rig.animations[s]) {
+      css.push(`#stage[data-state="${s}"] #${rec.part} { animation: ${rec.name} ${rec.durationMs}ms ${rec.timing} ${rec.iteration}; }`);
+      const kf = rec.keyframes.map((k) => `${k.offset} { transform: ${k.transform}; }`).join(" ");
+      css.push(`@keyframes ${rec.name} { ${kf} }`);
+    }
+  }
+  css.push(`#stage.force-reduced-motion g.part { animation: none !important; }`);
+  css.push(`@media (prefers-reduced-motion: reduce) { #stage g.part { animation: none !important; } }`);
+  let style = $("anim");
+  if (!style) { style = document.createElement("style"); style.id = "anim"; document.head.appendChild(style); }
+  style.textContent = css.join("\n");
+}
+
+$("states").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-state]");
+  if (!b) return;
+  $("stage").setAttribute("data-state", b.dataset.state);
+  $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+});
+$("reduce").onchange = (e) => $("stage").classList.toggle("force-reduced-motion", e.target.checked);
+
+// ---------- export -----------------------------------------------------------------------------
+$("export").onclick = () => {
+  const ungrouped = model.ungroupedRects();
+  if (ungrouped.length && !confirm(`${ungrouped.length} rect(s) are unassigned and will go to part-background. Export anyway?`)) return;
+  const out = exportRig(model, { assetName, recipeFor });
+  const v = validate(out.riggedJson);
+  if (!v.ok) { status("✗ " + v.errors[0]); alert("Validation failed:\n\n" + v.errors.join("\n")); return; }
+  download(`${assetName}-manual-part.svg`, out.manualSvg, "image/svg+xml");
+  download(`${assetName}-rigged.json`, JSON.stringify(out.riggedJson, null, 2), "application/json");
+  download(`parts-spec.json`, JSON.stringify(out.partsSpec, null, 2), "application/json");
+  status(`✓ Exported ${assetName} — valid rig. Now run: mf emit ${assetName}`);
+};
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function status(msg) { $("status").textContent = msg; }
+
+// ---------- file intake ------------------------------------------------------------------------
+$("file").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (f) f.text().then((t) => loadText(t, f.name));
+});
+const dz = $("dropzone");
+["dragover", "dragenter"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
+dz.addEventListener("drop", (e) => {
+  const f = e.dataTransfer.files[0];
+  if (f) f.text().then((t) => loadText(t, f.name));
+});
+
+// test/debug hook: drive the editor from a script (used by preview verification).
+window.__rigEditor = { loadText, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, get rectSel() { return rectSel.slice(); } };

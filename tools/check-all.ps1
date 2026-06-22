@@ -29,7 +29,16 @@ $checks = @(
     }
   },
   @{ Name = "P4 orchestrator";Run = { & pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot "tools/check-orchestrator.ps1") } },
-  @{ Name = "P4 determinism"; Run = { & node (Join-Path $repoRoot "runtime/mascot-state.test.mjs") } }
+  @{ Name = "P4 determinism"; Run = { & node (Join-Path $repoRoot "runtime/mascot-state.test.mjs") } },
+  @{
+    Name = "P5 rig-editor"   # browser rig editor: all pure-logic node self-checks (model -> exporter golden)
+    Run  = {
+      foreach ($t in "model", "loader", "pivot", "presets", "validator", "exporter", "select") {
+        & node (Join-Path $repoRoot "tools/rig-editor/$t.test.mjs")
+        if ($LASTEXITCODE -ne 0) { break }  # leaves the failing exit code for the summary
+      }
+    }
+  }
 )
 
 $results = @()
