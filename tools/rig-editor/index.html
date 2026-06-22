@@ -15,7 +15,10 @@
   <main>
     <section id="canvas-pane">
       <div id="dropzone">
-        <p>Drop a <code>PNG</code> or a <code>&lt;asset&gt;-segmented.svg</code> here, or
+        <p><button id="loadexample" class="primary">▶ Load example (DevBrain)</button>
+          &nbsp;— see a finished, animated rig in one click.</p>
+        <p>Or drop a <code>PNG</code>, a <strong>layered SVG</strong> (Figma / Inkscape), or a
+          <code>segmented.svg</code> here, or
           <label class="filebtn">choose a file<input type="file" id="file" accept=".png,.svg" hidden /></label>
         </p>
         <p class="hint">A PNG is vectorised + segmented in-browser.
@@ -27,6 +30,7 @@
       <div id="stagewrap" hidden>
         <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
+      <div id="banner" hidden></div>
       <div id="states" hidden>
         <span>preview:</span>
         <button data-state="idle" class="on">idle</button>
@@ -54,7 +58,7 @@
 
       <div id="partedit" hidden>
         <h3 id="selname">—</h3>
-        <label>role
+        <label title="core = main body (breathes) · limb = arm/leg (rotates) · accent = small mover (blink/shake/recoil) · passive = stays still">role
           <select id="role">
             <option value="core">core (breathes)</option>
             <option value="limb">limb (walks/rotates)</option>
@@ -62,17 +66,19 @@
             <option value="passive">passive (still)</option>
           </select>
         </label>
-        <label>bone <input id="bone" placeholder="bone name" /></label>
-        <p class="hint">Click on the canvas to place this part's <strong>pivot</strong>.</p>
+        <label title="A name for this part's joint in the exported skeleton (e.g. leg_left). Free text.">bone <input id="bone" placeholder="bone name" /></label>
+        <p class="hint" title="The point this part rotates / scales around — e.g. a leg's hip.">
+          <button id="placepivot" type="button">Place pivot</button> then click the canvas (or press <kbd>p</kbd>).</p>
         <p id="pivotinfo" class="hint">pivot: —</p>
         <fieldset>
-          <legend>presets</legend>
+          <legend title="How this part animates in each app state.">presets — motion per state</legend>
           <label>idle <select id="preset-idle"></select></label>
           <label>active <select id="preset-active"></select></label>
           <label>alert <select id="preset-alert"></select></label>
         </fieldset>
         <button id="rename">rename…</button>
         <button id="remove" class="danger">remove (→ background)</button>
+        <p class="hint shortcuts"><strong>click</strong> a part to select · <strong>drag</strong> a box to select shapes, then <em>move</em> to split · <kbd>p</kbd> places the pivot.</p>
       </div>
     </aside>
   </main>
@@ -82,6 +88,20 @@
     <button id="export" class="primary">Export rig (svg + json + spec)</button>
   </footer>
 
+  <script>
+    // Must be served over HTTP — ES modules + fetch are blocked on file://. This classic (non-module)
+    // script still runs there to explain the fix; the module below would be blocked and never execute.
+    if (location.protocol === 'file:') {
+      document.body.innerHTML =
+        '<div style="font:16px/1.6 system-ui,sans-serif;max-width:640px;margin:48px auto;padding:24px;color:#e6edf0">' +
+        '<h2>Serve this over HTTP first</h2>' +
+        '<p>The rig editor uses ES modules and <code>fetch</code>, which browsers block on <code>file://</code>.</p>' +
+        '<p>From the repo root, run:</p>' +
+        '<pre style="background:#1b2429;padding:12px 14px;border-radius:6px">python -m http.server 4178</pre>' +
+        '<p>then open <a style="color:#5eead4" href="http://localhost:4178/tools/rig-editor/index.html">' +
+        'http://localhost:4178/tools/rig-editor/index.html</a></p></div>';
+    }
+  </script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -51,8 +51,62 @@ function showModel(msg) {
   render();
   renderParts();
   regenCss();
+  updateBanner();
   status(msg);
 }
+
+// ---------- onboarding helpers -----------------------------------------------------------------
+// After a load, if few parts were detected, tell the user auto-detect is a starting point and how to
+// split — the single most-missed step (council 2026-06-22).
+function updateBanner() {
+  const b = $("banner");
+  const n = visibleParts().length;
+  if (n <= 3) {
+    b.innerHTML = `Auto-detect found <strong>${n}</strong> part(s). If parts look fused, ` +
+      `<strong>drag a box</strong> over a region on the canvas, then press <em>move</em> to split it ` +
+      `into its own part. <button id="banner-x" type="button">got it</button>`;
+    b.hidden = false;
+    $("banner-x").onclick = () => { b.hidden = true; };
+  } else {
+    b.hidden = true;
+  }
+}
+
+function setState(s) {
+  $("stage").setAttribute("data-state", s);
+  $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.state === s));
+}
+
+const EXAMPLE_PLAN = [
+  ["part-body", "body", "core", "idle", "breathe"],
+  ["part-eyes", "eyes", "accent", "idle", "blink"],
+  ["part-leg-left", "leg_left", "limb", "active", "walk"],
+  ["part-leg-right", "leg_right", "limb", "active", "walk-mirror"],
+  ["part-antenna", "antenna", "accent", "alert", "pulse"],
+];
+
+// One-click payoff: load the committed DevBrain segmented.svg and apply a known-good rig so a finished,
+// animated, data-reactive mascot appears with zero decisions — "what good looks like."
+async function loadExample() {
+  try {
+    const res = await fetch("../../docs/buildable-slice/generated/devbrain-segmented.svg");
+    if (!res.ok) throw new Error("example asset not found — serve from the repo root");
+    loadText(await res.text(), "devbrain");
+    for (const [id, bone, role, state, preset] of EXAMPLE_PLAN) {
+      if (!model.parts()[id]) continue;
+      model.setRole(id, role); model.setBone(id, bone); model.setPreset(state, id, preset);
+    }
+    regenCss();
+    setState("active");
+    status("Example rigged — DevBrain is walking (active state). This is a finished rig; now load your own art.");
+  } catch (e) { status("✗ " + (e && e.message ? e.message : e)); }
+}
+$("loadexample").onclick = loadExample;
+$("placepivot").onclick = () => {
+  if (!selected) { status("Select a part first, then place its pivot."); return; }
+  pivotMode = true;
+  status("Pivot mode: click the canvas to place the pivot.");
+};
 
 function nodeFromMarkup(markup) {
   const doc = new DOMParser().parseFromString(`<svg xmlns="${SVGNS}">${markup}</svg>`, "image/svg+xml");
@@ -368,7 +422,7 @@ $("export").onclick = () => {
   download(`${assetName}-manual-part.svg`, out.manualSvg, "image/svg+xml");
   download(`${assetName}-rigged.json`, JSON.stringify(out.riggedJson, null, 2), "application/json");
   download(`parts-spec.json`, JSON.stringify(out.partsSpec, null, 2), "application/json");
-  status(`✓ Exported ${assetName} — valid rig. Now run: mf emit ${assetName}`);
+  status(`✓ Exported 3 files (${assetName}-manual-part.svg + ${assetName}-rigged.json + parts-spec.json). Put them in assets/${assetName}/, then run:  mf emit ${assetName}`);
 };
 
 function download(name, text, type) {
@@ -433,4 +487,4 @@ const dz = $("dropzone");
 dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
-window.__rigEditor = { loadText, loadLayeredSvg, loadFile, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
+window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
