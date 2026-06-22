@@ -1,0 +1,67 @@
+// emit.js — turn a rigged.json into animation CSS, a self-contained animated SVG, and a standalone
+// demo page. Pure ESM, node-tested. The SAME CSS generator drives the editor's live preview and the
+// in-browser export, so they can't drift; the rules mirror tools/emit-svg-css.ps1 (the canonical
+// emitter stays the reference — equivalence, not byte-identity). `scope` lets the editor target
+// `#stage` and the standalone export target `#mascot`.
+
+export function emitCss(rig, { scope = "#mascot" } = {}) {
+  const L = [];
+  L.push(`${scope} .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }`);
+  for (const p of rig.parts) L.push(`${scope} #${p.id} { transform-origin: ${p.origin}; }`);
+
+  const recipes = [];
+  for (const s of rig.states) for (const rec of (rig.animations[s] || [])) recipes.push([s, rec]);
+
+  for (const [s, rec] of recipes)
+    L.push(`${scope}[data-state="${s}"] #${rec.part} { animation: ${rec.name} ${rec.durationMs}ms ${rec.timing} ${rec.iteration}; }`);
+
+  for (const [, rec] of recipes) {
+    const kf = rec.keyframes.map((k) => `  ${k.offset} { transform: ${k.transform}; }`).join("\n");
+    L.push(`@keyframes ${rec.name} {\n${kf}\n}`);
+  }
+
+  // reduced motion — honor the OS setting and an explicit force-reduced-motion class
+  const reduced = recipes.filter(([, r]) => r.reduced && r.reduced.transform);
+  L.push(
+    `@media (prefers-reduced-motion: reduce) {\n  ${scope} .part { animation: none !important; transition: none !important; }` +
+      reduced.map(([s, r]) => `\n  ${scope}[data-state="${s}"] #${r.part} { transform: ${r.reduced.transform}; }`).join("") +
+      `\n}`
+  );
+  L.push(`${scope}.force-reduced-motion .part { animation: none !important; transition: none !important; }`);
+  for (const [s, r] of reduced)
+    L.push(`${scope}.force-reduced-motion[data-state="${s}"] #${r.part} { transform: ${r.reduced.transform}; }`);
+
+  return L.join("\n");
+}
+
+// A self-contained animated SVG: the manual-part.svg with the CSS inlined as a <style> and the external
+// stylesheet reference stripped. Opens and animates (idle) anywhere, no terminal, no separate files.
+export function emitAnimatedSvg(rig, manualSvg) {
+  const css = emitCss(rig, { scope: "#mascot" });
+  const svg = manualSvg.replace(/<\?xml-stylesheet[^?]*\?>\s*/g, ""); // drop external css ref → self-contained
+  return svg.replace(/(<svg\b[^>]*>)/, (m) => `${m}\n  <style>\n${css}\n  </style>`);
+}
+
+// A standalone demo page: the animated SVG inlined with state-toggle buttons. One file, no dependencies.
+export function emitDemoHtml(rig, animatedSvg, assetName = "mascot") {
+  const buttons = rig.states.map((s) => `<button data-s="${s}">${s}</button>`).join("");
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${assetName} — animated mascot</title>
+<style>
+  body { font:14px system-ui,sans-serif; margin:0; display:flex; min-height:100vh; }
+  #stage { flex:1; display:grid; place-items:center; background:#eef3f8; }
+  #stage svg { width:min(70vw,460px); height:auto; }
+  #panel { width:200px; padding:16px; background:#fff; border-left:1px solid #d6dce8; }
+  #panel button { display:block; width:100%; margin:6px 0; padding:8px; cursor:pointer; }
+</style></head>
+<body>
+  <div id="stage">${animatedSvg}</div>
+  <div id="panel"><h3>${assetName}</h3><p>preview state:</p>${buttons}</div>
+  <script>
+    var svg = document.querySelector('#stage svg');
+    document.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { svg.setAttribute('data-state', b.dataset.s); }; });
+  </script>
+</body></html>
+`;
+}

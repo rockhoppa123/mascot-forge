@@ -15,6 +15,7 @@ import { rectsInMarquee } from "./select.js";
 import { vectorizeRaster } from "./vectorize.js";
 import { segment } from "./segment.js";
 import { sanitizeId, toModel } from "./layer-ingest.js";
+import { emitCss, emitAnimatedSvg, emitDemoHtml } from "./emit.js";
 
 const $ = (id) => document.getElementById(id);
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -460,20 +461,11 @@ function regenCss() {
   updateRigStatus();
   let rig;
   try { rig = exportRig(model, { assetName, recipeFor }).riggedJson; } catch { return; }
-  const css = [`#stage g.part { transform-box: fill-box; }`];
-  for (const p of rig.parts) css.push(`#stage #${p.id} { transform-origin: ${p.origin}; }`);
-  for (const s of rig.states) {
-    for (const rec of rig.animations[s]) {
-      css.push(`#stage[data-state="${s}"] #${rec.part} { animation: ${rec.name} ${rec.durationMs}ms ${rec.timing} ${rec.iteration}; }`);
-      const kf = rec.keyframes.map((k) => `${k.offset} { transform: ${k.transform}; }`).join(" ");
-      css.push(`@keyframes ${rec.name} { ${kf} }`);
-    }
-  }
-  css.push(`#stage.force-reduced-motion g.part { animation: none !important; }`);
-  css.push(`@media (prefers-reduced-motion: reduce) { #stage g.part { animation: none !important; } }`);
   let style = $("anim");
   if (!style) { style = document.createElement("style"); style.id = "anim"; document.head.appendChild(style); }
-  style.textContent = css.join("\n");
+  // Shared generator (P1): the live preview uses the SAME emit.js as the standalone export, scoped to
+  // #stage — so what you preview is exactly what you export.
+  style.textContent = emitCss(rig, { scope: "#stage" });
 }
 
 $("states").addEventListener("click", (e) => {
@@ -485,6 +477,21 @@ $("states").addEventListener("click", (e) => {
 $("reduce").onchange = (e) => $("stage").classList.toggle("force-reduced-motion", e.target.checked);
 
 // ---------- export -----------------------------------------------------------------------------
+// P1: one-click, self-contained animated mascot — no terminal, no mf emit. Uses the same emit.js the
+// live preview uses, so the download matches what's on screen.
+$("exportanim").onclick = () => {
+  let out;
+  try { out = exportRig(model, { assetName, recipeFor }); }
+  catch (e) { status("✗ " + (e && e.message ? e.message : e)); alert("Can't export yet:\n\n" + (e && e.message ? e.message : e)); return; }
+  const v = validate(out.riggedJson);
+  if (!v.ok) { status("✗ " + v.errors[0]); alert("Fix the rig first:\n\n" + v.errors.join("\n")); return; }
+  const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
+  download(`${assetName}-mascot.svg`, svg, "image/svg+xml");
+  download(`${assetName}-mascot-demo.html`, emitDemoHtml(out.riggedJson, svg, assetName), "text/html");
+  status(`✓ Exported a self-contained animated mascot — open ${assetName}-mascot-demo.html in a browser. No terminal needed.`);
+};
+
+// Advanced: the raw mf emit / React+GSAP input pair (manual-part.svg + rigged.json + parts-spec.json).
 $("export").onclick = () => {
   const ungrouped = model.ungroupedRects();
   if (ungrouped.length && !confirm(`${ungrouped.length} rect(s) are unassigned and will go to part-background. Export anyway?`)) return;
@@ -561,4 +568,4 @@ const dz = $("dropzone");
 dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
-window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
+window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, emitAnimatedSvg, emitDemoHtml, get rectSel() { return rectSel.slice(); } };
