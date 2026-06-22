@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: mascot-forge
+message: >-
+  If you use mascot-forge in your work, please cite it using the metadata below.
+type: software
+authors:
+  - given-names: Andrew
+    family-names: Lawson
+    email: andrew@dataweb.co.za
+repository-code: "https://github.com/rockhoppa123/mascot-forge"
+abstract: >-
+  An open-source, dependency-free pipeline that turns flat art into a data-reactive web component you
+  own: rigged in the browser, with a state machine binding animation states to live application data,
+  emitted as editable SVG/CSS or React+GSAP code.
+keywords:
+  - svg-animation
+  - gsap
+  - state-machine
+  - data-visualization
+  - code-generation
+  - mascot
+license: MIT

@@ -207,7 +207,7 @@ The order front-loads the riskiest unknowns and keeps a working artifact at ever
    (median-cut, largest-gap split), recorded in
    [ADR-0009](adr/0009-vectorize-quantize-anti-aliased-source.md) (amends 0005). Default
    palette 6 → 89 rects (98.8% reduction), silhouette + accents preserved. Plan:
-   [`phase-1-vectorize-implementation-plan.md`](phase-1-vectorize-implementation-plan.md).
+   [`phase-1-vectorize-implementation-plan.md`](plans/phase-1-vectorize-implementation-plan.md).
 4. ✅ **Phase 2 (assisted segmentation) — done 2026-06-18.** `tools/segment-parts.ps1`
    *proposes* named parts from `devbrain-flat.svg` by **connected-component labeling over the
    palette-thresholded `<rect>` geometry** (deterministic, no ML/SAM — `data-render-method=
@@ -220,12 +220,12 @@ The order front-loads the riskiest unknowns and keeps a working artifact at ever
    (`runtime/mascot-state.js`) + binding hook (`tools/emit-react-gsap/src/useMascotState.ts`)
    driving the locked Output Target from a (mock) telemetry feed under priority + hysteresis
    rules; node determinism self-check green. Plan:
-   [`phase-4-orchestrator-implementation-plan.md`](phase-4-orchestrator-implementation-plan.md).
+   [`phase-4-orchestrator-implementation-plan.md`](plans/phase-4-orchestrator-implementation-plan.md).
 6. ✅ **Polish & demo — done 2026-06-18.** Truthful README + Run/Quickstart, one-command
    `tools/check-all.ps1` over all five checks, and a static before/after showcase
    (`docs/buildable-slice/showcase.html`) contrasting the flipbook PNG with the forged,
    data-reactive mascot. Packaging only — no new pipeline capability. Plan:
-   [`phase-6-polish-demo-implementation-plan.md`](phase-6-polish-demo-implementation-plan.md).
+   [`phase-6-polish-demo-implementation-plan.md`](plans/phase-6-polish-demo-implementation-plan.md).
 
 Rationale: building **Phase 3 before Phases 1–2** means the hardest-to-verify creative
 parts (segmentation) feed a *known-good* code generator, so failures are isolated.

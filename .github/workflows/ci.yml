@@ -1,0 +1,21 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    # The full pipeline gate includes vectorize-pixel.ps1, which uses System.Drawing
+    # (Windows-only), so the gate runs on windows-latest (pwsh + Node preinstalled).
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Full pipeline gate (P1–P5)
+        shell: pwsh
+        run: ./tools/check-all.ps1

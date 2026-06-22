@@ -1,0 +1,38 @@
+name: Bug report
+description: Report something that doesn't work as documented
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong?
+      placeholder: I dropped a layered SVG into the rig editor and...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include the asset/input if you can share it.
+      placeholder: |
+        1. Run `pwsh ./mf.ps1 forge <asset>`
+        2. Open the rig editor at ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS, PowerShell version (`$PSVersionTable.PSVersion`), Node version, browser.
+      placeholder: Windows 11, pwsh 7.4, Node 20, Chrome 126
+    validations:
+      required: false

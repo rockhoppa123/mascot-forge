@@ -1,6 +1,16 @@
 # mascot-forge
 
-**Turn a static image into a rigged, articulated, telemetry-aware web mascot — as code you own.**
+[![CI](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
+![Gate: P1–P5 green](https://img.shields.io/badge/gate-P1%E2%80%93P5%20green-brightgreen)
+
+**Turn flat art into a data-reactive web component you own.** Rig it in the browser, bind its animation
+states to your app's live data, and export editable **SVG/CSS or React+GSAP** — no binary runtime, no
+black box.
+
+> **Scope:** input is flat / clean vector or pixel art (or a layered SVG). Auto-part detection is a
+> best-effort starting point — you finish the rig in the visual editor. Photographic input is out of scope.
 
 ![A mascot forged by mascot-forge — semantic parts that articulate and react to live state](docs/hero-mascot.png)
 
@@ -45,8 +55,10 @@ Existing tools each solve part of this but leave the gap open:
 - **Vectorizers** (VTracer, Potrace) — flatten an image into one path/colour stack with
   no semantic anatomy: legs, body, and antenna fuse into a rigid blob.
 
-**The wedge:** nothing takes an arbitrary image and emits *owned, editable React + GSAP
-(or SVG/CSS) code* with semantic parts that articulate and respond to live state.
+**The wedge:** nothing turns your art into *owned, editable* code — SVG/CSS or React+GSAP — whose
+animation **states bind to your app's live data**. That data-reactive binding, as code you control, is
+the part Rive and Lottie structurally can't give you. And since **GSAP became 100% free (all plugins,
+commercial use) in April 2025**, the React+GSAP output carries no licensing asterisk.
 
 ## The origin: DevBrain
 
