@@ -14,6 +14,7 @@ import { exportRig } from "./exporter.js";
 import { rectsInMarquee } from "./select.js";
 import { vectorizeRaster } from "./vectorize.js";
 import { segment } from "./segment.js";
+import { sanitizeId, toModel } from "./layer-ingest.js";
 
 const $ = (id) => document.getElementById(id);
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -34,8 +35,14 @@ function paletteFor(ids) {
 function loadText(text, name) {
   assetName = (name || "mascot").replace(/-segmented\.svg$/i, "").replace(/\.svg$/i, "");
   model = parseSegmented(text);
+  showModel(`Loaded ${model.rects().length} rects, ${visibleParts().length} proposed parts.`);
+}
+
+// Reveal the editor chrome and draw the current `model`. Shared by every loader.
+function showModel(msg) {
   selected = null;
   pivotMode = false;
+  rectSel = [];
   $("dropzone").hidden = true;
   $("stagewrap").hidden = false;
   $("states").hidden = false;
@@ -44,7 +51,48 @@ function loadText(text, name) {
   render();
   renderParts();
   regenCss();
-  status(`Loaded ${model.rects().length} rects, ${visibleParts().length} proposed parts.`);
+  status(msg);
+}
+
+function nodeFromMarkup(markup) {
+  const doc = new DOMParser().parseFromString(`<svg xmlns="${SVGNS}">${markup}</svg>`, "image/svg+xml");
+  return doc.documentElement.firstElementChild;
+}
+
+// ADR-0011: ingest a LAYERED vector SVG (Figma/Inkscape/Illustrator) — each top-level <g> is a part,
+// its drawable children are geometry-agnostic elements. getBBox needs the nodes rendered, so we parse
+// to a hidden offscreen SVG, measure, then build the model (the naming/assembly is shared with the
+// node-tested layer-ingest module).
+function loadLayeredSvg(svgText, name) {
+  const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+  if (doc.querySelector("parsererror")) { status("Could not parse that SVG."); return; }
+  const svgEl = doc.documentElement;
+  const viewBox = svgEl.getAttribute("viewBox") || `0 0 ${svgEl.getAttribute("width") || 192} ${svgEl.getAttribute("height") || 192}`;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden";
+  wrap.appendChild(svgEl);
+  document.body.appendChild(wrap);
+
+  const DRAW = "rect,path,circle,ellipse,polygon,polyline,line";
+  const used = new Set();
+  const elements = [];
+  let eid = 0, layerN = 0;
+  const groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  const layers = groups.length ? groups : [svgEl]; // no groups → one implicit layer
+  for (const g of layers) {
+    const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;
+    const part = sanitizeId(label, used);
+    for (const el of g.querySelectorAll(DRAW)) {
+      let bb; try { bb = el.getBBox(); } catch { bb = { x: 0, y: 0, width: 0, height: 0 }; }
+      elements.push({ id: `e${eid++}`, part, markup: el.outerHTML, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
+    }
+  }
+  document.body.removeChild(wrap);
+  if (!elements.length) { status("No shapes found in that SVG."); return; }
+
+  model = toModel({ viewBox, elements });
+  assetName = (name || "mascot").replace(/\.svg$/i, "");
+  showModel(`Loaded ${elements.length} shapes across ${visibleParts().length} layer-parts. Set roles/pivots/presets, then export.`);
 }
 
 // ---------- render canvas ----------------------------------------------------------------------
@@ -67,12 +115,18 @@ function render() {
     g.setAttribute("id", id);
     g.setAttribute("data-part", id);
     for (const r of model.rectsOf(id)) {
-      const rect = document.createElementNS(SVGNS, "rect");
-      rect.setAttribute("x", r.x); rect.setAttribute("y", r.y);
-      rect.setAttribute("width", r.w); rect.setAttribute("height", r.h);
-      rect.setAttribute("fill", colours.get(id)); // colour-by-part view
-      rect.setAttribute("data-rid", r.id);
-      g.appendChild(rect);
+      let node;
+      if (r.markup) {
+        node = nodeFromMarkup(r.markup); // geometry-agnostic element (path/circle/…) — keep real art
+      } else {
+        node = document.createElementNS(SVGNS, "rect");
+        node.setAttribute("x", r.x); node.setAttribute("y", r.y);
+        node.setAttribute("width", r.w); node.setAttribute("height", r.h);
+        node.setAttribute("fill", colours.get(id)); // colour-by-part view (rect inputs)
+      }
+      if (!node) continue;
+      node.setAttribute("data-rid", r.id);
+      g.appendChild(node);
     }
     root.appendChild(g);
   }
@@ -197,7 +251,7 @@ function clearRectSel() {
 }
 function highlightRects() {
   const set = new Set(rectSel);
-  $("stage").querySelectorAll("rect[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
+  $("stage").querySelectorAll("[data-rid]").forEach((r) => r.classList.toggle("rsel", set.has(r.dataset.rid)));
 }
 function showSelection() {
   $("selectbar").hidden = rectSel.length === 0;
@@ -332,9 +386,14 @@ function status(msg) { $("status").textContent = msg; }
 async function loadFile(f) {
   if (!f) return;
   const name = f.name || "mascot";
-  if (/\.svg$/i.test(name)) { loadText(await f.text(), name); return; }
+  if (/\.svg$/i.test(name)) {
+    const t = await f.text();
+    if (/\bdata-part=/.test(t)) loadText(t, name);  // segmenter output (named rect groups)
+    else loadLayeredSvg(t, name);                    // layered vector SVG (Figma/Inkscape/Illustrator)
+    return;
+  }
   if (/\.png$/i.test(name)) { await loadPng(f, name); return; }
-  status("Drop a PNG or a segmented .svg.");
+  status("Drop a PNG, a layered SVG, or a segmented .svg.");
 }
 
 async function loadPng(f, name) {
@@ -374,4 +433,4 @@ const dz = $("dropzone");
 dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
-window.__rigEditor = { loadText, loadFile, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };
+window.__rigEditor = { loadText, loadLayeredSvg, loadFile, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };

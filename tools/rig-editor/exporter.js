@@ -105,8 +105,11 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
       `    <g id="${id}" class="part" data-bone="${r.bone}" data-origin="${r.origin}" ` +
         `data-pivot-x="${num(r.pivot.x)}" data-pivot-y="${num(r.pivot.y)}">`
     );
-    for (const rect of rects.filter((x) => x.part === id)) {
-      lines.push(`      <rect x="${rect.x}" y="${rect.y}" width="${rect.w}" height="${rect.h}" fill="${rect.fill}"/>`);
+    for (const el of rects.filter((x) => x.part === id)) {
+      // ADR-0011: geometry-agnostic — emit the element's source markup if it carries any (paths,
+      // circles, …); otherwise reconstruct the <rect> (rect inputs round-trip byte-identically).
+      if (el.markup) lines.push(`      ${el.markup}`);
+      else lines.push(`      <rect x="${el.x}" y="${el.y}" width="${el.w}" height="${el.h}" fill="${el.fill}"/>`);
     }
     lines.push(`    </g>`);
   }
