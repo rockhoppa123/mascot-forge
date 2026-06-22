@@ -33,7 +33,7 @@ $checks = @(
   @{
     Name = "P5 rig-editor"   # browser rig editor: all pure-logic node self-checks (model -> exporter golden)
     Run  = {
-      foreach ($t in "model", "loader", "pivot", "presets", "validator", "exporter", "select") {
+      foreach ($t in "model", "loader", "pivot", "presets", "validator", "exporter", "select", "vectorize", "segment") {
         & node (Join-Path $repoRoot "tools/rig-editor/$t.test.mjs")
         if ($LASTEXITCODE -ne 0) { break }  # leaves the failing exit code for the summary
       }

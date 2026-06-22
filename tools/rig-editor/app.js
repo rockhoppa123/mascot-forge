@@ -12,6 +12,8 @@ import { presetsFor, recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
 import { exportRig } from "./exporter.js";
 import { rectsInMarquee } from "./select.js";
+import { vectorizeRaster } from "./vectorize.js";
+import { segment } from "./segment.js";
 
 const $ = (id) => document.getElementById(id);
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -325,17 +327,51 @@ function download(name, text, type) {
 function status(msg) { $("status").textContent = msg; }
 
 // ---------- file intake ------------------------------------------------------------------------
-$("file").addEventListener("change", (e) => {
-  const f = e.target.files[0];
-  if (f) f.text().then((t) => loadText(t, f.name));
-});
+// A PNG is vectorised + segmented in-browser (Phase 2) into the same segmented.svg an `mf forge`
+// run would hand off; a .svg is loaded directly. Both converge at loadText (the existing path).
+async function loadFile(f) {
+  if (!f) return;
+  const name = f.name || "mascot";
+  if (/\.svg$/i.test(name)) { loadText(await f.text(), name); return; }
+  if (/\.png$/i.test(name)) { await loadPng(f, name); return; }
+  status("Drop a PNG or a segmented .svg.");
+}
+
+async function loadPng(f, name) {
+  try {
+    const maxDim = Math.max(16, parseInt($("maxdim").value, 10) || 256);
+    const colors = Math.max(1, parseInt($("colors").value, 10) || 6);
+    const { rgba, w, h } = await decodePng(f, maxDim);
+    const flat = vectorizeRaster({ rgba, w, h }, { colors });
+    const { svg } = segment(flat.rects, { viewBoxSize: Math.max(w, h) }); // square canvas, padded
+    loadText(svg, name.replace(/\.png$/i, "-segmented.svg"));
+    status(`Vectorised ${name} (${w}×${h}, ${flat.rects.length} rects) → ${visibleParts().length} proposed parts. Refine, then export.`);
+  } catch (e) {
+    status("✗ " + (e && e.message ? e.message : e));
+  }
+}
+
+// PNG -> nearest-neighbour-downscaled RGBA grid (mirrors prep-source.ps1; canvas is the only
+// browser-only step — everything downstream is the node-tested pure pipeline).
+async function decodePng(file, maxDim) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = false; // nearest-neighbour downscale
+  ctx.drawImage(bmp, 0, 0, w, h);
+  if (bmp.close) bmp.close();
+  return { rgba: ctx.getImageData(0, 0, w, h).data, w, h };
+}
+
+$("file").addEventListener("change", (e) => loadFile(e.target.files[0]));
 const dz = $("dropzone");
 ["dragover", "dragenter"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
 ["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
-dz.addEventListener("drop", (e) => {
-  const f = e.dataTransfer.files[0];
-  if (f) f.text().then((t) => loadText(t, f.name));
-});
+dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
-window.__rigEditor = { loadText, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, get rectSel() { return rectSel.slice(); } };
+window.__rigEditor = { loadText, loadFile, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, get rectSel() { return rectSel.slice(); } };

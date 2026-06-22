@@ -22,6 +22,8 @@ main { display:flex; gap:0; height:calc(100vh - 120px); }
 #selectbar { background:#1b2429; border:1px solid var(--accent); border-radius:6px; padding:8px; margin-bottom:12px; }
 #selectbar .row { display:flex; gap:6px; margin-top:6px; }
 #selectbar input { flex:1; }
+#dropzone #maxdim { width:4.5em; } #dropzone #colors { width:3.5em; }
+#dropzone .hint label { margin:0 4px; }
 #states { display:flex; gap:8px; align-items:center; padding-top:10px; color:var(--mut); }
 #states button { background:#1b2429; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:4px 12px; cursor:pointer; }
 #states button.on { border-color:var(--accent); color:var(--accent); }

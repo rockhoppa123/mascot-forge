@@ -15,10 +15,14 @@
   <main>
     <section id="canvas-pane">
       <div id="dropzone">
-        <p>Drop a <code>&lt;asset&gt;-segmented.svg</code> here, or
-          <label class="filebtn">choose a file<input type="file" id="file" accept=".svg" hidden /></label>
+        <p>Drop a <code>PNG</code> or a <code>&lt;asset&gt;-segmented.svg</code> here, or
+          <label class="filebtn">choose a file<input type="file" id="file" accept=".png,.svg" hidden /></label>
         </p>
-        <p class="hint">Produced by <code>pwsh ./mf.ps1 forge &lt;asset&gt;</code>.</p>
+        <p class="hint">A PNG is vectorised + segmented in-browser.
+          <label>max&nbsp;px <input id="maxdim" type="number" value="256" min="16" step="16" /></label>
+          <label>colours <input id="colors" type="number" value="6" min="1" /></label>
+        </p>
+        <p class="hint">Or produce a segmented.svg with <code>pwsh ./mf.ps1 forge &lt;asset&gt;</code>.</p>
       </div>
       <div id="stagewrap" hidden>
         <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>

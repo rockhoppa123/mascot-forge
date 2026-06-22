@@ -16,10 +16,12 @@ pwsh ./mf.ps1 emit <asset>      →   animated SVG+CSS / React+GSAP mascot
 
 ## Use it
 
-1. `pwsh ./mf.ps1 forge <asset>` to produce `assets/<asset>/<asset>-segmented.svg`.
-2. Serve the repo over HTTP (ESM + `fetch`, so `file://` is blocked by CORS):
+1. Serve the repo over HTTP (ESM + `fetch`, so `file://` is blocked by CORS):
    `python -m http.server 4178` then open `http://localhost:4178/tools/rig-editor/index.html`.
-3. Drop the `segmented.svg` onto the page.
+2. Give it an asset, either way:
+   - **Drop a PNG** — it is vectorised + segmented in-browser into proposed parts (no terminal). Set
+     **max px** (nearest-neighbour downscale cap, default 256) and **colours** (palette size, default 6).
+   - **Or drop a `segmented.svg`** produced by `pwsh ./mf.ps1 forge <asset>` (better for large assets).
 4. For each part: pick a **role** (`core` breathes · `limb` walks/rotates · `accent`
    shakes/blinks/recoils · `passive` still), set a **bone** name, press **p** then click the canvas
    to place its **pivot**, and choose a **preset** per state. Use the preview buttons to watch it move.
@@ -43,6 +45,8 @@ node-tested (`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `a
 | `loader.js` | parse `segmented.svg` → model; merge a `parts-spec.json` vocabulary |
 | `pivot.js` | dragged handle → CSS `transform-origin` + canonical pivot |
 | `select.js` | marquee hit-test: rects fully enclosed by a drag box (full-containment policy) |
+| `vectorize.js` | PNG RGBA grid → flat rects (median-cut quantize + RLE/greedy-mesh); browser port of `vectorize-pixel.ps1` |
+| `segment.js` | flat rects → proposed parts (CCL + geometry naming + joint pivots) → segmented.svg; port of `segment-parts.ps1` |
 | `presets.js` | role-keyed recipe templates (generalised from devbrain + land-rover), stamped with the chosen part id at export |
 | `validator.js` | pre-flight the load-bearing `rigged.json` v2 invariants (`mf check` stays canonical) |
 | `exporter.js` | serialise model → the `mf emit` input pair + `parts-spec.json` |
@@ -50,11 +54,13 @@ node-tested (`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `a
 Run the self-checks directly: `node tools/rig-editor/exporter.test.mjs` (the golden round-trip:
 committed devbrain `segmented.svg` → export → validate → `mf emit`).
 
-## Scope (Phase 1)
+## Scope
 
-**Does:** part structure (incl. drag-marquee rect-level *split* of colour-fused regions), roles,
-pivots, preset animations, live preview, valid export.
+**Does:** in-browser PNG → vectorise → segment → propose parts (Phase 2); part structure (incl.
+drag-marquee rect-level *split* of colour-fused regions), roles, pivots, preset animations, live
+preview, valid export. Also loads a terminal-produced `segmented.svg` directly.
 **Doesn't (deferred):** preset-*feel* tuning and the README screenshot — owner tasks.
-**Phase 2 (separate):** port vectorize/segment to JS so the page takes a raw image client-side.
+**Big assets:** the segmenter's CCL is O(n²), guarded at 8000 rects. Downscale further (raise/lower
+**max px**), or rig large assets via terminal `mf forge`.
 
 > **Preview feel** is approximate (CSS injection); `mf emit` output is the source of truth.
