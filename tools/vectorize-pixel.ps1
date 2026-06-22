@@ -1,3 +1,7 @@
+# LEGACY / batch-only (ADR-0011 + ease-and-quality plan P3). The CANONICAL vectorizer is now the
+# browser module tools/rig-editor/vectorize.js (cross-platform, node-tested, what the editor + product
+# use). This PowerShell port is Windows-only (System.Drawing) and is kept solely for the `mf forge`
+# terminal/batch path; do not add features here — change vectorize.js and mirror if needed.
 param(
   [string]$SourcePath = "C:\Users\student1\Dev\DevBrain\public\mascot\default.png",
   [string]$OutPath = "docs/buildable-slice/generated/devbrain-flat.svg",

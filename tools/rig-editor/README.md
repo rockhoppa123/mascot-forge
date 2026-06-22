@@ -41,8 +41,13 @@ Unassigned rects are never lost — they land in a still `part-background` group
 
 ## How it's built
 
-Vanilla ESM + SVG, **zero build, no dependency** (matches `runtime/`). The pure-logic core is
-node-tested (`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `app.js` is thin DOM glue.
+Vanilla ESM + SVG, **zero runtime dependency** (matches `runtime/`). The pure-logic core is node-tested
+(`*.test.mjs`, run by `tools/check-all.ps1` → *P5 rig-editor*); `app.js` is thin DOM glue, covered by a
+Playwright smoke test (`tests/e2e/`, dev-dependency only — the runtime stays dependency-free).
+
+> **Canonical pipeline:** `vectorize.js` + `segment.js` here are the source of truth. The PowerShell
+> `vectorize-pixel.ps1` / `segment-parts.ps1` are a Windows-only legacy/batch path for `mf forge` — see
+> their headers. Don't fork logic; change the JS.
 
 | Module | Role |
 |---|---|
