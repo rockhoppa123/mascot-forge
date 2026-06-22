@@ -19,8 +19,17 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
 - **Geometry-agnostic parts + layered-SVG ingest** ([ADR-0011](docs/adr/0011-geometry-agnostic-parts.md))
   — drop a layered Figma/Inkscape/Illustrator SVG; each layer becomes a named part with its real
   geometry (paths/curves) carried through. The recommended high-fidelity input.
+- **Editor onboarding & editing UX** — one-click "Load example" (a finished, animated DevBrain), a
+  few-parts split hint, a `file://` guard, inline tooltips + on-screen shortcuts, a visible "Place
+  pivot" button, per-shape **paint / erase** reassignment, deselect (Esc / click empty canvas), and an
+  always-visible **rig-status strip** showing which states have an animation.
 - **Project infrastructure** — GitHub Actions CI (full `check-all.ps1` gate), community-health files
   (Code of Conduct, Security, Citation, issue/PR templates), and a curated README + badges.
+
+### Fixed
+- Changing a part's role no longer orphans an invalid preset selection — previously this made Export
+  throw and silently do nothing. Stale presets are cleared on role change, and the Export button now
+  surfaces any error instead of failing quietly.
 
 ### Changed
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind
