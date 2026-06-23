@@ -188,6 +188,10 @@ root (Claude Code auto-discovers it); or add this to your host config:
 4. `forge_status` — confirm every state (idle/active/alert) has coverage.
 5. `forge_emit` — validate and write a self-contained animated SVG (+ demo HTML) you own.
 
+A sixth tool, `forge_start_from_layered_svg`, is an alt entry for a **layered** vector SVG
+(Figma/Inkscape/Illustrator) — each top-level `<g>` becomes a part named by its layer, so the agent
+skips segmentation and goes straight to `set_part` + `forge_emit` (v1 is rect-bearing only).
+
 A runnable, no-live-agent reproduction of the whole loop is `mcp/build-smiley-demo.mjs` (it emits the
 agent-rigged mascot behind the [live-data hero demo](docs/buildable-slice/mcp-live-demo.html)). The tool
 chain is proven in CI by an agent-simulation test and an in-memory-transport protocol test
