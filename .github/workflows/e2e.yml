@@ -25,7 +25,8 @@ jobs:
       - run: npx playwright test
 
   mcp:
-    # MCP agent-rigging tool chain (agent-sim + server build smoke). Pure Node, Linux.
+    # MCP agent-rigging tool chain (agent-sim + server build smoke + in-memory-transport protocol
+    # smoke). Pure Node, Linux.
     runs-on: ubuntu-latest
     defaults:
       run:

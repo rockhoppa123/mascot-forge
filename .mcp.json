@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mascot-forge": {
+      "command": "node",
+      "args": ["mcp/server.mjs"]
+    }
+  }
+}
