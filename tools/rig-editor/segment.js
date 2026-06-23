@@ -96,6 +96,22 @@ export function segment(rectsIn, { viewBoxSize, spec = null, maxRects = 8000 } =
   ).sort((a, b) => b.area - a.area || a.minY - b.minY || a.minX - b.minX);
   for (const e of eyeCandidates.slice(0, 2)) e.part = partId("colour-island-upper", "part-eyes");
 
+  // --- generic blob fallback (P-seg) ---
+  // The geometry heuristic is overfit to one mascot silhouette: on arbitrary art every non-matching
+  // blob gets absorbed into the body, collapsing the image to a single part (16/20 battery inputs).
+  // When the heuristic named ONLY the body AND there are >=2 distinct blobs, give each blob its own
+  // part (part-1..N, area desc) instead. This never fires once any leg/antenna/eye matched — so the
+  // named-multi goldens (e.g. DevBrain → 5 parts) are unchanged. Only the default vocab triggers it;
+  // a per-asset parts-spec opts out (its named vocab is authoritative).
+  let fallbackVocab = null;
+  const namedCount = blobs.filter((b) => b.part !== null).length;
+  const onlyBodyNamed = namedCount === 1 && body.part === partId("largest-blob", "part-body");
+  if (!spec && onlyBodyNamed && blobs.length >= 2) {
+    const ordered = blobs.slice().sort((a, b) => b.area - a.area || a.minY - b.minY || a.minX - b.minX);
+    fallbackVocab = ordered.map((_, i) => `part-${i + 1}`);
+    ordered.forEach((b, i) => { b.part = fallbackVocab[i]; });
+  }
+
   // --- absorb leftover slivers into the nearest named blob (prefer an adjacent one) ---
   const named = blobs.filter((b) => b.part !== null);
   for (const lo of blobs.filter((b) => b.part === null)) {
@@ -123,12 +139,15 @@ export function segment(rectsIn, { viewBoxSize, spec = null, maxRects = 8000 } =
     return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };                      // bbox centre
   };
 
+  // fallback parts (part-1..N) aren't in the heuristic vocab; emit those ids instead when it fired.
+  const outVocab = fallbackVocab || vocab;
+
   const tint = { ...DEFAULT_TINT };
   let ec = 0;
-  for (const id of vocab) if (!(id in tint)) tint[id] = EXTRA_TINTS[ec++ % EXTRA_TINTS.length];
+  for (const id of outVocab) if (!(id in tint)) tint[id] = EXTRA_TINTS[ec++ % EXTRA_TINTS.length];
 
   const parts = [];
-  for (const id of vocab) {
+  for (const id of outVocab) {
     const pieceRects = [];
     for (const bl of named) if (bl.part === id) pieceRects.push(...bl.rects);
     if (pieceRects.length === 0) continue;
