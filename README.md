@@ -5,9 +5,14 @@
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![Gate: P1–P5 green](https://img.shields.io/badge/gate-P1%E2%80%93P5%20green-brightgreen)
 
-**Turn flat art into a data-reactive web component you own.** Rig it in the browser, bind its animation
-states to your app's live data, and export editable **SVG/CSS or React+GSAP** — no binary runtime, no
-black box.
+**Hand a flat image to your AI agent and get back an animated web component you own.** The agent
+identifies the parts by vision and rigs them through the mascot-forge **MCP**; you get editable
+**SVG/CSS or React+GSAP** whose animation **states bind to your app's live data** — no binary runtime,
+no black box. Prefer to drive it yourself? The same engine has a browser rig editor.
+
+> The two differentiators are the **MCP agent-rigging path** (vision-driven semantic parts) and the
+> **live-data binding** (animation states wired to your app's data as code you own). See
+> [Rig an image with your agent](#rig-an-image-with-your-agent-mcp) and the live demo above.
 
 > **Scope:** input is flat / clean vector or pixel art (or a layered SVG). Auto-part detection is a
 > best-effort starting point — you finish the rig in the visual editor. Photographic input is out of scope.
@@ -147,6 +152,51 @@ mascot-forge/
     └── devbrain-mascot-reference-v1.png   ← test case #1 (the baseline to beat)
 ```
 
+## Rig an image with your agent (MCP)
+
+The headline path. An agent that can see the image (e.g. Claude in Claude Desktop / Claude Code) drives
+the mascot-forge **MCP server** to identify the parts and emit an owned, animated mascot — no terminal,
+no manual rigging. The runtime artifact stays dependency-free; the MCP lives in `mcp/` with its own deps.
+
+**1. Install the MCP server's dependencies** (one-time; isolated to `mcp/`):
+
+```bash
+cd mcp && npm install
+```
+
+**2. Register the server with your agent host.** The repo ships a ready [`.mcp.json`](.mcp.json) at the
+root (Claude Code auto-discovers it); or add this to your host config:
+
+```json
+{
+  "mcpServers": {
+    "mascot-forge": {
+      "command": "node",
+      "args": ["mcp/server.mjs"]
+    }
+  }
+}
+```
+
+**3. Hand the agent an image and ask it to rig it.** The agent runs this loop (six tools):
+
+1. `forge_start_from_image` — vectorises the PNG, proposes coarse parts, returns a `session` + viewBox.
+2. `assign_region` — for each part the agent *sees*, a box in `0..1` fractions of the viewBox + a role
+   (`core` body / `limb` arm-leg / `accent` small mover / `passive` still); reads back `moved` and adjusts.
+3. `set_part` — role, bone, pivot (omit for a role-aware default — limb hinges at its joint), and a
+   preset per state.
+4. `forge_status` — confirm every state (idle/active/alert) has coverage.
+5. `forge_emit` — validate and write a self-contained animated SVG (+ demo HTML) you own.
+
+A runnable, no-live-agent reproduction of the whole loop is `mcp/build-smiley-demo.mjs` (it emits the
+agent-rigged mascot behind the [live-data hero demo](docs/buildable-slice/mcp-live-demo.html)). The tool
+chain is proven in CI by an agent-simulation test and an in-memory-transport protocol test
+(`cd mcp && npm test`).
+
+> **Honest scope:** the agent supplies the *semantics* (which box is a hand) — the MCP does not guess
+> anatomy. Input is PNG (pixel-art first); the auto first-pass parts are a hint the agent re-segments by
+> vision. Photographic input and a hosted auto-button are out of scope for v1.
+
 ## Run / Quickstart
 
 Requirements: **PowerShell 7+** (`pwsh`) and **Node.js** (for the orchestrator self-check).
@@ -193,7 +243,8 @@ python -m http.server 4178
 Then open:
 
 - `http://localhost:4178/docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — the generated SVG+CSS demo (manual state buttons).
-- `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the mascot reacting to a live (mock) telemetry feed.
+- `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html` — **the hero:** an MCP/agent-rigged mascot reacting to a live (mock) telemetry feed (idle → active → alert).
+- `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the (hand-rigged DevBrain) mascot reacting to a live (mock) telemetry feed.
 - `http://localhost:4178/docs/buildable-slice/showcase.html` — **before vs after for both assets** (DevBrain + Land Rover), forged and data-reactive side-by-side — the engine proof.
 
 ## License

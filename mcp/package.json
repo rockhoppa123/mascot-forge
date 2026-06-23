@@ -5,7 +5,7 @@
   "description": "MCP server: agent-driven mascot rigging over the shared pure modules. Integration infra — the runtime artifact stays dependency-free.",
   "bin": { "mascot-forge-mcp": "server.mjs" },
   "scripts": {
-    "test": "node tools.test.mjs && node server.test.mjs",
+    "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {
