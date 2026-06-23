@@ -18,6 +18,17 @@ export function bboxOf(rects) {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
+// The default pivot for a part, by role, in absolute viewBox coords. The ONE source of truth for
+// "where should this part rotate from" — shared by the editor (on role-assign), the MCP (set_part),
+// and segment.js (the leg = a limb joint). A limb hinges at its joint (top-edge centre = the
+// hip/shoulder line); every other role rotates/scales about its bbox centre. Keep these three callers
+// in lockstep by changing only this function. (segment.js keeps one extra geometry rule — the antenna
+// base-centre — which is not a role default and so stays local to it.)
+export function defaultPivotFor(role, bbox) {
+  if (role === "limb") return { x: bbox.x + bbox.w / 2, y: bbox.y };
+  return { x: bbox.x + bbox.w / 2, y: bbox.y + bbox.h / 2 };
+}
+
 const pct = (v, min, size) => (size === 0 ? 0 : Math.round(((v - min) / size) * 100));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 

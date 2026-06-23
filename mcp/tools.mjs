@@ -10,7 +10,7 @@ import { vectorizeRaster } from "../tools/rig-editor/vectorize.js";
 import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
-import { bboxOf } from "../tools/rig-editor/pivot.js";
+import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
@@ -38,14 +38,6 @@ function partList(model) {
 function hasPreset(model, id) {
   const sel = model.selections();
   return model.states().some((st) => sel[st] && sel[st][id]);
-}
-
-// Role-aware default pivot in viewBox coords (mirrors segment.js pivotOf / P5 intent):
-// a limb hinges at its joint (top-edge centre — the hip/shoulder line); core/accent/passive
-// rotate/scale about their bbox centre.
-function defaultPivot(role, bb) {
-  if (role === "limb") return { x: bb.x + bb.w / 2, y: bb.y };
-  return { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 };
 }
 
 // rigStatus: per-state preset coverage + how many parts animate at all, over rect-bearing parts.
@@ -162,7 +154,7 @@ export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
     for (const k of ["x", "y"]) if (typeof pivot?.[k] !== "number") throw new Error("pivot needs numeric x,y in 0..1");
     model.setPivot(partId, { x: s.vb.x + pivot.x * s.vb.w, y: s.vb.y + pivot.y * s.vb.h });
   } else if (!model.parts()[partId].pivot) {
-    model.setPivot(partId, defaultPivot(effectiveRole, bb)); // role-aware default
+    model.setPivot(partId, defaultPivotFor(effectiveRole, bb)); // shared role-aware default
   }
 
   if (presets) {

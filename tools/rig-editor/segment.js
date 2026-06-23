@@ -7,6 +7,7 @@
 //
 // Deterministic, no ML (ADR-0002: the tool proposes, the editor is the human confirm step). The CCL
 // union is O(n^2), guarded by maxRects.
+import { defaultPivotFor } from "./pivot.js";
 
 const DEFAULT_VOCAB = ["part-body", "part-leg-left", "part-leg-right", "part-antenna", "part-eyes", "part-moustache"];
 const DEFAULT_TINT = {
@@ -130,13 +131,14 @@ export function segment(rectsIn, { viewBoxSize, spec = null, maxRects = 8000 } =
   const pivotOf = (id, list) => {
     const minX = Math.min(...list.map((r) => r.minX)), minY = Math.min(...list.map((r) => r.minY));
     const maxX = Math.max(...list.map((r) => r.maxX)), maxY = Math.max(...list.map((r) => r.maxY));
-    if (/^part-leg-/.test(id)) return { x: (minX + maxX) / 2, y: minY };       // hip line (top-edge centre)
+    const bbox = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    if (/^part-leg-/.test(id)) return defaultPivotFor("limb", bbox);            // hip line (top-edge centre)
     if (id === "part-antenna") {                                                // base centre (bottom row)
       const bottom = list.filter((r) => r.maxY === maxY);
       const bMin = Math.min(...bottom.map((r) => r.minX)), bMax = Math.max(...bottom.map((r) => r.maxX));
       return { x: (bMin + bMax) / 2, y: maxY };
     }
-    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };                      // bbox centre
+    return defaultPivotFor("core", bbox);                                       // bbox centre
   };
 
   // fallback parts (part-1..N) aren't in the heuristic vocab; emit those ids instead when it fired.
