@@ -4,7 +4,7 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, startFromLayeredSvg } from "./tools.mjs";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -129,6 +129,42 @@ function smileyPngBase64() {
   assert.equal(semit.ok, true, `smiley emit must be valid: ${JSON.stringify(semit.validation || semit.error)}`);
   assert.ok(semit.svgBytes > 0 && semit.demoBytes > 0, "smiley produced a self-contained svg + demo");
   console.log(`tools.test.mjs (M2 smiley): full loop green. status=${JSON.stringify(st.rigStatus)} svgBytes=${semit.svgBytes}`);
+}
+
+// ================================================================================================
+// M3 — alt entry: forge_start_from_layered_svg. A rect-bearing layered SVG (each top-level <g> is a
+// named part from its layer) starts a session with parts already named — no segmentation. The agent
+// then set_part roles/presets and emits.
+{
+  const layered =
+    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+    '<g id="body"><rect x="30" y="30" width="40" height="40" fill="#cccccc"/></g>' +
+    '<g id="arm"><rect x="10" y="35" width="14" height="30" fill="#ff7f0e"/></g>' +
+    '<g id="eye"><rect x="42" y="40" width="6" height="6" fill="#222222"/></g>' +
+    "</svg>";
+  const ls = startFromLayeredSvg({ svg: layered });
+  assert.equal(ls.viewBox, "0 0 100 100", "layered: viewBox read from the SVG");
+  assert.deepEqual(ls.parts.map((p) => p.id).sort(), ["part-arm", "part-body", "part-eye"],
+    "layered: parts come from layer names (sanitized)");
+
+  // roles cover all three states; forge_emit auto-fills a default preset per role.
+  setPart({ session: ls.session, partId: "part-body", role: "core", presets: { idle: "breathe" } });
+  setPart({ session: ls.session, partId: "part-arm", role: "limb", presets: { active: "walk" } });
+  setPart({ session: ls.session, partId: "part-eye", role: "accent", presets: { alert: "pulse" } });
+  const lst = forgeStatus({ session: ls.session });
+  assert.ok(lst.rigStatus.idle && lst.rigStatus.active && lst.rigStatus.alert, "layered: all three states covered");
+  const lem = forgeEmit({ session: ls.session, assetName: "layered" });
+  assert.equal(lem.ok, true, `layered emit must be valid: ${JSON.stringify(lem.validation || lem.error)}`);
+
+  // a non-rect element (no node rasterizer for its bbox) is rejected with a clear v1-limit message.
+  const withPath =
+    '<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">' +
+    '<g id="blob"><path d="M5 5 H45 V45 Z" fill="#000"/></g></svg>';
+  assert.throws(() => startFromLayeredSvg({ svg: withPath }), /rect-bearing only/, "layered: non-rect is refused in v1");
+
+  // graceful errors
+  assert.throws(() => startFromLayeredSvg({}), /svg \(string\) or path/);
+  console.log(`tools.test.mjs (M3 layered): start_from_layered_svg -> emit green. svgBytes=${lem.svgBytes}`);
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);

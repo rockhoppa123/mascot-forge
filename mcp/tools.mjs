@@ -9,6 +9,7 @@ import { PNG } from "pngjs";
 import { vectorizeRaster } from "../tools/rig-editor/vectorize.js";
 import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
+import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
@@ -88,6 +89,32 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256 } = {}) 
   return {
     session, viewBox: model.viewBox(), parts: partList(model),
     note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image.",
+  };
+}
+
+// Alt entry (M3): a LAYERED vector SVG the agent traced/exported (Figma/Inkscape/Illustrator) — each
+// top-level <g> becomes a named part from its layer name, no segmentation needed. v1 is rect-bearing
+// only: a non-rect element (path/circle/…) needs a node rasterizer to compute its bbox (deferred), so
+// we reject it with a clear message rather than emit broken geometry. The agent then set_part + emit.
+export function startFromLayeredSvg({ svg, path } = {}) {
+  if (!svg && !path) throw new Error("provide svg (string) or path (.svg)");
+  const text = svg ? svg : readFileSync(safePath(path), "utf8");
+  const { viewBox, elements } = parseLayered(text);
+  if (!elements.length) throw new Error("no drawable shapes found — need top-level <g> layers containing shapes");
+  const nonRect = elements.filter((e) => !e.bbox);
+  if (nonRect.length) {
+    throw new Error(
+      `v1 layered ingest is rect-bearing only; ${nonRect.length} non-rect element(s) lack a bbox ` +
+      `(path/circle/… need a node rasterizer — deferred). Rig this in the browser editor, or trace to rects.`
+    );
+  }
+  const model = toModel({ viewBox, elements });
+  if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
+  const session = "s" + nextId++;
+  sessions.set(session, { model, vb: parseVB(model.viewBox()) });
+  return {
+    session, viewBox: model.viewBox(), parts: partList(model),
+    note: "Parts come from the SVG layer names. Set roles/presets with set_part (per state), then forge_emit.",
   };
 }
 

@@ -7,7 +7,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, startFromLayeredSvg } from "./tools.mjs";
 
 const ok = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
 const fail = (e) => ({ isError: true, content: [{ type: "text", text: String((e && e.message) || e) }] });
@@ -40,6 +40,19 @@ export function buildServer() {
       },
     },
     async (a) => { try { return ok(startFromImage(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_start_from_layered_svg",
+    {
+      description:
+        "Alt entry: start a session from a LAYERED vector SVG (Figma/Inkscape/Illustrator export) where " +
+        "each top-level <g> is a part named by its layer. No segmentation — parts are already named; go " +
+        "straight to set_part + forge_emit. v1 is rect-bearing only (non-rect shapes are rejected; use " +
+        "forge_start_from_image or the browser editor for those). Returns { session, viewBox, parts }.",
+      inputSchema: { svg: z.string().optional(), path: z.string().optional() },
+    },
+    async (a) => { try { return ok(startFromLayeredSvg(a)); } catch (e) { return fail(e); } }
   );
 
   server.registerTool(

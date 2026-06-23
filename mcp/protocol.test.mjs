@@ -37,8 +37,9 @@ try {
   // 1. tools/list returns the five tools with their schemas
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["assign_region", "forge_emit", "forge_start_from_image", "forge_status", "set_part"],
-    "all five tools are advertised over the protocol");
+  assert.deepEqual(names,
+    ["assign_region", "forge_emit", "forge_start_from_image", "forge_start_from_layered_svg", "forge_status", "set_part"],
+    "all six tools are advertised over the protocol");
   assert.ok(tools.every((t) => t.description && t.inputSchema), "every tool ships a description + inputSchema");
 
   // 2. the full chain over the wire: start -> assign_region -> forge_emit, all valid
@@ -63,6 +64,13 @@ try {
   }));
   assert.equal(emitted.ok, true, `forge_emit is valid over the wire: ${JSON.stringify(emitted.validation || emitted.error)}`);
   assert.ok(emitted.svgBytes > 0, "produced a self-contained svg over the wire");
+
+  // 2b. the layered-SVG alt entry also works over the wire (parts named from layers, no segmentation)
+  const layered = parseResult(await client.callTool({
+    name: "forge_start_from_layered_svg",
+    arguments: { svg: '<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><g id="body"><rect x="10" y="10" width="20" height="20" fill="#ccc"/></g></svg>' },
+  }));
+  assert.deepEqual(layered.parts.map((p) => p.id), ["part-body"], "layered entry names the part from its layer over the wire");
 
   // 3. the structured error contract survives the protocol (handler error -> isError, not a crash)
   const err = await client.callTool({ name: "forge_start_from_image", arguments: {} });
