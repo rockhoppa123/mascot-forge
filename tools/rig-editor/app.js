@@ -28,6 +28,25 @@ let rectSel = [];           // marquee rect-selection (rect ids) pending a split
 let clickMode = null;       // null | "paint" | "erase" — per-shape reassignment by clicking
 const colours = new Map();  // partId -> hsl colour
 
+// Undo (P4): snapshot the model BEFORE each mutating op; Ctrl+Z pops + restores. Capped so a long
+// session can't grow without bound. Cleared on load (a fresh model has no history).
+const undoStack = [];
+const UNDO_CAP = 50;
+function pushUndo() {
+  if (!model) return;
+  undoStack.push(model.snapshot());
+  if (undoStack.length > UNDO_CAP) undoStack.shift();
+}
+// Re-render the whole view after an in-place model.restore() (selection may no longer exist).
+function refreshModelView() {
+  render();
+  renderParts();
+  if (selected && model.parts()[selected]) selectPart(selected);
+  else { selected = null; $("partedit").hidden = true; }
+  regenCss();
+  updateBanner();
+}
+
 // ---------- load -------------------------------------------------------------------------------
 function paletteFor(ids) {
   colours.clear();
@@ -45,6 +64,7 @@ function showModel(msg) {
   selected = null;
   pivotMode = false;
   rectSel = [];
+  undoStack.length = 0;      // a freshly loaded model starts with no undo history
   $("dropzone").hidden = true;
   $("stagewrap").hidden = false;
   $("states").hidden = false;
@@ -223,6 +243,7 @@ function drawPivot() {
   let dragging = false;
   c.addEventListener("pointerdown", (e) => {
     e.stopPropagation();                 // don't start a marquee on the stage
+    pushUndo();                          // one undo entry per drag (snapshot at drag start)
     dragging = true;
     c.setPointerCapture(e.pointerId);
   });
@@ -305,6 +326,7 @@ function refreshPivotInfo() {
 $("role").onchange = (e) => {
   if (!selected) return;
   const role = e.target.value;
+  pushUndo();
   model.setRole(selected, role);
   // Drop any preset no longer valid for the new role — otherwise it lingers (picker shows blank but
   // the model keeps it) and export later throws. Keep model + UI in sync. (UX playthrough bug #1.)
@@ -323,14 +345,15 @@ $("role").onchange = (e) => {
   drawPivot();
   regenCss();
 };
-$("bone").onchange = (e) => { if (selected) model.setBone(selected, e.target.value.trim()); };
+$("bone").onchange = (e) => { if (selected) { pushUndo(); model.setBone(selected, e.target.value.trim()); } };
 for (const s of ["idle", "active", "alert"]) {
-  $(`preset-${s}`).onchange = (e) => { if (selected) { model.setPreset(s, selected, e.target.value || null); regenCss(); } };
+  $(`preset-${s}`).onchange = (e) => { if (selected) { pushUndo(); model.setPreset(s, selected, e.target.value || null); regenCss(); } };
 }
 $("rename").onclick = () => {
   if (!selected) return;
   const next = prompt("Rename part id to:", selected);
   if (!next || next === selected) return;
+  pushUndo();
   model.rename(selected, next);
   const was = selected; selected = next;
   render(); renderParts(); selectPart(next); regenCss();
@@ -338,6 +361,7 @@ $("rename").onclick = () => {
 };
 $("remove").onclick = () => {
   if (!selected || selected === BACKGROUND_PART) return;
+  pushUndo();
   model.remove(selected);
   status(`Removed ${selected} → ${BACKGROUND_PART}.`);
   selected = null; $("partedit").hidden = true;
@@ -346,6 +370,7 @@ $("remove").onclick = () => {
 $("addpart").onclick = () => {
   const id = $("newname").value.trim();
   if (!id) return;
+  pushUndo();
   model.assign([], id);           // creates an empty candidate part (assign rects via merge below)
   $("newname").value = "";
   renderParts(); selectPart(id);
@@ -435,6 +460,7 @@ $("split").onclick = () => {
   const target = $("splitname").value.trim();
   if (!target) { status("Enter a target part id first."); return; }
   const n = rectSel.length;
+  pushUndo();
   model.assign(rectSel, target);
   $("splitname").value = "";
   clearRectSel();
@@ -447,6 +473,7 @@ $("stage").addEventListener("click", (e) => {
   if (suppressClick) { suppressClick = false; return; }
   const pt = svgPoint(e);
   if (pivotMode && selected) {
+    pushUndo();
     const { pivot, origin } = dragToPivot(pt, bboxOf(model.rectsOf(selected)));
     model.setPivot(selected, pivot, origin);
     pivotMode = false;
@@ -459,8 +486,10 @@ $("stage").addEventListener("click", (e) => {
     if (!el) return;                                          // empty click in a mode: ignore (Esc exits)
     if (clickMode === "paint") {
       if (!selected) { status("Select a part first, then paint shapes into it."); return; }
+      pushUndo();
       model.assign([el.dataset.rid], selected);
     } else {
+      pushUndo();
       model.assign([el.dataset.rid], BACKGROUND_PART);
     }
     render(); renderParts(); regenCss();
@@ -472,6 +501,17 @@ $("stage").addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") deselect(); });
+
+// Ctrl+Z (Cmd+Z on macOS): revert the last mutating op from the undo stack.
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    if (!undoStack.length) { status("Nothing to undo."); return; }
+    model.restore(undoStack.pop());
+    refreshModelView();
+    status("Undid last change.");
+  }
+});
 
 function svgPoint(e) {
   const stage = $("stage");

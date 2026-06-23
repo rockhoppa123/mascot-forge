@@ -91,6 +91,24 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
     return selections[state] ? selections[state][partId] : undefined;
   }
 
+  // Undo support (P4): a deep, serialisable copy of the full mutable state, and an in-place restore.
+  // restore() mutates the SAME closures (no object swap) so existing references to this model stay
+  // valid. viewBox/states are immutable, so they're not snapshotted. Pure data — node-testable.
+  function snapshot() {
+    return JSON.parse(JSON.stringify({ rects: rectList, parts: partMap, selections }));
+  }
+  function restore(snap) {
+    rectList.length = 0;
+    for (const r of snap.rects) rectList.push({ ...r });
+    for (const k of Object.keys(partMap)) delete partMap[k];
+    for (const [id, p] of Object.entries(snap.parts)) partMap[id] = { ...p };
+    for (const s of Object.keys(selections)) for (const k of Object.keys(selections[s])) delete selections[s][k];
+    for (const [s, sel] of Object.entries(snap.selections)) {
+      if (!selections[s]) selections[s] = {};
+      for (const [pid, name] of Object.entries(sel)) selections[s][pid] = name;
+    }
+  }
+
   function ungroupedRects() {
     return rectList.filter((r) => !r.part);
   }
@@ -118,6 +136,8 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
     setBone,
     setPreset,
     preset,
+    snapshot,
+    restore,
     ungroupedRects,
     everyRectGrouped,
   };

@@ -93,6 +93,23 @@ test("MCP-rigged smiley demo mounts and reacts to a live feed, no buttons (P-D)"
   await expect.poll(() => page.evaluate(() => window.__mascot.getState()), { timeout: 12000 }).toBe("alert");
 });
 
+test("Ctrl+Z reverts the last edit (P4 undo)", async ({ page }) => {
+  await page.goto(URL);
+  await page.click("#loadexample");
+  await page.click('#parts li[data-id="part-eyes"]');
+
+  const before = await page.evaluate(() => window.__rigEditor.model.parts()["part-eyes"].role);
+  await page.selectOption("#role", "limb");           // a mutating op (snapshots first)
+  const after = await page.evaluate(() => window.__rigEditor.model.parts()["part-eyes"].role);
+  expect(after).toBe("limb");
+  expect(after).not.toBe(before);
+
+  await page.keyboard.press("Control+z");
+  const reverted = await page.evaluate(() => window.__rigEditor.model.parts()["part-eyes"].role);
+  expect(reverted).toBe(before);                      // role restored to the example baseline
+  await expect(page.locator("#status")).toContainText("Undid");
+});
+
 test("Esc deselects the current part", async ({ page }) => {
   await page.goto(URL);
   await page.click("#loadexample");
