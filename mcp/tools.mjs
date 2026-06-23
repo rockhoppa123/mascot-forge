@@ -11,7 +11,7 @@ import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf } from "../tools/rig-editor/pivot.js";
-import { recipeFor } from "../tools/rig-editor/presets.js";
+import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitDemoHtml } from "../tools/rig-editor/emit.js";
@@ -38,6 +38,24 @@ function partList(model) {
 function hasPreset(model, id) {
   const sel = model.selections();
   return model.states().some((st) => sel[st] && sel[st][id]);
+}
+
+// Role-aware default pivot in viewBox coords (mirrors segment.js pivotOf / P5 intent):
+// a limb hinges at its joint (top-edge centre — the hip/shoulder line); core/accent/passive
+// rotate/scale about their bbox centre.
+function defaultPivot(role, bb) {
+  if (role === "limb") return { x: bb.x + bb.w / 2, y: bb.y };
+  return { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 };
+}
+
+// rigStatus: per-state preset coverage + how many parts animate at all, over rect-bearing parts.
+function rigStatus(model) {
+  const sel = model.selections();
+  const ids = Object.keys(model.parts()).filter((id) => model.rectsOf(id).length > 0);
+  const status = { total: ids.length, animated: 0 };
+  for (const st of model.states()) status[st] = ids.filter((id) => sel[st] && sel[st][id]).length;
+  status.animated = ids.filter((id) => model.states().some((st) => sel[st] && sel[st][id])).length;
+  return status;
 }
 // reject paths outside the project (no arbitrary fs)
 function safePath(p) {
@@ -116,6 +134,60 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
     return { ok: true, validation: v, written: files.map(([f]) => f) };
   }
   return { ok: true, validation: v, svgBytes: svg.length, demoBytes: demo.length };
+}
+
+// set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.
+export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
+  const s = getSession(session);
+  if (!partId) throw new Error("partId is required");
+  const model = s.model;
+  if (!(partId in model.parts()) && model.rectsOf(partId).length === 0) {
+    throw new Error(`unknown part '${partId}' (assign_region it first)`);
+  }
+
+  if (role !== undefined) {
+    model.setRole(partId, role); // throws on an unknown role
+    // bug-#1 fix: clear any preset that is no longer valid for the new role.
+    const sel = model.selections();
+    for (const st of model.states()) {
+      const chosen = sel[st] && sel[st][partId];
+      if (chosen && !presetsFor(role, st).includes(chosen)) model.setPreset(st, partId, null);
+    }
+  }
+  if (bone !== undefined) model.setBone(partId, bone);
+
+  const effectiveRole = model.parts()[partId].role;
+  const bb = bboxOf(model.rectsOf(partId));
+  if (pivot !== undefined) {
+    for (const k of ["x", "y"]) if (typeof pivot?.[k] !== "number") throw new Error("pivot needs numeric x,y in 0..1");
+    model.setPivot(partId, { x: s.vb.x + pivot.x * s.vb.w, y: s.vb.y + pivot.y * s.vb.h });
+  } else if (!model.parts()[partId].pivot) {
+    model.setPivot(partId, defaultPivot(effectiveRole, bb)); // role-aware default
+  }
+
+  if (presets) {
+    for (const [st, name] of Object.entries(presets)) {
+      if (name == null) { model.setPreset(st, partId, null); continue; }
+      if (!model.states().includes(st)) throw new Error(`unknown state '${st}'`);
+      if (!presetsFor(effectiveRole, st).includes(name)) {
+        throw new Error(`preset '${name}' is not valid for role '${effectiveRole}' in state '${st}' ` +
+          `(valid: ${presetsFor(effectiveRole, st).join(", ") || "none"})`);
+      }
+      model.setPreset(st, partId, name);
+    }
+  }
+
+  const m = model.parts()[partId];
+  return {
+    part: { id: partId, role: m.role, bone: m.bone, pivot: m.pivot, rectCount: model.rectsOf(partId).length, bbox: bb },
+    rigStatus: rigStatus(model),
+  };
+}
+
+// inspect progress (M2): the parts, per-state animation coverage, and any still-ungrouped rects.
+export function forgeStatus({ session } = {}) {
+  const { model } = getSession(session);
+  return { parts: partList(model), rigStatus: rigStatus(model), ungroupedRects: model.ungroupedRects().length };
 }
 
 export const _sessions = sessions; // test introspection

@@ -7,7 +7,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { startFromImage, assignRegion, forgeEmit } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit } from "./tools.mjs";
 
 const ok = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
 const fail = (e) => ({ isError: true, content: [{ type: "text", text: String((e && e.message) || e) }] });
@@ -57,6 +57,39 @@ export function buildServer() {
       },
     },
     async (a) => { try { return ok(assignRegion(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "set_part",
+    {
+      description:
+        "Set a part's motion metadata in one call: role (core=body that breathes, limb=arm/leg that " +
+        "rotates, accent=small mover like eyes/tongue, passive=still), bone, pivot (x,y each 0..1 of the " +
+        "viewBox — omit for a role-aware default: limb hinges at its top-edge joint, others at bbox " +
+        "centre), and presets per state ({ idle?, active?, alert? }). Changing role clears any preset no " +
+        "longer valid for it; an invalid preset for the role/state is rejected. Returns { part, rigStatus }.",
+      inputSchema: {
+        session: z.string(),
+        partId: z.string(),
+        role: z.enum(["core", "limb", "accent", "passive"]).optional(),
+        bone: z.string().optional(),
+        pivot: z.object({ x: z.number(), y: z.number() }).optional(),
+        presets: z.object({ idle: z.string().nullable().optional(), active: z.string().nullable().optional(), alert: z.string().nullable().optional() }).optional(),
+      },
+    },
+    async (a) => { try { return ok(setPart(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_status",
+    {
+      description:
+        "Inspect rig progress: { parts:[{id,role,rectCount,bbox}], rigStatus:{idle,active,alert," +
+        "animated,total}, ungroupedRects }. Use it between set_part calls to confirm every state has " +
+        "coverage before forge_emit.",
+      inputSchema: { session: z.string() },
+    },
+    async (a) => { try { return ok(forgeStatus(a)); } catch (e) { return fail(e); } }
   );
 
   server.registerTool(
