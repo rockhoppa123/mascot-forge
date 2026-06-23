@@ -49,6 +49,39 @@ test("export animated mascot downloads a self-contained svg", async ({ page }) =
   expect(download.suggestedFilename()).toMatch(/mascot\.svg$/);
 });
 
+test("assigning the limb role snaps the pivot to the joint; the handle is draggable (P5)", async ({ page }) => {
+  await page.goto(URL);
+  await page.click("#loadexample");
+  await page.click('#parts li[data-id="part-eyes"]'); // accent by default -> changing to limb is a real change
+
+  await page.selectOption("#role", "limb");
+
+  // the pivot snaps to the hip line: the top-edge centre of the part's bbox (a limb hinges at its joint)
+  const j = await page.evaluate(() => {
+    const m = window.__rigEditor.model;
+    const rs = m.rectsOf("part-eyes").map((r) => r.bbox || r);
+    const xs = rs.flatMap((r) => [r.x, r.x + r.w]), ys = rs.flatMap((r) => [r.y, r.y + r.h]);
+    const bb = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    return { pivot: m.parts()["part-eyes"].pivot, top: bb.y, cx: bb.x + bb.w / 2 };
+  });
+  expect(j.pivot.y).toBeCloseTo(j.top, 5);  // at the joint (top edge), not the bbox centre
+  expect(j.pivot.x).toBeCloseTo(j.cx, 5);
+
+  // the handle is always visible for the selected part and directly draggable (no mode toggle)
+  const handle = page.locator("#stage .pivot");
+  await expect(handle).toBeVisible();
+  const box = await handle.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 60, box.y + 40, { steps: 6 });
+  await page.mouse.up();
+
+  // dragging moved the model pivot away from the joint, and the part stayed selected (no deselect)
+  const moved = await page.evaluate(() => window.__rigEditor.model.parts()["part-eyes"].pivot);
+  expect(moved.y).not.toBeCloseTo(j.top, 1);
+  await expect(page.locator("#selname")).toHaveText("part-eyes");
+});
+
 test("Esc deselects the current part", async ({ page }) => {
   await page.goto(URL);
   await page.click("#loadexample");

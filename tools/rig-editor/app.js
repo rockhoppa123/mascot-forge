@@ -7,7 +7,7 @@
 // model.assign). Geometry/selection logic is in the node-tested modules; this stays thin glue.
 import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
 import { parseSegmented, applyPartsSpec } from "./loader.js";
-import { bboxOf, dragToPivot, pivotToOrigin } from "./pivot.js";
+import { bboxOf, dragToPivot, pivotToOrigin, defaultPivotFor } from "./pivot.js";
 import { presetsFor, recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
 import { exportRig } from "./exporter.js";
@@ -209,20 +209,40 @@ function render() {
   highlightRects();
 }
 
+// The pivot handle is always visible for the selected part and directly draggable (P5): no mode
+// toggle needed. Its resting position is the role-aware default (defaultPivotFor) until the user
+// places one. The p-key / "Place pivot" click flow still works as an alternative.
 function drawPivot() {
   $("stage").querySelectorAll(".pivot").forEach((n) => n.remove());
   if (!selected) return;
   const meta = model.parts()[selected];
-  const pv = meta && meta.pivot ? meta.pivot : centreOf(selected);
+  const pv = meta && meta.pivot ? meta.pivot : defaultPivotFor(meta && meta.role || "passive", bboxOf(model.rectsOf(selected)));
   const c = document.createElementNS(SVGNS, "circle");
   c.setAttribute("class", "pivot");
   c.setAttribute("cx", pv.x); c.setAttribute("cy", pv.y); c.setAttribute("r", 3);
+  let dragging = false;
+  c.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();                 // don't start a marquee on the stage
+    dragging = true;
+    c.setPointerCapture(e.pointerId);
+  });
+  c.addEventListener("pointermove", (e) => {
+    if (!dragging || !selected) return;
+    const { pivot, origin } = dragToPivot(svgPoint(e), bboxOf(model.rectsOf(selected)));
+    model.setPivot(selected, pivot, origin);
+    c.setAttribute("cx", pivot.x); c.setAttribute("cy", pivot.y);
+    refreshPivotInfo();
+  });
+  c.addEventListener("pointerup", (e) => {
+    if (!dragging) return;
+    dragging = false;
+    c.releasePointerCapture(e.pointerId);
+    const p = model.parts()[selected].pivot;
+    regenCss();
+    status(`Pivot for ${selected} set to ${p.x}, ${p.y}.`);
+  });
+  c.addEventListener("click", (e) => e.stopPropagation()); // a drag must not deselect the part
   $("stage").appendChild(c);
-}
-
-function centreOf(id) {
-  const bb = bboxOf(model.rectsOf(id));
-  return { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 };
 }
 
 function highlight() {
@@ -292,7 +312,15 @@ $("role").onchange = (e) => {
     const cur = model.preset(s, selected);
     if (cur && !presetsFor(role, s).includes(cur)) model.setPreset(s, selected, null);
   }
+  // P5: snap the pivot to the new role's sensible default (limb -> joint, else centre) so a limb
+  // rotates at its hip the moment you assign it — no manual placement needed. The user can still
+  // drag the handle afterward to override.
+  const bb = bboxOf(model.rectsOf(selected));
+  const pivot = defaultPivotFor(role, bb);
+  model.setPivot(selected, pivot, pivotToOrigin(pivot, bb));
   refreshPresetPickers();
+  refreshPivotInfo();
+  drawPivot();
   regenCss();
 };
 $("bone").onchange = (e) => { if (selected) model.setBone(selected, e.target.value.trim()); };
