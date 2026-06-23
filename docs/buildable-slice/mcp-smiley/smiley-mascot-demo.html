@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>smiley — animated mascot</title>
+<style>
+  body { font:14px system-ui,sans-serif; margin:0; display:flex; min-height:100vh; }
+  #stage { flex:1; display:grid; place-items:center; background:#eef3f8; }
+  #stage svg { width:min(70vw,460px); height:auto; }
+  #panel { width:200px; padding:16px; background:#fff; border-left:1px solid #d6dce8; }
+  #panel button { display:block; width:100%; margin:6px 0; padding:8px; cursor:pointer; }
+</style></head>
+<body>
+  <div id="stage"><?xml version="1.0" encoding="UTF-8"?>
+<svg id="mascot" data-state="idle" data-render-method="ccl-color-threshold" data-source-bounds="6,18,84,78" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" role="img" aria-labelledby="title desc">
+  <style>
+#mascot .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }
+#mascot #part-body { transform-origin: 50% 50%; }
+#mascot #part-eyes { transform-origin: 50% 240%; }
+#mascot #part-hand-left { transform-origin: 50% 0%; }
+#mascot #part-hand-right { transform-origin: 50% 0%; }
+#mascot #part-tongue { transform-origin: 50% 50%; }
+#mascot[data-state="idle"] #part-body { animation: part-body__breathe 1800ms ease-in-out infinite; }
+#mascot[data-state="idle"] #part-eyes { animation: part-eyes__blink 4200ms step-end infinite; }
+#mascot[data-state="active"] #part-hand-left { animation: part-hand-left__walk 520ms ease-in-out infinite; }
+#mascot[data-state="active"] #part-hand-right { animation: part-hand-right__walk-mirror 520ms ease-in-out infinite; }
+#mascot[data-state="alert"] #part-tongue { animation: part-tongue__pulse 420ms ease-in-out infinite; }
+@keyframes part-body__breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(.985, 1.035); }
+}
+@keyframes part-eyes__blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  94%, 96% { transform: scaleY(.12); }
+}
+@keyframes part-hand-left__walk {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-18deg); }
+}
+@keyframes part-hand-right__walk-mirror {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(18deg); }
+}
+@keyframes part-tongue__pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mascot .part { animation: none !important; transition: none !important; }
+  #mascot[data-state="idle"] #part-body { transform: scale(1); }
+  #mascot[data-state="active"] #part-hand-left { transform: rotate(10deg); }
+  #mascot[data-state="active"] #part-hand-right { transform: rotate(-10deg); }
+  #mascot[data-state="alert"] #part-tongue { transform: scale(1.08); }
+}
+#mascot.force-reduced-motion .part { animation: none !important; transition: none !important; }
+#mascot.force-reduced-motion[data-state="idle"] #part-body { transform: scale(1); }
+#mascot.force-reduced-motion[data-state="active"] #part-hand-left { transform: rotate(10deg); }
+#mascot.force-reduced-motion[data-state="active"] #part-hand-right { transform: rotate(-10deg); }
+#mascot.force-reduced-motion[data-state="alert"] #part-tongue { transform: scale(1.08); }
+  </style>
+  <title id="title">smiley Manual Part SVG</title>
+  <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>
+  <g id="rig-root">
+    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="40">
+      <rect x="28" y="18" width="34" height="10" fill="#c9ced1"/>
+      <rect x="28" y="28" width="8" height="5" fill="#c9ced1"/>
+      <rect x="54" y="28" width="8" height="5" fill="#c9ced1"/>
+      <rect x="28" y="33" width="34" height="29" fill="#c9ced1"/>
+    </g>
+    <g id="part-eyes" class="part" data-bone="eyes" data-origin="50% 240%" data-pivot-x="45" data-pivot-y="40">
+      <rect x="41" y="28" width="8" height="5" fill="#c9ced1"/>
+      <rect x="36" y="28" width="5" height="5" fill="#d62728"/>
+      <rect x="49" y="28" width="5" height="5" fill="#d62728"/>
+    </g>
+    <g id="part-hand-left" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="13" data-pivot-y="30">
+      <rect x="6" y="30" width="14" height="22" fill="#d62728"/>
+    </g>
+    <g id="part-hand-right" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="77" data-pivot-y="30">
+      <rect x="70" y="30" width="14" height="22" fill="#d62728"/>
+    </g>
+    <g id="part-tongue" class="part" data-bone="tongue" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="72">
+      <rect x="40" y="66" width="10" height="12" fill="#ff7f0e"/>
+    </g>
+  </g>
+</svg>
+</div>
+  <div id="panel"><h3>smiley</h3><p>preview state:</p><button data-s="idle">idle</button><button data-s="active">active</button><button data-s="alert">alert</button></div>
+  <script>
+    var svg = document.querySelector('#stage svg');
+    document.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { svg.setAttribute('data-state', b.dataset.s); }; });
+  </script>
+</body></html>
