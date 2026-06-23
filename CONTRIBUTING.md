@@ -53,3 +53,15 @@ GIF/screenshot of it can only be captured by a human running it in a browser:
 2. Open `http://localhost:4178/docs/buildable-slice/showcase.html`.
 3. Record the auto-cycling idle → active → alert loop; export a GIF.
 4. Replace `docs/hero-mascot.png` and drop the interim-still note in the README.
+
+### …and the MCP live-data hero (P-D)
+
+The headline story — an agent-rigged mascot reacting to live data — runs at
+[`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html). Same human-only
+capture step:
+
+1. (Optional) regenerate the agent-rigged SVG: `cd mcp && npm install && node build-smiley-demo.mjs`.
+2. `python -m http.server 4178` from the repo root.
+3. Open `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html`.
+4. Screen-record one full idle → active → alert → idle cycle (~9 s); export a GIF.
+5. Save it as `docs/hero-mcp-live.gif` — the README hero slot already points there.

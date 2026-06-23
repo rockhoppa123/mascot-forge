@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mascot-forge — image → agent-rigged → reacts to live data</title>
+  <!--
+    P-D hero: the full story in one page.
+      1. IMAGE   — a flat smiley PNG was handed to an agent.
+      2. RIGGED  — the agent drove the mascot-forge MCP (start_from_image -> assign_region x5 ->
+                   set_part x5 -> forge_emit) and got back the OWNED, self-contained animated SVG
+                   loaded below (generated/smiley-mascot.svg — regenerate with mcp/build-smiley-demo.mjs).
+      3. REACTIVE — that SVG is driven here by the dependency-free runtime (../../runtime/mascot-state.js)
+                   bound to a MOCK telemetry feed. No buttons: the state cycles idle -> active -> alert
+                   under the orchestrator's priority + hysteresis rules.
+    Serve the repo over http (fetch() + ES module imports are blocked on file://) — e.g. the project
+    preview server, then open /docs/buildable-slice/mcp-live-demo.html.
+  -->
+  <style>
+    :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; background: #eef3f8; color: #16212f; }
+    body { margin: 0; }
+    main { max-width: 980px; margin: 0 auto; padding: 24px 20px 40px; box-sizing: border-box; }
+    header h1 { margin: 0 0 6px; font-size: 24px; line-height: 1.2; }
+    header p { margin: 0 0 18px; color: #4d5b6d; font-size: 14px; max-width: 64ch; }
+    .flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; font-size: 12px; }
+    .flow span { background: #fff; border: 1px solid #d6dce8; border-radius: 999px; padding: 5px 12px; font-weight: 700; letter-spacing: .02em; }
+    .flow span.arrow { background: none; border: none; color: #99a6b8; font-weight: 400; padding: 5px 0; }
+    .grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px); gap: 18px; align-items: stretch; }
+    .stage, .panel { background: #fff; border: 1px solid #d6dce8; border-radius: 8px; box-shadow: 0 14px 32px rgb(22 33 47 / 10%); }
+    .stage { display: grid; place-items: center; min-height: 380px; overflow: hidden; }
+    .stage svg#mascot { width: min(60vw, 360px); max-height: 60vh; height: auto; }
+    .panel { padding: 16px; }
+    .panel h2 { margin: 0 0 4px; font-size: 15px; }
+    .panel p.sub { margin: 0 0 14px; color: #4d5b6d; font-size: 12px; }
+    .badge { display: inline-block; min-width: 84px; text-align: center; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; background: #e4ebf4; color: #18324f; }
+    .badge[data-state="active"] { background: #1f6feb; color: #fff; }
+    .badge[data-state="alert"] { background: #d6453b; color: #fff; }
+    .readout { margin: 16px 0 0; font-size: 12px; color: #4d5b6d; }
+    .meter { height: 8px; border-radius: 999px; background: #e4ebf4; overflow: hidden; margin-top: 6px; }
+    .meter > span { display: block; height: 100%; background: #1f6feb; width: 0%; transition: width 140ms linear; }
+    footer { margin-top: 22px; font-size: 12px; color: #6b7787; }
+    code { background: #e4ebf4; border-radius: 4px; padding: 1px 5px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Hand an image to your agent. Get an owned mascot that reacts to live data.</h1>
+      <p>The smiley below was a flat PNG. An AI agent identified its parts and rigged it through the
+         mascot-forge <strong>MCP</strong> — the SVG you see is the agent's emitted, editable output.
+         It is driven here by <code>mascot-state.js</code> bound to a mock telemetry feed: no buttons,
+         the state machine decides.</p>
+      <div class="flow">
+        <span>flat image (PNG)</span><span class="arrow">→</span>
+        <span>agent + MCP: assign_region · set_part · forge_emit</span><span class="arrow">→</span>
+        <span>owned animated SVG</span><span class="arrow">→</span>
+        <span>mascot-state.js + live feed</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="stage" id="stage" aria-label="Agent-rigged smiley mascot driven by a live telemetry feed"></section>
+      <aside class="panel">
+        <h2>Live state</h2>
+        <p class="sub">Mock feed → state machine. Priority <code>alert&nbsp;&gt;&nbsp;active&nbsp;&gt;&nbsp;idle</code>; downgrades hold for hysteresis.</p>
+        <span id="badge" class="badge" data-state="idle">idle</span>
+        <p class="readout">mock load (telemetry signal)</p>
+        <div class="meter"><span id="meter-fill"></span></div>
+        <p id="status" class="readout" aria-live="polite">starting…</p>
+      </aside>
+    </div>
+
+    <footer>
+      Recording the hero GIF is an owner step: serve the repo, open this page, and screen-record one
+      full idle → active → alert → idle cycle (~9&nbsp;s). Save it as
+      <code>docs/hero-mcp-live.gif</code> and the README hero slot will pick it up.
+    </footer>
+  </main>
+
+  <script type="module">
+    import { createMascot } from "../../runtime/mascot-state.js";
+
+    const STATES = ["idle", "active", "alert"];        // matches the smiley rig's states
+    const SVG_URL = "mcp-smiley/smiley-mascot.svg";    // the MCP-emitted, self-contained animated SVG
+
+    const stage = document.getElementById("stage");
+    const badge = document.getElementById("badge");
+    const status = document.getElementById("status");
+    const meterFill = document.getElementById("meter-fill");
+
+    // The emitted SVG inlines its own CSS (keyed on #mascot[data-state]); we only need to mount it and
+    // drive root.dataset.state. Strip the XML prolog so it inlines, and inject via innerHTML.
+    async function mountMascot() {
+      const svgText = await fetch(SVG_URL).then((r) => r.text());
+      stage.innerHTML = svgText.slice(svgText.indexOf("<svg"));
+      return stage.querySelector("#mascot");
+    }
+
+    // Mock telemetry: a synthetic activity metric ramping 0 -> 1 -> 0 over ~9s (the shape a real feed
+    // would push). >0.66 => alert, >0.25 => active, else nothing asserted (falls back to idle).
+    function metricToState(load) {
+      if (load > 0.66) return "alert";
+      if (load > 0.25) return "active";
+      return null;
+    }
+    const start = performance.now();
+    const currentLoad = () => { const t = ((performance.now() - start) / 9000) % 1; return 1 - Math.abs(t * 2 - 1); };
+
+    const mockSource = (emit) => {
+      const id = setInterval(() => {
+        const load = currentLoad();
+        meterFill.style.width = (load * 100).toFixed(0) + "%";
+        emit(metricToState(load)); // re-evaluate often so downgrade hysteresis engages
+      }, 150);
+      return () => clearInterval(id);
+    };
+
+    const root = await mountMascot();
+    const mascot = createMascot({
+      root,
+      states: STATES,
+      rules: {
+        onState(state) {
+          badge.textContent = state;
+          badge.dataset.state = state;
+          status.textContent = "state: " + state;
+        },
+      },
+    });
+    mascot.bind(mockSource);
+    window.__mascot = mascot; // expose for live verification (preview_eval / Playwright)
+  </script>
+</body>
+</html>

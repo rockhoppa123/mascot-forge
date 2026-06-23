@@ -18,6 +18,20 @@ black box.
 > and open [`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html). An animated
 > GIF/screenshot of that page is the one remaining capture step (see [CONTRIBUTING](CONTRIBUTING.md))._
 
+### Hand an image to your agent → get an owned mascot that reacts to live data
+
+<!-- HERO SLOT (P-D): record one full idle→active→alert cycle of the demo below as docs/hero-mcp-live.gif,
+     then this image renders the headline story. Until then the link runs it live. -->
+![image → agent-rigged via the MCP → owned animated SVG → driven by mascot-state.js bound to a live feed](docs/hero-mcp-live.gif)
+
+> _Placeholder GIF — owner capture step. The full story runs today: serve the repo and open
+> [`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html). A flat smiley
+> PNG was rigged by an agent through the **MCP** (`assign_region` → `set_part` → `forge_emit`) into the
+> self-contained SVG you see, then driven by the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js)
+> bound to a mock telemetry feed — no buttons, the state machine cycles idle → active → alert.
+> Regenerate the agent-rigged SVG with `node mcp/build-smiley-demo.mjs`. Recording instructions are in
+> [CONTRIBUTING](CONTRIBUTING.md)._
+
 mascot-forge is an open-source pipeline that takes a flat raster image (PNG, pixel-art
 first) and produces an **animated, component-segmented mascot** that you drop into a
 React app. Unlike a black-box runtime, the output is **human-readable code you can read,

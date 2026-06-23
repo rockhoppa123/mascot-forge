@@ -82,6 +82,17 @@ test("assigning the limb role snaps the pivot to the joint; the handle is dragga
   await expect(page.locator("#selname")).toHaveText("part-eyes");
 });
 
+test("MCP-rigged smiley demo mounts and reacts to a live feed, no buttons (P-D)", async ({ page }) => {
+  await page.goto("/docs/buildable-slice/mcp-live-demo.html");
+  // the agent-rigged smiley mounted, with its semantic parts present (proves the MCP-emitted artifact)
+  await expect(page.locator("#mascot")).toBeVisible();
+  await expect(page.locator("#mascot #part-hand-left")).toHaveCount(1);
+  await expect(page.locator("#mascot #part-tongue")).toHaveCount(1);
+  // the mock telemetry feed drives mascot-state.js up through active and to alert — no manual control
+  await expect.poll(() => page.evaluate(() => window.__mascot.getState()), { timeout: 12000 }).toBe("active");
+  await expect.poll(() => page.evaluate(() => window.__mascot.getState()), { timeout: 12000 }).toBe("alert");
+});
+
 test("Esc deselects the current part", async ({ page }) => {
   await page.goto(URL);
   await page.click("#loadexample");
