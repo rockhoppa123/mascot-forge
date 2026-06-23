@@ -4,7 +4,7 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, forgeEmit } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit } from "./tools.mjs";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -41,5 +41,94 @@ assert.ok(out.svgBytes > 0 && out.demoBytes > 0, "produced a self-contained svg 
 // 4. graceful errors
 assert.throws(() => assignRegion({ session: "nope", box: { x: 0, y: 0, w: 1, h: 1 }, partId: "x" }), /unknown session/);
 assert.throws(() => startFromImage({}), /base64 or path/);
+
+// ================================================================================================
+// M2 — the smiley worked example, run tool-by-tool (start -> assign_region xN -> set_part xN ->
+// forge_status (all states covered) -> forge_emit valid). Uses a SYNTHETIC multi-block smiley PNG —
+// no third-party art is committed. Layout (90x90 viewBox):
+//   body   : big yellow disc-ish square, centre                         -> core,  idle:breathe
+//   eyes   : two dark islands inside the upper body                     -> accent, idle:blink
+//   hand-L : orange block, far left, outside the body                   -> limb,  active:walk
+//   hand-R : orange block, far right, outside the body                  -> limb,  active:walk-mirror
+//   tongue : red block, bottom-centre, below the body                   -> accent, alert:pulse
+function smileyPngBase64() {
+  const w = 90, h = 90, png = new PNG({ width: w, height: h });
+  const set = (x, y, c) => { const i = (y * w + x) << 2; png.data[i] = c[0]; png.data[i + 1] = c[1]; png.data[i + 2] = c[2]; png.data[i + 3] = c[3]; };
+  const Y = [235, 205, 40, 255], B = [30, 30, 30, 255], O = [235, 140, 30, 255], R = [220, 40, 40, 255];
+  const box = (x0, y0, x1, y1) => (x, y) => x >= x0 && x < x1 && y >= y0 && y < y1;
+  const body = box(28, 18, 62, 62);
+  const eyeL = box(36, 28, 41, 33), eyeR = box(49, 28, 54, 33);
+  const handL = box(6, 30, 20, 52), handR = box(70, 30, 84, 52);
+  const tongue = box(40, 66, 50, 78);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let c = [0, 0, 0, 0];
+    if (eyeL(x, y) || eyeR(x, y)) c = B;
+    else if (body(x, y)) c = Y;
+    else if (handL(x, y) || handR(x, y)) c = O;
+    else if (tongue(x, y)) c = R;
+    set(x, y, c);
+  }
+  return PNG.sync.write(png).toString("base64");
+}
+
+{
+  // 1. start
+  const ss = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assert.ok(ss.session && ss.viewBox === "0 0 90 90", "smiley: session + viewBox");
+  assert.ok(ss.parts.length >= 1, "smiley: proposes at least one part");
+
+  // 2. agent segments by vision into the five semantic parts (normalized 0..1 boxes).
+  const r1 = assignRegion({ session: ss.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "part-body", role: "core" });
+  const r2 = assignRegion({ session: ss.session, box: { x: 0.38, y: 0.28, w: 0.22, h: 0.10 }, partId: "part-eyes", role: "accent" });
+  const r3 = assignRegion({ session: ss.session, box: { x: 0.04, y: 0.30, w: 0.20, h: 0.28 }, partId: "part-hand-left", role: "limb" });
+  const r4 = assignRegion({ session: ss.session, box: { x: 0.74, y: 0.30, w: 0.22, h: 0.28 }, partId: "part-hand-right", role: "limb" });
+  const r5 = assignRegion({ session: ss.session, box: { x: 0.40, y: 0.70, w: 0.22, h: 0.25 }, partId: "part-tongue", role: "accent" });
+  for (const [n, r] of [["body", r1], ["eyes", r2], ["hand-left", r3], ["hand-right", r4], ["tongue", r5]]) {
+    assert.ok(r.moved > 0, `smiley: ${n} region grabbed shapes (moved=${r.moved})`);
+  }
+
+  // 3. set_part per part — role-aware pivot defaults (omitted) + presets per state.
+  const sp = setPart({ session: ss.session, partId: "part-body", role: "core", bone: "body", presets: { idle: "breathe" } });
+  assert.equal(sp.part.role, "core", "set_part returns the updated role");
+  assert.deepEqual(sp.part.pivot, { x: 45, y: 40 }, "core pivot defaults to bbox centre (omitted pivot)");
+
+  const spH = setPart({ session: ss.session, partId: "part-hand-left", role: "limb", bone: "arm-left", presets: { active: "walk" } });
+  // limb default pivot = top-edge centre (the joint/hip line), not the bbox centre.
+  const hb = spH.part.bbox;
+  assert.deepEqual(spH.part.pivot, { x: hb.x + hb.w / 2, y: hb.y }, "limb pivot defaults to top-edge joint");
+
+  setPart({ session: ss.session, partId: "part-hand-right", role: "limb", bone: "arm-right", presets: { active: "walk-mirror" } });
+  setPart({ session: ss.session, partId: "part-eyes", role: "accent", presets: { idle: "blink" } });
+  setPart({ session: ss.session, partId: "part-tongue", role: "accent", presets: { alert: "pulse" } });
+
+  // explicit-pivot path: passing 0..1 coords scales into the viewBox.
+  const spP = setPart({ session: ss.session, partId: "part-tongue", pivot: { x: 0.5, y: 0.8 } });
+  assert.deepEqual(spP.part.pivot, { x: 45, y: 72 }, "explicit 0..1 pivot scales to viewBox coords");
+
+  // role-change clears a now-invalid preset (bug-#1 fix): walk-mirror is a limb preset; switching the
+  // right hand to accent must drop it (accent has no 'active' preset). Then restore it as a limb.
+  const flip = setPart({ session: ss.session, partId: "part-hand-right", role: "accent" });
+  assert.equal(flip.part.role, "accent", "role flipped to accent");
+  assert.equal(flip.rigStatus.active, 1, "the stale walk-mirror preset was cleared on role change (active drops to 1)");
+  setPart({ session: ss.session, partId: "part-hand-right", role: "limb", bone: "arm-right", presets: { active: "walk-mirror" } });
+
+  // an invalid preset for the role/state is rejected.
+  assert.throws(() => setPart({ session: ss.session, partId: "part-body", presets: { active: "walk" } }),
+    /not valid for role 'core'/, "core cannot take a limb preset");
+
+  // 4. forge_status — every state has coverage before emit.
+  const st = forgeStatus({ session: ss.session });
+  assert.ok(st.rigStatus.idle >= 1 && st.rigStatus.active >= 1 && st.rigStatus.alert >= 1,
+    `all three states covered (idle=${st.rigStatus.idle} active=${st.rigStatus.active} alert=${st.rigStatus.alert})`);
+  assert.equal(st.rigStatus.total, 5, "five rect-bearing parts");
+  assert.equal(st.rigStatus.animated, 5, "every part animates in at least one state");
+  assert.equal(st.ungroupedRects, 0, "no rects left ungrouped");
+
+  // 5. forge_emit — the full image->rigged loop produces a valid self-contained mascot.
+  const semit = forgeEmit({ session: ss.session, assetName: "smiley" });
+  assert.equal(semit.ok, true, `smiley emit must be valid: ${JSON.stringify(semit.validation || semit.error)}`);
+  assert.ok(semit.svgBytes > 0 && semit.demoBytes > 0, "smiley produced a self-contained svg + demo");
+  console.log(`tools.test.mjs (M2 smiley): full loop green. status=${JSON.stringify(st.rigStatus)} svgBytes=${semit.svgBytes}`);
+}
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
