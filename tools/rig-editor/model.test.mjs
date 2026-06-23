@@ -83,5 +83,35 @@ function sample() {
   assert.equal(m.preset("idle", "part-a"), undefined, "null clears a selection");
 }
 
+// snapshot / restore (P4 undo): a snapshot taken before a mutation restores the exact prior state,
+// in place (same model reference). Covers rect membership, part metadata, and preset selections.
+{
+  const m = sample();
+  m.setPreset("idle", "part-a", "breathe");
+  const snap = m.snapshot();
+
+  // mutate everything: move a rect, change a role, remove a part, drop the preset
+  m.assign(["r0"], "part-b");
+  m.setRole("part-a", "limb");
+  m.remove("part-b");
+  m.setPreset("idle", "part-a", null);
+  assert.notDeepEqual(m.rects().map((r) => r.part), ["part-a", "part-a", "part-b"], "state changed before restore");
+
+  m.restore(snap);
+  assert.deepEqual(m.rects().map((r) => r.part), ["part-a", "part-a", "part-b"], "rect membership restored");
+  assert.equal(m.parts()["part-a"].role, "core", "role restored");
+  assert.ok(m.parts()["part-b"], "removed part is back");
+  assert.equal(m.preset("idle", "part-a"), "breathe", "preset selection restored");
+}
+
+// restore is a deep copy: mutating the model after restore must not corrupt the snapshot (and vice versa)
+{
+  const m = sample();
+  const snap = m.snapshot();
+  m.restore(snap);
+  m.assign(["r0"], "part-z");
+  assert.deepEqual(snap.rects.find((r) => r.id === "r0").part, "part-a", "snapshot is independent of post-restore edits");
+}
+
 assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
 console.log("model.test.mjs: all assertions passed.");
