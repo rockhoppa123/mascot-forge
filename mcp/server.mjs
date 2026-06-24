@@ -7,7 +7,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, startFromLayeredSvg } from "./tools.mjs";
 
 const ok = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
 const fail = (e) => ({ isError: true, content: [{ type: "text", text: String((e && e.message) || e) }] });
@@ -132,6 +132,36 @@ export function buildServer() {
       inputSchema: { session: z.string(), outDir: z.string().optional() },
     },
     async (a) => { try { return ok(forgePropose(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_apply_tweaks",
+    {
+      description:
+        "Inline checkpoint fixes without leaving chat: rename parts and/or change roles. edits is an " +
+        "array of { partId, renameTo?, setRole? }. Returns { parts, rigStatus }.",
+      inputSchema: {
+        session: z.string(),
+        edits: z.array(z.object({
+          partId: z.string(),
+          renameTo: z.string().optional(),
+          setRole: z.enum(["core", "limb", "accent", "passive"]).optional(),
+        })),
+      },
+    },
+    async (a) => { try { return ok(applyTweaks(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_open_editor",
+    {
+      description:
+        "Deep-fix handoff: emit the current rig as a layered SVG the browser rig editor can load, for " +
+        "manual fixing, then come back and forge_emit. Writes to outDir (project-relative) if given. " +
+        "Returns { svg, written, editor }.",
+      inputSchema: { session: z.string(), outDir: z.string().optional() },
+    },
+    async (a) => { try { return ok(editorHandoff(a)); } catch (e) { return fail(e); } }
   );
 
   server.registerTool(

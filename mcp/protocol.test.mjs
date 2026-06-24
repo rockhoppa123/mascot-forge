@@ -39,8 +39,8 @@ try {
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names,
-    ["assign_region", "forge_emit", "forge_propose", "forge_review", "forge_start_from_image", "forge_start_from_layered_svg", "forge_status", "set_part"],
-    "all eight tools are advertised over the protocol");
+    ["assign_region", "forge_apply_tweaks", "forge_emit", "forge_open_editor", "forge_propose", "forge_review", "forge_start_from_image", "forge_start_from_layered_svg", "forge_status", "set_part"],
+    "all ten tools are advertised over the protocol");
   assert.ok(tools.every((t) => t.description && t.inputSchema), "every tool ships a description + inputSchema");
 
   // 2. the full chain over the wire: start -> assign_region -> forge_emit, all valid

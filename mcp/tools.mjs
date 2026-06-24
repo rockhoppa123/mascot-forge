@@ -172,6 +172,40 @@ export function forgePropose({ session, outDir } = {}) {
   return { parts, rigStatus: rigStatus(s.model), preview, advisory };
 }
 
+// forge_apply_tweaks: inline fixes at the checkpoint (rename a part, change its role) without leaving
+// chat. edits = [{ partId, renameTo?, setRole? }]. Role is set before rename so metadata carries over.
+export function applyTweaks({ session, edits } = {}) {
+  const s = getSession(session);
+  if (!Array.isArray(edits)) throw new Error("edits must be an array of { partId, renameTo?, setRole? }");
+  for (const e of edits) {
+    if (!e || !e.partId) throw new Error("each edit needs a partId");
+    let pid = normPartId(e.partId);
+    if (e.setRole) s.model.setRole(pid, e.setRole);
+    if (e.renameTo) { const to = normPartId(e.renameTo); s.model.rename(pid, to); pid = to; }
+  }
+  return { parts: partList(s.model), rigStatus: rigStatus(s.model) };
+}
+
+// forge_open_editor: deep-fix handoff. Emit the session rig as a LAYERED SVG (group-per-part, rect or
+// path markup) the browser rig editor loads via parseLayered. Returns the SVG (and a written path if
+// outDir given) + the editor entry; the human fixes it visually, then emits.
+export function editorHandoff({ session, outDir } = {}) {
+  const { model } = getSession(session);
+  const lines = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${model.viewBox()}">`];
+  for (const id of Object.keys(model.parts())) {
+    const rs = model.rectsOf(id);
+    if (!rs.length) continue;
+    lines.push(`  <g id="${id}">`);
+    for (const r of rs) lines.push(r.markup ? `    ${r.markup}` : `    <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.fill || "#888888"}"/>`);
+    lines.push("  </g>");
+  }
+  lines.push("</svg>");
+  const svg = lines.join("\n") + "\n";
+  let written = null;
+  if (outDir) { const dir = safePath(outDir); mkdirSync(dir, { recursive: true }); written = join(dir, "rig-handoff.svg"); writeFileSync(written, svg); }
+  return { svg, written, editor: "tools/rig-editor/index.html" };
+}
+
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   const { model, sourceDataUri } = getSession(session);
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
