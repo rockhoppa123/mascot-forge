@@ -3,13 +3,16 @@
   "private": true,
   "type": "module",
   "description": "MCP server: agent-driven mascot rigging over the shared pure modules. Integration infra — the runtime artifact stays dependency-free.",
-  "bin": { "mascot-forge-mcp": "server.mjs" },
+  "bin": {
+    "mascot-forge-mcp": "server.mjs"
+  },
   "scripts": {
     "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.0",
+    "@neplex/vectorizer": "^0.1.0",
     "pngjs": "^7.0.0",
     "zod": "^3.25.0"
   }
