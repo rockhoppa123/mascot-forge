@@ -7,7 +7,7 @@
     "mascot-forge-mcp": "server.mjs"
   },
   "scripts": {
-    "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs",
+    "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs && node vectorize-vtracer.test.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {
