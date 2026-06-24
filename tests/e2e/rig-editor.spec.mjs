@@ -118,3 +118,15 @@ test("Esc deselects the current part", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.locator("#partedit")).toBeHidden();
 });
+
+test("real-colours toggle switches rect fills between part-palette and source colours", async ({ page }) => {
+  await page.goto(URL);
+  await page.click("#loadexample");
+  const rect = page.locator("#part-body rect").first();
+  const byPart = await rect.getAttribute("fill");
+  await page.check("#realcolours");
+  const real = await rect.getAttribute("fill");
+  expect(real).not.toBe(byPart);            // fill changed to the source colour
+  await page.uncheck("#realcolours");
+  expect(await rect.getAttribute("fill")).toBe(byPart); // back to the part palette
+});
