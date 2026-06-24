@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parseSegmented } from "./loader.js";
+import { createModel } from "./model.js";
 import { recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
 import { exportRig } from "./exporter.js";
@@ -121,6 +122,23 @@ assert.ok(out.partsSpec.parts.every((p) => p.role && p.bone));
   assert.ok(/id="part-background"/.test(o3.manualSvg), "unassigned rects land in part-background");
   assert.ok(!o3.riggedJson.animations.idle.some((r) => r.part === "part-background"),
     "background carries no recipe");
+}
+
+// stale pivot guard: a pivot OUTSIDE the part's bbox (e.g. a part re-carved smaller after its pivot
+// was set) is reset to the bbox centre, so transform-origin can't blow up (the 588% eyes bug).
+{
+  const mp = createModel({
+    viewBox: "0 0 225 225",
+    rects: [{ id: "e0", x: 95, y: 43, w: 8, h: 8, fill: "#fbd778", part: "part-eyes" }],
+    parts: { "part-eyes": { role: "accent" } },
+  });
+  mp.setPivot("part-eyes", { x: 137, y: 112.5 }); // far below/right of the 8x8 eye bbox (stale)
+  mp.setPreset("idle", "part-eyes", "blink");
+  const op = exportRig(mp, { assetName: "x", recipeFor });
+  const eye = op.riggedJson.parts.find((p) => p.id === "part-eyes");
+  assert.deepEqual(eye.pivot, { x: 99, y: 47 }, "outside-bbox pivot reset to the bbox centre");
+  const originPct = op.manualSvg.match(/id="part-eyes"[^>]*data-origin="([^"]+)"/)[1];
+  for (const pct of originPct.split(" ")) assert.ok(Math.abs(parseFloat(pct)) <= 150, `origin ${pct} is sane (<=150%)`);
 }
 
 console.log("exporter.test.mjs: all assertions passed.");

@@ -24,7 +24,12 @@ export function exportRig(model, opts = {}) {
   for (const id of orderedIds) {
     const meta = partMeta[id] || {};
     const bb = bboxOf(rects.filter((r) => r.part === id));
-    const pivot = meta.pivot || { x: round(bb.x + bb.w / 2), y: round(bb.y + bb.h / 2) };
+    const centre = { x: round(bb.x + bb.w / 2), y: round(bb.y + bb.h / 2) };
+    let pivot = meta.pivot || centre;
+    // guard: a stale pivot (a part re-carved smaller AFTER its pivot was set) can fall outside the
+    // current bbox, producing a wild transform-origin (the 588% eyes bug). Reset to the bbox centre.
+    // A 1px margin keeps legitimate edge pivots (e.g. a limb's top-edge hinge) intact.
+    if (pivot.x < bb.x - 1 || pivot.x > bb.x + bb.w + 1 || pivot.y < bb.y - 1 || pivot.y > bb.y + bb.h + 1) pivot = centre;
     const origin = meta.origin || pivotToOrigin(pivot, bb);
     const bone = meta.bone || "root";
     resolved[id] = { id, bone, origin, pivot, role: meta.role || "passive" };

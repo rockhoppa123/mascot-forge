@@ -28,6 +28,16 @@ const MAX_SESSIONS = 20;         // simple cap so a long-lived server can't leak
 // roles alone yield a valid animated rig (M1): each role gets a default preset in its natural state.
 const DEFAULT_PRESET = { core: ["idle", "breathe"], limb: ["active", "walk"], accent: ["alert", "pulse"] };
 
+// anatomy-aware default preset: pick motion by what the part IS (its id), falling back to the role
+// default. So roles alone give sensible motion — a tail wags, ears twitch, eyes blink — instead of
+// the generic walk/pulse. Returns [state, presetName].
+export function defaultPresetFor(id, role) {
+  if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
+  if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
+  if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];
+  return DEFAULT_PRESET[role];
+}
+
 function getSession(id) {
   const s = sessions.get(id);
   if (!s) throw new Error(`unknown session '${id}'`);
@@ -57,6 +67,21 @@ function rigStatus(model) {
   status.animated = ids.filter((id) => model.states().some((st) => sel[st] && sel[st][id])).length;
   return status;
 }
+// turn the validator's terse errors into a plain-English, actionable summary any user can act on.
+function explainValidation(v) {
+  const roleFor = {
+    idle: "core (the body — it breathes)",
+    active: "limb (an arm, leg, or tail — it moves)",
+    alert: "accent (eyes or another small mover)",
+  };
+  const parts = [];
+  for (const e of v.errors || []) {
+    const m = /state '(\w+)' must have at least one animation/.exec(e);
+    parts.push(m ? `nothing animates in the '${m[1]}' state — give a part the ${roleFor[m[1]] || "right"} role so something moves there` : e);
+  }
+  return parts.length ? `Can't emit yet: ${parts.join("; ")}.` : "The rig didn't pass validation — check the parts and their roles.";
+}
+
 // reject paths outside the project (no arbitrary fs)
 function safePath(p) {
   const r = resolve(p);
@@ -211,14 +236,14 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
   for (const id of Object.keys(model.parts())) {
     if (!model.rectsOf(id).length) continue;
-    const def = DEFAULT_PRESET[model.parts()[id].role];
+    const def = defaultPresetFor(id, model.parts()[id].role);
     if (def && !hasPreset(model, id)) model.setPreset(def[0], id, def[1]);
   }
   let out;
   try { out = exportRig(model, { assetName, recipeFor }); }
   catch (e) { return { ok: false, error: e.message }; }
   const v = validate(out.riggedJson);
-  if (!v.ok) return { ok: false, validation: v };
+  if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
   const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
   const demo = emitDemoHtml(out.riggedJson, svg, assetName, sourceDataUri);
   if (outDir) {

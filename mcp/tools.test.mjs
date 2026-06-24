@@ -4,7 +4,7 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
@@ -243,6 +243,21 @@ function smileyPngBase64() {
   assert.ok(h.svg.includes("<g id=\"part-body\""), "handoff SVG groups by part id");
   const { elements } = parseLayered(h.svg);
   assert.ok(elements.some((e) => e.part === "part-body"), "handoff SVG re-parses into the proposed parts");
+}
+
+// anatomy-aware auto-fill: roles alone pick sensible motion by part name (tail wags, ears twitch)
+assert.deepEqual(defaultPresetFor("part-tail", "limb"), ["active", "wag"], "tail wags");
+assert.deepEqual(defaultPresetFor("part-ears", "accent"), ["idle", "twitch"], "ears twitch");
+assert.deepEqual(defaultPresetFor("part-eyes", "accent"), ["idle", "blink"], "eyes blink");
+assert.deepEqual(defaultPresetFor("part-arm", "limb"), ["active", "walk"], "generic limb still walks");
+
+// plain-language emit failure: an under-rigged mascot gets a human explanation, not just raw errors
+{
+  const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const out2 = forgeEmit({ session: s.session, assetName: "under" });
+  assert.equal(out2.ok, false, "a core-only rig fails validation");
+  assert.ok(/active/.test(out2.message) && /limb/.test(out2.message), "message names the missing state + the role to add");
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
