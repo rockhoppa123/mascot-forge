@@ -9,6 +9,8 @@ import { PNG } from "pngjs";
 import { vectorizeRaster } from "../tools/rig-editor/vectorize.js";
 import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
+import { vtracerSvg, elementsFromVtracerSvg } from "./vectorize-vtracer.mjs";
+import { createModel } from "../tools/rig-editor/model.js";
 import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
@@ -80,13 +82,23 @@ function downscale({ rgba, w, h }, maxDim) {
 
 // --- TOOLS ---------------------------------------------------------------------------------------
 
-export function startFromImage({ base64, path, colors = 8, maxDim = 256 } = {}) {
+export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine = "scanline" } = {}) {
   if (!base64 && !path) throw new Error("provide base64 or path (PNG)");
   const buf = base64 ? Buffer.from(base64, "base64") : readFileSync(safePath(path));
-  const grid = downscale(decodePng(buf), maxDim);
-  const flat = vectorizeRaster({ rgba: grid.rgba, w: grid.w, h: grid.h }, { colors });
-  const seg = segment(flat.rects, { viewBoxSize: Math.max(grid.w, grid.h) });
-  const model = parseSegmented(seg.svg);
+
+  let model;
+  if (engine === "vtracer") {
+    // path-based: VTracer -> geometry-agnostic elements -> one passive part the agent re-assigns.
+    const { viewBox, elements } = elementsFromVtracerSvg(vtracerSvg(buf, { colorPrecision: Math.max(1, Math.round(Math.log2(colors))) }));
+    const rects = elements.map((e) => ({ ...e, part: "part-body" }));
+    model = createModel({ viewBox, rects, parts: { "part-body": { role: "core" } } });
+  } else {
+    const grid = downscale(decodePng(buf), maxDim);
+    const flat = vectorizeRaster({ rgba: grid.rgba, w: grid.w, h: grid.h }, { colors });
+    const seg = segment(flat.rects, { viewBoxSize: Math.max(grid.w, grid.h) });
+    model = parseSegmented(seg.svg);
+  }
+
   if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
   const session = "s" + nextId++;
   // keep the source PNG as a data URI so the demo page can show it beside the animated mascot.
