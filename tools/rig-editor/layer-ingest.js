@@ -7,6 +7,7 @@
 // bboxes — but reuses the naming/sanitize/dedupe + model assembly here so both paths agree.
 // Known v1 limit: per-group/element transforms are not resolved (assume flat exports).
 import { createModel } from "./model.js";
+import { pathBBox } from "./path-bbox.js";
 
 const DRAWABLE = "rect|path|circle|ellipse|polygon|polyline|line";
 const GROUP_RE = /<g\b([^>]*)>([\s\S]*?)<\/g>/g;
@@ -34,8 +35,8 @@ function rectBBox(attrsStr) {
   };
 }
 
-// Pure parser for flat layered SVGs. Rect bbox is computed from attributes; non-rect bbox is left
-// `null` for the browser to fill via getBBox before export.
+// Pure parser for flat layered SVGs. Rect + path bbox are computed here (path via pathBBox); other
+// non-rect shapes (circle/ellipse/…) leave bbox `null` for the browser to fill via getBBox.
 export function parseLayered(svgText) {
   const svgOpen = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
@@ -52,7 +53,11 @@ export function parseLayered(svgText) {
     let m;
     while ((m = EL_RE.exec(inner)) !== null) {
       const tag = m[1], aStr = m[2];
-      elements.push({ id: `e${eid++}`, part, markup: m[0], bbox: tag === "rect" ? rectBBox(aStr) : null });
+      // rect bbox from attributes; path bbox from its `d` via pathBBox (premium named-path-layer
+      // ingest, Phase 3 Task 0). Other non-rect shapes still defer to the browser's getBBox.
+      const d = attr(aStr, "d");
+      const bbox = tag === "rect" ? rectBBox(aStr) : (tag === "path" && d ? pathBBox(d) : null);
+      elements.push({ id: `e${eid++}`, part, markup: m[0], bbox });
     }
   }
   return { viewBox, elements };

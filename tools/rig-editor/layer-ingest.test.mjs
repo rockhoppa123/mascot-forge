@@ -23,16 +23,32 @@ const LAYERED = `<?xml version="1.0"?>
   <g id="body"><rect x="40" y="40" width="30" height="30" fill="#c00"/></g>
 </svg>`;
 
-// --- parseLayered: groups -> parts; rect bbox computed, path bbox null ---------------------------
+// --- parseLayered: groups -> parts; rect AND path bbox computed (path via pathBBox) --------------
 {
   const { viewBox, elements } = parseLayered(LAYERED);
   assert.equal(viewBox, "0 0 100 100");
   assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head", "part-body"]);
   assert.equal(elements.length, 3, "two rects + one path");
   const path = elements.find((e) => e.markup.startsWith("<path"));
-  assert.equal(path.bbox, null, "non-rect bbox is left for the browser (getBBox)");
+  assert.deepEqual(path.bbox, { x: 10, y: 10, w: 20, h: 20 }, "path bbox computed from `d` via pathBBox");
   const headRect = elements.find((e) => e.part === "part-head" && e.markup.startsWith("<rect"));
   assert.deepEqual(headRect.bbox, { x: 10, y: 10, w: 20, h: 20 }, "rect bbox from attributes");
+}
+
+// --- premium path: a layered SVG of named <path> layers ingests directly (Phase 3 Task 0) --------
+{
+  const PATHS = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="ear-left"><path d="M4 4 L20 4 L12 20 Z" fill="#333"/></g>
+  <g id="body"><path d="M16 24 L48 24 L48 56 L16 56 Z" fill="#888"/></g>
+</svg>`;
+  const { elements } = parseLayered(PATHS);
+  assert.equal(elements.length, 2, "two path layers -> two elements");
+  for (const e of elements) {
+    assert.ok(e.markup.startsWith("<path"), "each element is a path");
+    assert.ok(e.bbox && Number.isFinite(e.bbox.x) && e.bbox.w > 0, "each path layer carries a finite bbox");
+  }
+  const model = toModel({ viewBox: "0 0 64 64", elements });
+  assert.deepEqual(Object.keys(model.parts()).sort(), ["part-body", "part-ear-left"], "named path parts");
 }
 
 // --- toModel: every element grouped, names carried --------------------------------------------
@@ -47,9 +63,7 @@ const LAYERED = `<?xml version="1.0"?>
 // --- export: non-rect markup passes through; rect goldens-style output preserved ----------------
 {
   const parsed = parseLayered(LAYERED);
-  // browser would fill the path bbox via getBBox; inject one here so export can place its pivot
-  parsed.elements.find((e) => e.markup.startsWith("<path")).bbox = { x: 10, y: 10, w: 20, h: 20 };
-  const model = toModel(parsed);
+  const model = toModel(parsed); // path bbox is now computed in parseLayered (no manual inject needed)
   // head = accent (idle blink + alert pulse), body = limb (active walk) → all three states covered
   model.setRole("part-head", "accent"); model.setBone("part-head", "head");
   model.setPreset("idle", "part-head", "blink"); model.setPreset("alert", "part-head", "pulse");

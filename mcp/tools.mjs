@@ -119,11 +119,11 @@ export function startFromLayeredSvg({ svg, path } = {}) {
   const text = svg ? svg : readFileSync(safePath(path), "utf8");
   const { viewBox, elements } = parseLayered(text);
   if (!elements.length) throw new Error("no drawable shapes found — need top-level <g> layers containing shapes");
-  const nonRect = elements.filter((e) => !e.bbox);
-  if (nonRect.length) {
+  const noBox = elements.filter((e) => !e.bbox);
+  if (noBox.length) {
     throw new Error(
-      `v1 layered ingest is rect-bearing only; ${nonRect.length} non-rect element(s) lack a bbox ` +
-      `(path/circle/… need a node rasterizer — deferred). Rig this in the browser editor, or trace to rects.`
+      `layered ingest handles rect + path layers; ${noBox.length} element(s) are circle/ellipse/polygon ` +
+      `which need a node rasterizer (deferred). Rig this in the browser editor, or trace to paths/rects.`
     );
   }
   const model = toModel({ viewBox, elements });

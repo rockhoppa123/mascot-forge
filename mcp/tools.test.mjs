@@ -161,11 +161,18 @@ function smileyPngBase64() {
   const lem = forgeEmit({ session: ls.session, assetName: "layered" });
   assert.equal(lem.ok, true, `layered emit must be valid: ${JSON.stringify(lem.validation || lem.error)}`);
 
-  // a non-rect element (no node rasterizer for its bbox) is rejected with a clear v1-limit message.
+  // path layers now ingest directly (Phase 3 Task 0): a named <path> layer becomes a part with a bbox.
   const withPath =
     '<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">' +
     '<g id="blob"><path d="M5 5 H45 V45 Z" fill="#000"/></g></svg>';
-  assert.throws(() => startFromLayeredSvg({ svg: withPath }), /rect-bearing only/, "layered: non-rect is refused in v1");
+  const pathSession = startFromLayeredSvg({ svg: withPath });
+  assert.ok(pathSession.parts.some((p) => p.id === "part-blob"), "path layer ingests as a named part");
+
+  // a circle/ellipse still has no node bbox computation -> rejected with a clear message.
+  const withCircle =
+    '<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">' +
+    '<g id="dot"><circle cx="25" cy="25" r="10" fill="#000"/></g></svg>';
+  assert.throws(() => startFromLayeredSvg({ svg: withCircle }), /rasterizer/, "circle/ellipse still refused");
 
   // graceful errors
   assert.throws(() => startFromLayeredSvg({}), /svg \(string\) or path/);
