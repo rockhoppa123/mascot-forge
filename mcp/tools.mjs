@@ -18,6 +18,7 @@ import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitDemoHtml } from "../tools/rig-editor/emit.js";
+import { emitRegionsPreview } from "./regions-preview.mjs";
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sessions = new Map();      // id -> { model, vb }
@@ -149,6 +150,26 @@ export function assignRegion({ session, box, partId, role } = {}) {
   // so the agent re-aims instead of shipping a missing limb. (marquee is full-containment, ADR select.js)
   if (ids.length === 0) res.warning = `region for '${partId}' grabbed 0 rects — box may miss the art or be too tight (marquee needs full rect containment); widen or move it`;
   return res;
+}
+
+// forge_propose: the analyze-first report — current parts + a regions-overlay preview the human can
+// eyeball, plus an input-quality advisory. A truly monochrome source (<=2 distinct fills) can't be
+// auto-separated into animatable parts (the silhouette ceiling) — steer the user to a layered/
+// multi-colour source rather than carving heroically.
+export function forgePropose({ session, outDir } = {}) {
+  const s = getSession(session);
+  const parts = partList(s.model);
+  const fills = new Set(s.model.rects().map((r) => r.fill).filter(Boolean));
+  const advisory = fills.size <= 2
+    ? "single-colour silhouette — parts can't be auto-separated; provide a layered or multi-colour source for full rigging, or it will animate as one body"
+    : null;
+  const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
+  let preview;
+  if (outDir) {
+    const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
+    const f = join(dir, "regions-preview.html"); writeFileSync(f, html); preview = f;
+  } else preview = html.length;
+  return { parts, rigStatus: rigStatus(s.model), preview, advisory };
 }
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {

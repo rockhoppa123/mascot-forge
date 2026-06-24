@@ -4,7 +4,7 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, startFromLayeredSvg } from "./tools.mjs";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -204,6 +204,24 @@ function smileyPngBase64() {
   const out2 = forgeEmit({ session: sv.session, assetName: "vtcat" });
   assert.equal(out2.ok, true, `vtracer rig must emit valid: ${JSON.stringify(out2.validation || out2.error)}`);
   assert.ok(out2.svgBytes > 0, "vtracer path SVG emitted");
+}
+
+// forge_propose: parts + rigStatus + a regions preview + an input-quality advisory
+{
+  const sp = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: sp.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const prop = forgePropose({ session: sp.session });
+  assert.ok(Array.isArray(prop.parts) && prop.parts.length >= 1, "propose returns parts");
+  assert.ok(prop.rigStatus && typeof prop.rigStatus.total === "number", "propose returns rigStatus");
+  assert.ok(typeof prop.preview === "number" && prop.preview > 0, "propose reports the preview size");
+  assert.equal(prop.advisory, null, "multi-colour smiley is not flagged as a silhouette");
+
+  // a monochrome blob trips the silhouette advisory
+  const W = 40, mono = new PNG({ width: W, height: W });
+  for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
+  const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
+  const mp = forgePropose({ session: sm.session });
+  assert.ok(mp.advisory && /silhouette/.test(mp.advisory), "monochrome input flags a silhouette advisory");
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
