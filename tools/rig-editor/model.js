@@ -25,6 +25,7 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
       bone: meta.bone || null,
       pivot: meta.pivot || null,
       origin: meta.origin || null,
+      tint: meta.tint || null,
     };
   }
   function ensurePart(id) {

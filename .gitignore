@@ -51,3 +51,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# generated mascot output
+output/

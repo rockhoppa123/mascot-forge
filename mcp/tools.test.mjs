@@ -38,7 +38,12 @@ const out = forgeEmit({ session: s.session, assetName: "blocks" });
 assert.equal(out.ok, true, `emit must be valid: ${JSON.stringify(out.validation || out.error)}`);
 assert.ok(out.svgBytes > 0 && out.demoBytes > 0, "produced a self-contained svg + demo");
 
-// 4. graceful errors
+// 4. unprefixed part ids are auto-normalised to 'part-*' so agent names can't collide with segment ids
+const pn = assignRegion({ session: s.session, box: { x: 0.05, y: 0.05, w: 0.9, h: 0.3 }, partId: "head" });
+assert.ok(pn.parts.some((p) => p.id === "part-head"), "unprefixed 'head' -> 'part-head'");
+assert.ok(!pn.parts.some((p) => p.id === "head"), "raw 'head' id never lands in the model");
+
+// 5. graceful errors
 assert.throws(() => assignRegion({ session: "nope", box: { x: 0, y: 0, w: 1, h: 1 }, partId: "x" }), /unknown session/);
 assert.throws(() => startFromImage({}), /base64 or path/);
 

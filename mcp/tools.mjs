@@ -30,6 +30,10 @@ function getSession(id) {
   if (!s) throw new Error(`unknown session '${id}'`);
   return s;
 }
+// enforce a stable part- prefix so agent-chosen ids can't collide (e.g. "body" vs "part-body").
+function normPartId(id) {
+  return typeof id === "string" && id && !id.startsWith("part-") ? `part-${id}` : id;
+}
 function parseVB(s) { const [x, y, w, h] = s.split(/\s+/).map(Number); return { x, y, w, h }; }
 function partList(model) {
   return Object.keys(model.parts())
@@ -85,10 +89,12 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256 } = {}) 
   const model = parseSegmented(seg.svg);
   if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
   const session = "s" + nextId++;
-  sessions.set(session, { model, vb: parseVB(model.viewBox()) });
+  // keep the source PNG as a data URI so the demo page can show it beside the animated mascot.
+  const sourceDataUri = `data:image/png;base64,${base64 || buf.toString("base64")}`;
+  sessions.set(session, { model, vb: parseVB(model.viewBox()), sourceDataUri });
   return {
     session, viewBox: model.viewBox(), parts: partList(model),
-    note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image.",
+    note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image. Pick presets by anatomy: ears/antennae -> twitch, tail -> wag, eyes -> blink. Part ids are auto-prefixed with 'part-'.",
   };
 }
 
@@ -123,13 +129,14 @@ export function assignRegion({ session, box, partId, role } = {}) {
   for (const k of ["x", "y", "w", "h"]) if (typeof box?.[k] !== "number") throw new Error("box needs numeric x,y,w,h in 0..1");
   const abs = { x: s.vb.x + box.x * s.vb.w, y: s.vb.y + box.y * s.vb.h, w: box.w * s.vb.w, h: box.h * s.vb.h };
   const ids = rectsInMarquee(s.model.rects(), abs);
+  partId = normPartId(partId);
   s.model.assign(ids, partId);
   if (role) s.model.setRole(partId, role);
   return { moved: ids.length, parts: partList(s.model) };
 }
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
-  const { model } = getSession(session);
+  const { model, sourceDataUri } = getSession(session);
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
   for (const id of Object.keys(model.parts())) {
     if (!model.rectsOf(id).length) continue;
@@ -142,7 +149,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   const v = validate(out.riggedJson);
   if (!v.ok) return { ok: false, validation: v };
   const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
-  const demo = emitDemoHtml(out.riggedJson, svg, assetName);
+  const demo = emitDemoHtml(out.riggedJson, svg, assetName, sourceDataUri);
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
     const files = [
@@ -159,6 +166,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
 export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
   const s = getSession(session);
   if (!partId) throw new Error("partId is required");
+  partId = normPartId(partId);
   const model = s.model;
   if (!(partId in model.parts()) && model.rectsOf(partId).length === 0) {
     throw new Error(`unknown part '${partId}' (assign_region it first)`);

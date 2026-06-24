@@ -31,7 +31,8 @@ export function parseSegmented(svgText) {
     const partId = g[2];
     const body = g[4];
     const pivotRaw = attr(groupAttrs, "data-pivot");
-    parts[partId] = { pivot: parsePivot(pivotRaw) };
+    const tintRaw = attr(groupAttrs, "data-tint");
+    parts[partId] = { pivot: parsePivot(pivotRaw), ...(tintRaw ? { tint: tintRaw } : {}) };
 
     let r;
     RECT_RE.lastIndex = 0;

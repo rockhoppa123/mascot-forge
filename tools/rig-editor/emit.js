@@ -43,8 +43,12 @@ export function emitAnimatedSvg(rig, manualSvg) {
 }
 
 // A standalone demo page: the animated SVG inlined with state-toggle buttons. One file, no dependencies.
-export function emitDemoHtml(rig, animatedSvg, assetName = "mascot") {
+// sourceDataUri (optional) shows the original image beside the mascot so the rig can be compared to it.
+export function emitDemoHtml(rig, animatedSvg, assetName = "mascot", sourceDataUri = null) {
   const buttons = rig.states.map((s) => `<button data-s="${s}">${s}</button>`).join("");
+  const source = sourceDataUri
+    ? `<div id="source"><p>original</p><img alt="source image" src="${sourceDataUri}"></div>`
+    : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${assetName} — animated mascot</title>
@@ -52,12 +56,15 @@ export function emitDemoHtml(rig, animatedSvg, assetName = "mascot") {
   body { font:14px system-ui,sans-serif; margin:0; display:flex; min-height:100vh; }
   #stage { flex:1; display:grid; place-items:center; background:#eef3f8; }
   #stage svg { width:min(70vw,460px); height:auto; }
-  #panel { width:200px; padding:16px; background:#fff; border-left:1px solid #d6dce8; }
+  #panel { width:220px; padding:16px; background:#fff; border-left:1px solid #d6dce8; }
   #panel button { display:block; width:100%; margin:6px 0; padding:8px; cursor:pointer; }
+  #source { margin-top:20px; }
+  #source img { width:100%; image-rendering:auto; border:1px solid #d6dce8; background:#eef3f8; }
+  #source p, #panel p { margin:6px 0; color:#5a6678; }
 </style></head>
 <body>
   <div id="stage">${animatedSvg}</div>
-  <div id="panel"><h3>${assetName}</h3><p>preview state:</p>${buttons}</div>
+  <div id="panel"><h3>${assetName}</h3><p>preview state:</p>${buttons}${source}</div>
   <script>
     var svg = document.querySelector('#stage svg');
     document.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { svg.setAttribute('data-state', b.dataset.s); }; });

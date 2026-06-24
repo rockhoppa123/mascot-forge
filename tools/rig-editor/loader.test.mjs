@@ -46,6 +46,21 @@ for (const k of ["id", "x", "y", "w", "h", "fill", "part"]) {
 }
 assert.ok(m.everyRectGrouped());
 
+// back-compat: the committed fixture (PS-generated) has no data-tint — tint should be null/absent
+assert.equal(m.parts()["part-body"].tint, null, "no data-tint in old fixture -> tint is null");
+
+// data-tint parsing: synthetic SVG with data-tint on groups
+{
+  const synth = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+    <g data-part="part-body" data-pivot="10,10" data-tint="#c9ced1">
+      <rect x="0" y="0" width="10" height="10" fill="#2e3335"/>
+    </g>
+  </svg>`;
+  const sm = parseSegmented(synth);
+  assert.equal(sm.parts()["part-body"].tint, "#c9ced1", "data-tint parsed into part meta");
+  assert.equal(sm.rects()[0].fill, "#2e3335", "rect fill is the real color, not the tint");
+}
+
 // parts-spec merges vocabulary + bone hints onto the model (D7 read side)
 const spec = {
   parts: [

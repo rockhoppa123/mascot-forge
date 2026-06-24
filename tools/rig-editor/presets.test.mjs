@@ -41,6 +41,12 @@ assert.equal(a.durationMs, b.durationMs, "same preset = same motion params");
 // limb walk on an arbitrary vehicle part (the Land Rover fix: no forced devbrain names)
 assertValidRecipe(recipeFor("limb", "active", "walk", "part-front-wheel"), "part-front-wheel");
 
+// anatomy presets: tails wag (limb/active), ears/antennae twitch (accent/idle)
+assert.ok(presetsFor("limb", "active").includes("wag"), "wag offered for limbs (tails)");
+assert.ok(presetsFor("accent", "idle").includes("twitch"), "twitch offered for accents (ears)");
+assertValidRecipe(recipeFor("limb", "active", "wag", "part-tail"), "part-tail");
+assertValidRecipe(recipeFor("accent", "idle", "twitch", "part-ear-left"), "part-ear-left");
+
 // unknown combos throw rather than emit a broken recipe
 assert.throws(() => recipeFor("core", "active", "breathe", "part-x"), /preset/);
 assert.throws(() => recipeFor("limb", "active", "nope", "part-x"), /preset/);
