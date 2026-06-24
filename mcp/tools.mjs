@@ -132,7 +132,11 @@ export function assignRegion({ session, box, partId, role } = {}) {
   partId = normPartId(partId);
   s.model.assign(ids, partId);
   if (role) s.model.setRole(partId, role);
-  return { moved: ids.length, parts: partList(s.model) };
+  const res = { moved: ids.length, parts: partList(s.model) };
+  // a region that grabs nothing yields an empty part that silently drops from the export — surface it
+  // so the agent re-aims instead of shipping a missing limb. (marquee is full-containment, ADR select.js)
+  if (ids.length === 0) res.warning = `region for '${partId}' grabbed 0 rects — box may miss the art or be too tight (marquee needs full rect containment); widen or move it`;
+  return res;
 }
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
