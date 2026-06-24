@@ -18,6 +18,16 @@ export function vtracerSvg(pngBuffer, opts = {}) {
 
 const attr = (s, name) => { const m = s.match(new RegExp(`\\b${name}="([^"]*)"`)); return m ? m[1] : undefined; };
 
+// VTracer positions each shape with transform="translate(tx,ty)" and keeps `d` in LOCAL coords, so the
+// true bbox is pathBBox(d) shifted by the translate. The markup keeps its transform (renders correctly);
+// only the model bbox (used for marquee selection + pivots) needs the offset folded in. ponytail: handles
+// translate only — VTracer emits no rotate/scale on these path layers.
+function translateOf(markup) {
+  const m = markup.match(/transform="translate\(\s*(-?\d*\.?\d+)(?:[,\s]+(-?\d*\.?\d+))?\s*\)"/);
+  if (!m) return { tx: 0, ty: 0 };
+  return { tx: Number(m[1]), ty: m[2] !== undefined ? Number(m[2]) : 0 };
+}
+
 export function elementsFromVtracerSvg(svgText) {
   const open = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (open && attr(open[0], "viewBox")) ||
@@ -30,7 +40,8 @@ export function elementsFromVtracerSvg(svgText) {
     const d = attr(markup, "d");
     if (!d) continue;
     const bb = pathBBox(d);
-    elements.push({ id: `p${n++}`, x: bb.x, y: bb.y, w: bb.w, h: bb.h, markup, fill: attr(markup, "fill") || "#000000" });
+    const { tx, ty } = translateOf(markup);
+    elements.push({ id: `p${n++}`, x: bb.x + tx, y: bb.y + ty, w: bb.w, h: bb.h, markup, fill: attr(markup, "fill") || "#000000" });
   }
   return { viewBox, elements };
 }

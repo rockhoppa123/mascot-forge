@@ -24,4 +24,13 @@ for (const el of elements) {
   assert.ok(/^<path[\s>]/.test(el.markup), "element carries its raw <path> markup");
   assert.ok(typeof el.fill === "string" && el.fill.length > 0, "element carries a fill colour");
 }
+// 3. the translate transform is folded into the bbox (VTracer positions shapes via translate, `d` is
+// local) — without this, marquee selection sees every shape collapsed to the origin.
+{
+  const fake = `<svg width="20" height="20"><path d="M0 0 L10 0 L10 10 Z" fill="#abcabc" transform="translate(5,7)"/></svg>`;
+  const { elements: els } = elementsFromVtracerSvg(fake);
+  assert.deepEqual({ x: els[0].x, y: els[0].y, w: els[0].w, h: els[0].h }, { x: 5, y: 7, w: 10, h: 10 },
+    "translate(5,7) shifts the local-coord path bbox to (5,7)");
+}
+
 console.log("vectorize-vtracer.test.mjs: all assertions passed.");
