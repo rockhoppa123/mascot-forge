@@ -7,7 +7,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, startFromLayeredSvg } from "./tools.mjs";
 
 const ok = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
 const fail = (e) => ({ isError: true, content: [{ type: "text", text: String((e && e.message) || e) }] });
@@ -119,6 +119,79 @@ export function buildServer() {
       },
     },
     async (a) => { try { return ok(forgeEmit(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_propose",
+    {
+      description:
+        "Analyze-first report: assemble the current proposed parts + write a regions-overlay preview " +
+        "(original image with the proposed part boxes drawn over it) the human can eyeball before emit. " +
+        "Returns { parts, rigStatus, preview, advisory }. `advisory` flags a single-colour silhouette " +
+        "that can't be auto-separated — provide a layered/multi-colour source for full rigging.",
+      inputSchema: { session: z.string(), outDir: z.string().optional() },
+    },
+    async (a) => { try { return ok(forgePropose(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_apply_tweaks",
+    {
+      description:
+        "Inline checkpoint fixes without leaving chat: rename parts and/or change roles. edits is an " +
+        "array of { partId, renameTo?, setRole? }. Returns { parts, rigStatus }.",
+      inputSchema: {
+        session: z.string(),
+        edits: z.array(z.object({
+          partId: z.string(),
+          renameTo: z.string().optional(),
+          setRole: z.enum(["core", "limb", "accent", "passive"]).optional(),
+        })),
+      },
+    },
+    async (a) => { try { return ok(applyTweaks(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_open_editor",
+    {
+      description:
+        "Deep-fix handoff: emit the current rig as a layered SVG the browser rig editor can load, for " +
+        "manual fixing, then come back and forge_emit. Writes to outDir (project-relative) if given. " +
+        "Returns { svg, written, editor }.",
+      inputSchema: { session: z.string(), outDir: z.string().optional() },
+    },
+    async (a) => { try { return ok(editorHandoff(a)); } catch (e) { return fail(e); } }
+  );
+
+  server.registerTool(
+    "forge_review",
+    {
+      description:
+        "Checkpoint: ask the HUMAN to approve / redo / open the editor for the proposed rig, via MCP " +
+        "elicitation. Returns { elicitation:true, action } once the human chooses. If the client can't " +
+        "elicit, returns { elicitation:false, parts, rigStatus } so you can relay the question in chat.",
+      inputSchema: { session: z.string() },
+    },
+    async ({ session }) => {
+      try {
+        const status = forgeStatus({ session });
+        const caps = server.server.getClientCapabilities && server.server.getClientCapabilities();
+        if (!caps || !caps.elicitation) return ok({ elicitation: false, ...status });
+        let res;
+        try {
+          res = await server.server.elicitInput({
+            mode: "form",
+            message: `Proposed rig: ${status.parts.length} parts, states ${JSON.stringify(status.rigStatus)}. Approve, redo, or open the editor?`,
+            requestedSchema: { type: "object", properties: { action: { type: "string", enum: ["approve", "redo", "editor"] } }, required: ["action"] },
+          });
+        } catch (e) {
+          return ok({ elicitation: false, reason: e.message, ...status }); // client lacks form elicitation
+        }
+        const action = res.action === "accept" ? (res.content && res.content.action) || "approve" : res.action;
+        return ok({ elicitation: true, action, decision: res.action });
+      } catch (e) { return fail(e); }
+    }
   );
 
   return server;

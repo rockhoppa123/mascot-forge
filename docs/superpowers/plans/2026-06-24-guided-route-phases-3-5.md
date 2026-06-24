@@ -28,15 +28,26 @@ colour-distinct parts. Builds on Phases 1–2 (merged to main).
 
 1. **Elicitation API exists:** `server.server.elicitInput({ message, requestedSchema })` (form mode),
    confirmed in `@modelcontextprotocol/sdk` ≥1.13. Capability-gated by the client.
-2. **Path-granularity engine strategy:** VTracer emits whole colour paths and CANNOT carve a
-   same-colour sub-region (the cat's ears/tail). So the guided route **carves on the scanline (rect)
-   engine** (universal). VTracer is the fidelity emit for mascots whose parts are already colour-
-   distinct (no carving needed). **Path-splitting for VTracer is OUT of scope** (future phase).
+2. **Input-quality engine strategy (path-splitting rejected for good):** VTracer emits whole colour
+   paths; carving a same-colour sub-region (the cat's ears/tail) would need polygon-boolean
+   path-splitting, which (a) fights the whole-part CSS-transform animation model — a box-cut through
+   filled art tears/gaps at the seam when the part moves, (b) is expensive/fragile, (c) papers over a
+   bad input. **Rejected permanently.** Instead the system steers toward riggable art and *reports*
+   input quality. Engine hierarchy:
+   - **Layered SVG (named path layers)** → premium: explicit parts, full fidelity, zero guessing. Now
+     unlocked by Phase 2's `pathBBox` (the old "rect-bearing only" deferral is over).
+   - **Colour-distinct raster** → VTracer paths: each colour-cluster is a part; small + smooth.
+   - **Flat single-colour silhouette** → scanline carve (coarse) or "rig as one body".
+   The guided route's analyze step **detects a single-colour silhouette and reports it** as a quality
+   signal ("give me a layered/multi-colour source for real rigging"), rather than carving heroically.
 
 ---
 
 ## File Structure
 
+- `tools/rig-editor/layer-ingest.js` (modify) — compute a bbox for `<path>` layers via `pathBBox`
+  (premium input path; was rect-only).
+- `tools/rig-editor/layer-ingest.test.mjs` (modify) — assert a path layer ingests with a bbox.
 - `mcp/regions-preview.mjs` (create) — pure: `emitRegionsPreview(sourceDataUri, viewBox, parts)` → HTML.
 - `mcp/regions-preview.test.mjs` (create) — self-check.
 - `mcp/tools.mjs` (modify) — add `forgePropose(session, outDir?)`; add `applyTweaks(session, edits)`
@@ -49,7 +60,15 @@ colour-distinct parts. Builds on Phases 1–2 (merged to main).
 
 ---
 
-# PHASE 3 — The guided checkpoint
+# PHASE 3 — Input quality + the guided checkpoint
+
+## Task 0: Enable layered PATH ingest (premium input path)
+
+**Files:** Modify `tools/rig-editor/layer-ingest.js` so a top-level `<path>` layer gets a bbox from
+`pathBBox(d)` (import from `./path-bbox.js`) instead of being rejected; keep the rect path unchanged.
+Modify `mcp/tools.mjs` `startFromLayeredSvg` to stop rejecting path-bearing layers. **Test:** a layered
+SVG with two named `<path>` layers ingests into 2 parts, each with a finite bbox; emit validates.
+**Acceptance:** a designer's named-path-layer export rigs directly — the highest-fidelity input path.
 
 ## Task 1: Regions-overlay preview (pure)
 
@@ -127,9 +146,13 @@ git commit -m "feat(mcp): regions-overlay preview artifact for the checkpoint"
 
 **Interfaces:**
 - Consumes: `emitRegionsPreview` (Task 1); the session store's `model`, `vb`, `sourceDataUri`.
-- Produces: `export function forgePropose({ session, outDir })` → `{ parts, rigStatus, preview }` where
-  `parts` = `partList(model)`, `rigStatus` = `rigStatus(model)`, and `preview` is the written preview
-  file path (when `outDir` is given) or the preview HTML byte length (when not).
+- Produces: `export function forgePropose({ session, outDir })` → `{ parts, rigStatus, preview, advisory }`
+  where `parts` = `partList(model)`, `rigStatus` = `rigStatus(model)`, `preview` is the written preview
+  file path (when `outDir` is given) or the preview HTML byte length (when not), and `advisory` is a
+  string|null input-quality signal. Compute `advisory` from the model: count distinct rect fills; if
+  `<= 2` distinct fills OR one element's area is `> 0.8` of the opaque-content area, set
+  `advisory = "single-colour silhouette — parts can't be auto-separated; provide a layered or multi-colour source for full rigging, or it will animate as one body"`, else `null`. This is the
+  silhouette-detection report (the strategy's input-quality signal), surfaced at the checkpoint.
 
 - [ ] **Step 1: Write the failing test** — append to `mcp/tools.test.mjs`:
 
@@ -287,6 +310,6 @@ and `forgePropose`. `forge_review` reads `forgeStatus` output (`{parts, rigStatu
 **Open risks:** (a) exact `ElicitResult` shape — Task 3 reads SDK types and asserts the real shape;
 (b) client elicitation capability in the test harness — Task 3's in-memory client must declare it.
 
-**Granularity decision flagged for the owner:** the guided route carves on the scanline engine;
-VTracer path-splitting is out of scope. If you want same-colour carving on VTracer output, that's a
-separate spec (path clipping) — say so and I'll design it.
+**Granularity decision (resolved):** path-splitting rejected permanently (tears the whole-part
+animation model). Instead: layered-path ingest (Task 0) as the premium path, VTracer for colour-
+distinct, scanline fallback, and silhouette-detection reporting in `forge_propose` (Task 2).

@@ -4,7 +4,8 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, startFromLayeredSvg } from "./tools.mjs";
+import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -161,11 +162,18 @@ function smileyPngBase64() {
   const lem = forgeEmit({ session: ls.session, assetName: "layered" });
   assert.equal(lem.ok, true, `layered emit must be valid: ${JSON.stringify(lem.validation || lem.error)}`);
 
-  // a non-rect element (no node rasterizer for its bbox) is rejected with a clear v1-limit message.
+  // path layers now ingest directly (Phase 3 Task 0): a named <path> layer becomes a part with a bbox.
   const withPath =
     '<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">' +
     '<g id="blob"><path d="M5 5 H45 V45 Z" fill="#000"/></g></svg>';
-  assert.throws(() => startFromLayeredSvg({ svg: withPath }), /rect-bearing only/, "layered: non-rect is refused in v1");
+  const pathSession = startFromLayeredSvg({ svg: withPath });
+  assert.ok(pathSession.parts.some((p) => p.id === "part-blob"), "path layer ingests as a named part");
+
+  // a circle/ellipse still has no node bbox computation -> rejected with a clear message.
+  const withCircle =
+    '<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">' +
+    '<g id="dot"><circle cx="25" cy="25" r="10" fill="#000"/></g></svg>';
+  assert.throws(() => startFromLayeredSvg({ svg: withCircle }), /rasterizer/, "circle/ellipse still refused");
 
   // graceful errors
   assert.throws(() => startFromLayeredSvg({}), /svg \(string\) or path/);
@@ -197,6 +205,44 @@ function smileyPngBase64() {
   const out2 = forgeEmit({ session: sv.session, assetName: "vtcat" });
   assert.equal(out2.ok, true, `vtracer rig must emit valid: ${JSON.stringify(out2.validation || out2.error)}`);
   assert.ok(out2.svgBytes > 0, "vtracer path SVG emitted");
+}
+
+// forge_propose: parts + rigStatus + a regions preview + an input-quality advisory
+{
+  const sp = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: sp.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const prop = forgePropose({ session: sp.session });
+  assert.ok(Array.isArray(prop.parts) && prop.parts.length >= 1, "propose returns parts");
+  assert.ok(prop.rigStatus && typeof prop.rigStatus.total === "number", "propose returns rigStatus");
+  assert.ok(typeof prop.preview === "number" && prop.preview > 0, "propose reports the preview size");
+  assert.equal(prop.advisory, null, "multi-colour smiley is not flagged as a silhouette");
+
+  // a monochrome blob trips the silhouette advisory
+  const W = 40, mono = new PNG({ width: W, height: W });
+  for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
+  const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
+  const mp = forgePropose({ session: sm.session });
+  assert.ok(mp.advisory && /silhouette/.test(mp.advisory), "monochrome input flags a silhouette advisory");
+}
+
+// applyTweaks: inline rename + role change at the checkpoint (Phase 4)
+{
+  const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "blob", role: "core" });
+  const res = applyTweaks({ session: s.session, edits: [{ partId: "blob", renameTo: "torso", setRole: "limb" }] });
+  assert.ok(res.parts.some((p) => p.id === "part-torso" && p.role === "limb"), "rename + role change applied");
+  assert.ok(!res.parts.some((p) => p.id === "part-blob"), "old id is gone after rename");
+  assert.throws(() => applyTweaks({ session: s.session, edits: "nope" }), /edits must be an array/);
+}
+
+// editorHandoff: emits a layered SVG the browser editor loads (round-trips via parseLayered) (Phase 4)
+{
+  const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const h = editorHandoff({ session: s.session });
+  assert.ok(h.svg.includes("<g id=\"part-body\""), "handoff SVG groups by part id");
+  const { elements } = parseLayered(h.svg);
+  assert.ok(elements.some((e) => e.part === "part-body"), "handoff SVG re-parses into the proposed parts");
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
