@@ -215,7 +215,8 @@ function render() {
         node = document.createElementNS(SVGNS, "rect");
         node.setAttribute("x", r.x); node.setAttribute("y", r.y);
         node.setAttribute("width", r.w); node.setAttribute("height", r.h);
-        node.setAttribute("fill", colours.get(id)); // colour-by-part view (rect inputs)
+        // colour-by-part for boundaries, or the rect's real source colour when the toggle is on
+        node.setAttribute("fill", showRealColours ? (r.fill || colours.get(id)) : colours.get(id));
       }
       if (!node) continue;
       node.setAttribute("data-rid", r.id);
@@ -543,6 +544,10 @@ $("states").addEventListener("click", (e) => {
   $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
 });
 $("reduce").onchange = (e) => $("stage").classList.toggle("force-reduced-motion", e.target.checked);
+
+let showRealColours = false;
+const realToggle = $("realcolours");
+if (realToggle) realToggle.addEventListener("change", () => { showRealColours = realToggle.checked; render(); });
 
 // ---------- export -----------------------------------------------------------------------------
 // P1: one-click, self-contained animated mascot — no terminal, no mf emit. Uses the same emit.js the

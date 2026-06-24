@@ -48,6 +48,24 @@ function mascotRects() {
   assert.equal(byId["part-eyes"].rects.length, 2, "both eye islands merge into one part");
 }
 
+// --- emitted SVG carries real per-rect colors and data-tint on groups ----------------------------
+{
+  const { svg } = segment(mascotRects(), { viewBoxSize: 48 });
+  // rects carry original image colors, not the diagnostic tint
+  assert.ok(svg.includes('fill="#cccccc"'), "body rect carries its real color #cccccc");
+  assert.ok(svg.includes('fill="#333333"'), "leg rect carries its real color #333333");
+  assert.ok(svg.includes('fill="#33cc33"'), "antenna rect carries its real color #33cc33");
+  assert.ok(svg.includes('fill="#000000"'), "eye rect carries its real color #000000");
+  // groups carry data-tint for the editor
+  assert.ok(svg.includes('data-tint="#c9ced1"'), "body group carries data-tint");
+  assert.ok(svg.includes('data-tint="#ff7f0e"'), "leg group carries data-tint");
+  assert.ok(svg.includes('data-tint="#2ca02c"'), "antenna group carries data-tint");
+  assert.ok(svg.includes('data-tint="#d62728"'), "eyes group carries data-tint");
+  // groups do NOT have a fill= attribute (tint no longer baked into group fill)
+  assert.ok(!/<g[^>]*\bfill="/.test(svg.replace(/data-role="pivot-markers"[^>]*fill="none"/, "")),
+    "part groups do not carry a fill= attribute");
+}
+
 // --- emitted SVG round-trips through the existing loader (D6: every rect in one group) ------------
 {
   const { svg } = segment(mascotRects(), { viewBoxSize: 48 });
@@ -56,6 +74,12 @@ function mascotRects() {
   assert.ok(model.everyRectGrouped(), "every rect lands in exactly one part");
   assert.equal(model.viewBox(), "0 0 48 48");
   assert.deepEqual(model.parts()["part-leg-left"].pivot, { x: 14, y: 30 }, "loader reads the joint pivot");
+  // loader captures the diagnostic tint from data-tint
+  assert.equal(model.parts()["part-body"].tint, "#c9ced1", "loader reads data-tint into part meta");
+  assert.equal(model.parts()["part-leg-left"].tint, "#ff7f0e", "loader reads leg tint");
+  // real colors survive into the model rects
+  const bodyRects = model.rectsOf("part-body");
+  assert.ok(bodyRects.some((r) => r.fill === "#cccccc"), "body rect fill is the real color, not the tint");
 }
 
 // --- sliver absorption: a rect matching no rule is folded into the nearest named part -------------

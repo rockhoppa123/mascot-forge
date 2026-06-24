@@ -38,7 +38,12 @@ const out = forgeEmit({ session: s.session, assetName: "blocks" });
 assert.equal(out.ok, true, `emit must be valid: ${JSON.stringify(out.validation || out.error)}`);
 assert.ok(out.svgBytes > 0 && out.demoBytes > 0, "produced a self-contained svg + demo");
 
-// 4. graceful errors
+// 4. unprefixed part ids are auto-normalised to 'part-*' so agent names can't collide with segment ids
+const pn = assignRegion({ session: s.session, box: { x: 0.05, y: 0.05, w: 0.9, h: 0.3 }, partId: "head" });
+assert.ok(pn.parts.some((p) => p.id === "part-head"), "unprefixed 'head' -> 'part-head'");
+assert.ok(!pn.parts.some((p) => p.id === "head"), "raw 'head' id never lands in the model");
+
+// 5. graceful errors
 assert.throws(() => assignRegion({ session: "nope", box: { x: 0, y: 0, w: 1, h: 1 }, partId: "x" }), /unknown session/);
 assert.throws(() => startFromImage({}), /base64 or path/);
 
@@ -165,6 +170,33 @@ function smileyPngBase64() {
   // graceful errors
   assert.throws(() => startFromLayeredSvg({}), /svg \(string\) or path/);
   console.log(`tools.test.mjs (M3 layered): start_from_layered_svg -> emit green. svgBytes=${lem.svgBytes}`);
+}
+
+// VTracer engine: path-based start produces a valid, smaller rig than the scanline engine
+{
+  // three opaque colour bands on green, with margins so each VTracer path is fully enclosable by the
+  // marquee (full-containment). Assign core/limb/accent so all three states get an animation (the
+  // validator requires every state to be covered) — proves the vtracer path engine emits a valid rig.
+  const W = 60, H = 90, png = new PNG({ width: W, height: H });
+  const set = (x, y, c) => { const i = (y * W + x) * 4; png.data[i] = c[0]; png.data[i + 1] = c[1]; png.data[i + 2] = c[2]; png.data[i + 3] = 255; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = [40, 160, 60]; const band = x >= 12 && x < 48;
+    if (band && y >= 10 && y < 28) c = [220, 40, 40];
+    else if (band && y >= 36 && y < 54) c = [40, 80, 220];
+    else if (band && y >= 62 && y < 80) c = [235, 140, 30];
+    set(x, y, c);
+  }
+  const b64 = PNG.sync.write(png).toString("base64");
+  const sv = startFromImage({ base64: b64, engine: "vtracer" });
+  assert.ok(sv.session && /\d+ \d+/.test(sv.viewBox), "vtracer start returns a session + viewBox");
+  assert.ok(sv.parts.length >= 1, "vtracer start proposes at least one part");
+  const v1 = assignRegion({ session: sv.session, box: { x: 0.15, y: 0.08, w: 0.7, h: 0.26 }, partId: "top", role: "core" });
+  const v2 = assignRegion({ session: sv.session, box: { x: 0.15, y: 0.36, w: 0.7, h: 0.26 }, partId: "mid", role: "limb" });
+  const v3 = assignRegion({ session: sv.session, box: { x: 0.15, y: 0.64, w: 0.7, h: 0.30 }, partId: "bot", role: "accent" });
+  assert.ok(v1.moved > 0 && v2.moved > 0 && v3.moved > 0, `vtracer regions grab path elements by bbox (${v1.moved}/${v2.moved}/${v3.moved})`);
+  const out2 = forgeEmit({ session: sv.session, assetName: "vtcat" });
+  assert.equal(out2.ok, true, `vtracer rig must emit valid: ${JSON.stringify(out2.validation || out2.error)}`);
+  assert.ok(out2.svgBytes > 0, "vtracer path SVG emitted");
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);

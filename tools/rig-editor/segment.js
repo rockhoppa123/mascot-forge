@@ -161,14 +161,18 @@ export function segment(rectsIn, { viewBoxSize, spec = null, maxRects = 8000 } =
 }
 
 function emitSvg(parts, vbSize, tint) {
+  // Per-rect fills carry the REAL image colour (r.color, set at line 50 from the vectorizer).
+  // The diagnostic per-part tint survives as data-tint on each <g> for the browser editor to
+  // colour-code part boundaries. Per-rect explicit fills override the group fill, so setting the
+  // group fill to the tint is safe — but data-tint is the canonical tint carrier.
   const nl = "\n";
   let s = '<?xml version="1.0" encoding="UTF-8"?>' + nl;
   s += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vbSize} ${vbSize}" width="${vbSize}" height="${vbSize}"` +
     ` data-render-method="ccl-color-threshold" data-parts="${parts.length}">` + nl;
   for (const p of parts) {
-    s += `  <g data-part="${p.id}" data-pivot="${p.pivotStr}" fill="${tint[p.id]}">` + nl;
+    s += `  <g data-part="${p.id}" data-pivot="${p.pivotStr}" data-tint="${tint[p.id]}">` + nl;
     for (const r of p.rects.slice().sort((a, b) => a.y - b.y || a.x - b.x))
-      s += `    <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${tint[p.id]}"/>` + nl;
+      s += `    <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.color}"/>` + nl;
     s += "  </g>" + nl;
   }
   s += '  <g data-role="pivot-markers" fill="none" stroke="#111" stroke-width="0.6">' + nl;

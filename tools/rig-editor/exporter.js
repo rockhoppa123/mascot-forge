@@ -66,7 +66,7 @@ export function exportRig(model, opts = {}) {
       id,
       bone: resolved[id].bone,
       origin: resolved[id].origin,
-      pivot: { x: num(resolved[id].pivot.x), y: num(resolved[id].pivot.y) },
+      pivot: { x: round(num(resolved[id].pivot.x)), y: round(num(resolved[id].pivot.y)) },
     })),
     animations,
     accents: { impact: [] },
@@ -103,7 +103,7 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
     const r = resolved[id];
     lines.push(
       `    <g id="${id}" class="part" data-bone="${r.bone}" data-origin="${r.origin}" ` +
-        `data-pivot-x="${num(r.pivot.x)}" data-pivot-y="${num(r.pivot.y)}">`
+        `data-pivot-x="${round(r.pivot.x)}" data-pivot-y="${round(r.pivot.y)}">`
     );
     for (const el of rects.filter((x) => x.part === id)) {
       // ADR-0011: geometry-agnostic — emit the element's source markup if it carries any (paths,

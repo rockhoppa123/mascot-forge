@@ -62,10 +62,45 @@ export const PRESETS = {
         reduced: { transform: "rotate(-10deg)" },
         reducedChannel: { rotate: -10, scaleX: 1, scaleY: 1, x: 0, y: 0 },
       },
+      // anatomy preset: a tail/flag wags faster and wider than a walking leg, pivoting at its base.
+      wag: {
+        durationMs: 360, timing: "ease-in-out", iteration: "infinite",
+        ease: "sine.inOut", repeat: -1, yoyo: false,
+        keyframes: [
+          { offset: "0%, 100%", transform: "rotate(-22deg)" },
+          { offset: "50%", transform: "rotate(22deg)" },
+        ],
+        channels: [
+          { offset: 0, rotate: -22, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 0.5, rotate: 22, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 1, rotate: -22, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+        ],
+        reduced: { transform: "rotate(12deg)" },
+        reducedChannel: { rotate: 12, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+      },
     },
   },
   accent: {
     idle: {
+      // anatomy preset: ears/antennae twitch — a quick rotational flick, not an eye blink.
+      twitch: {
+        durationMs: 3200, timing: "ease-in-out", iteration: "infinite",
+        ease: "power2.out", repeat: -1, yoyo: false,
+        keyframes: [
+          { offset: "0%, 88%, 100%", transform: "rotate(0deg)" },
+          { offset: "92%", transform: "rotate(-9deg)" },
+          { offset: "96%", transform: "rotate(6deg)" },
+        ],
+        channels: [
+          { offset: 0, rotate: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 0.88, rotate: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 0.92, rotate: -9, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 0.96, rotate: 6, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+          { offset: 1, rotate: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 },
+        ],
+        reduced: {},
+        reducedChannel: {},
+      },
       blink: {
         durationMs: 4200, timing: "step-end", iteration: "infinite",
         ease: "none", repeat: -1, yoyo: false,
