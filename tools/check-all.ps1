@@ -38,6 +38,15 @@ $checks = @(
         if ($LASTEXITCODE -ne 0) { break }  # leaves the failing exit code for the summary
       }
     }
+  },
+  @{
+    Name = "P6 mcp"   # MCP tool chain + VTracer integration node self-checks (deps in mcp/node_modules)
+    Run  = {
+      foreach ($t in "tools", "server", "protocol", "vectorize-vtracer") {
+        & node (Join-Path $repoRoot "mcp/$t.test.mjs")
+        if ($LASTEXITCODE -ne 0) { break }  # leaves the failing exit code for the summary
+      }
+    }
   }
 )
 
