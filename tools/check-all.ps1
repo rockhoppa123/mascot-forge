@@ -70,4 +70,5 @@ if ($failed) {
   exit 1
 }
 Write-Host "RESULT: PASS (all pipeline checks green)" -ForegroundColor Green
+Write-Host "  (browser e2e is separate, by design: pwsh -NoProfile -File tools/check-e2e.ps1)" -ForegroundColor DarkGray
 exit 0
