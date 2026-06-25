@@ -80,7 +80,11 @@ export function emitDemoHtml(rig, animatedSvg, assetName = "mascot", sourceDataU
 // animations; here we also skip auto-starting the cycle when the user asked for reduced motion.
 export function emitShowcaseHtml(rig, animatedSvg, assetName = "mascot", sourceDataUri = null) {
   const inlineSvg = animatedSvg.replace(/^\s*<\?xml[^?]*\?>\s*/, ""); // strip XML prolog → embeds cleanly
-  const svgB64 = Buffer.from(animatedSvg).toString("base64");
+  // base64 the SVG for the download anchor. Buffer in node (mcp), btoa in the browser (drop-zone) —
+  // emit.js is shared, so it must work in both. encodeURIComponent guards non-ASCII before btoa.
+  const svgB64 = typeof Buffer !== "undefined"
+    ? Buffer.from(animatedSvg).toString("base64")
+    : btoa(unescape(encodeURIComponent(animatedSvg)));
   const buttons = rig.states.map((s) => `<button data-s="${s}">${s}</button>`).join("");
   const source = sourceDataUri
     ? `<div id="source"><p>original input</p><img alt="source image" src="${sourceDataUri}"></div>`
