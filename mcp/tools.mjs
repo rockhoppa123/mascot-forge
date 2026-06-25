@@ -17,7 +17,7 @@ import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
-import { emitAnimatedSvg, emitDemoHtml } from "../tools/rig-editor/emit.js";
+import { emitAnimatedSvg, emitShowcaseHtml } from "../tools/rig-editor/emit.js";
 import { emitRegionsPreview } from "./regions-preview.mjs";
 import { gradeInput } from "../tools/rig-editor/grade.js";
 
@@ -245,7 +245,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   const v = validate(out.riggedJson);
   if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
   const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
-  const demo = emitDemoHtml(out.riggedJson, svg, assetName, sourceDataUri);
+  const demo = emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri);
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
     const files = [

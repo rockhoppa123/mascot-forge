@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { emitCss, emitAnimatedSvg, emitDemoHtml } from "./emit.js";
+import { emitCss, emitAnimatedSvg, emitDemoHtml, emitShowcaseHtml } from "./emit.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -49,6 +49,17 @@ const manualSvg = readFileSync(join(root, "docs/buildable-slice/devbrain-manual-
   const html = emitDemoHtml(rig, emitAnimatedSvg(rig, manualSvg), "devbrain");
   for (const s of rig.states) assert.ok(html.includes(`data-s="${s}"`), `demo has a ${s} button`);
   assert.ok(/<svg[^>]*id="mascot"/.test(html), "demo inlines the animated svg");
+}
+
+// --- self-contained showcase page (Phase 1b) ----------------------------------------------------
+{
+  const animatedSvg = emitAnimatedSvg(rig, manualSvg);
+  const html = emitShowcaseHtml(rig, animatedSvg, "demo", "data:image/png;base64,AAAA");
+  assert.ok(!/fetch\(/.test(html), "showcase inlines everything — no fetch (file:// safe)");
+  assert.ok(html.includes("data:image/png;base64,AAAA"), "shows the original image");
+  assert.ok(/id="play"/.test(html), "has an auto-cycle play control");
+  assert.ok(/download="/.test(html) && /data:image\/svg\+xml/.test(html), "has a download-SVG link");
+  for (const s of rig.states) assert.ok(html.includes(`data-s="${s}"`), `has a ${s} button`);
 }
 
 console.log("emit.test.mjs: all assertions passed.");
