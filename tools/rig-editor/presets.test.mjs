@@ -53,4 +53,22 @@ assert.throws(() => recipeFor("limb", "active", "nope", "part-x"), /preset/);
 
 assert.ok(PRESETS.core && PRESETS.limb && PRESETS.accent && PRESETS.passive, "all four roles keyed");
 
+// subject-aware families (Phase 2a) -----------------------------------------------------------
+// wheel spins continuously (360deg, linear, repeat) — the land-rover fix. "wheel" is a KIND that
+// resolves to its family (limb).
+{
+  const spin = recipeFor("wheel", "active", "spin", "part-wheel");
+  assertValidRecipe(spin, "part-wheel");
+  assert.ok(spin.keyframes.some((k) => /rotate\(360deg\)/.test(k.transform)), "spin reaches 360deg");
+  assert.equal(spin.timing, "linear", "spin is linear (constant angular velocity)");
+}
+// new generic presets exist and stamp valid recipes
+for (const [role, state, name] of [["accent", "alert", "shake"], ["accent", "active", "bounce"], ["accent", "alert", "nod"]]) {
+  assert.ok(presetsFor(role, state).includes(name), `${name} offered for ${role}/${state}`);
+  assertValidRecipe(recipeFor(role, state, name, "part-x"), "part-x");
+}
+// existing role-keyed lookups are unchanged (back-compat: kind overlay, not replacement)
+assert.deepEqual(presetsFor("core", "idle"), ["breathe"], "core/idle still exactly breathe");
+assert.deepEqual(presetsFor("core", "active"), [], "core/active still empty");
+
 console.log("presets.test.mjs: all assertions passed.");
