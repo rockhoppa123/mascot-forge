@@ -8,7 +8,7 @@
 import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
 import { parseSegmented, applyPartsSpec } from "./loader.js";
 import { bboxOf, dragToPivot, pivotToOrigin, defaultPivotFor } from "./pivot.js";
-import { presetsFor, recipeFor } from "./presets.js";
+import { presetsFor, recipeFor, kindDefaultPreset } from "./presets.js";
 import { validate } from "./validator.js";
 import { exportRig } from "./exporter.js";
 import { rectsInMarquee } from "./select.js";
@@ -295,6 +295,7 @@ function selectPart(id) {
   $("partedit").hidden = false;
   $("selname").textContent = id;
   $("role").value = meta.role || "passive";
+  $("kind").value = meta.kind || "";
   $("bone").value = meta.bone || "";
   refreshPresetPickers();
   refreshPivotInfo();
@@ -344,6 +345,23 @@ $("role").onchange = (e) => {
   refreshPresetPickers();
   refreshPivotInfo();
   drawPivot();
+  regenCss();
+};
+// Optional subject kind: persists the overlay and, as a convenience, auto-picks the kind's signature
+// preset (wheel->spin, flag->wave, mouth->talk) when that state is empty and the current role offers
+// it. The user can still override via the preset dropdowns; clearing kind leaves any preset in place.
+$("kind").onchange = (e) => {
+  if (!selected) return;
+  const kind = e.target.value;
+  pushUndo();
+  model.setKind(selected, kind || null);
+  const def = kind ? kindDefaultPreset(kind) : null;
+  if (def) {
+    const [state, name] = def;
+    const role = model.parts()[selected].role;
+    if (presetsFor(role, state).includes(name) && !model.preset(state, selected)) model.setPreset(state, selected, name);
+  }
+  refreshPresetPickers();
   regenCss();
 };
 $("bone").onchange = (e) => { if (selected) { pushUndo(); model.setBone(selected, e.target.value.trim()); } };

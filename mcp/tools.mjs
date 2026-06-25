@@ -14,7 +14,7 @@ import { createModel } from "../tools/rig-editor/model.js";
 import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
-import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
+import { recipeFor, presetsFor, kindDefaultPreset } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitShowcaseHtml } from "../tools/rig-editor/emit.js";
@@ -34,8 +34,8 @@ const DEFAULT_PRESET = { core: ["idle", "breathe"], limb: ["active", "walk"], ac
 // the generic walk/pulse. Returns [state, presetName].
 export function defaultPresetFor(id, role, kind = null) {
   // a subject kind outranks id/role: a wheel spins, a flag waves, a mouth talks (the land-rover fix).
-  const byKind = { wheel: ["active", "spin"], flag: ["alert", "wave"], mouth: ["active", "talk"] };
-  if (kind && byKind[kind]) return byKind[kind];
+  const byKind = kind && kindDefaultPreset(kind);
+  if (byKind) return byKind;
   if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
   if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
   if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];

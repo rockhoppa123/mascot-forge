@@ -121,6 +121,8 @@ assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
   assert.equal(m.parts()["part-a"].kind, null, "kind defaults to null");
   m.setKind("part-a", "wheel");
   assert.equal(m.parts()["part-a"].kind, "wheel", "setKind stores the kind");
+  m.setKind("part-a", null);
+  assert.equal(m.parts()["part-a"].kind, null, "setKind(null) clears the overlay");
   assert.throws(() => m.setKind("part-a", "bogus"), /kind/, "unknown kind rejected");
 }
 
