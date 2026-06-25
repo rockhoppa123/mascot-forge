@@ -251,6 +251,11 @@ assert.deepEqual(defaultPresetFor("part-ears", "accent"), ["idle", "twitch"], "e
 assert.deepEqual(defaultPresetFor("part-eyes", "accent"), ["idle", "blink"], "eyes blink");
 assert.deepEqual(defaultPresetFor("part-arm", "limb"), ["active", "walk"], "generic limb still walks");
 
+// kind-aware defaults (Phase 2a): a kind hint outranks id/role (the land-rover wheels-rock fix)
+assert.deepEqual(defaultPresetFor("part-wheel-front", "limb", "wheel"), ["active", "spin"], "wheel kind spins");
+assert.deepEqual(defaultPresetFor("part-flag", "accent", "flag"), ["alert", "wave"], "flag waves");
+assert.deepEqual(defaultPresetFor("part-tail", "limb", null), ["active", "wag"], "id-based fallback still works without a kind");
+
 // open states (Phase 2b): an under-rigged core-only mascot now EMITS, but with a plain-language
 // warning naming the uncovered state + the role to add (it no longer hard-fails).
 {

@@ -32,7 +32,10 @@ const DEFAULT_PRESET = { core: ["idle", "breathe"], limb: ["active", "walk"], ac
 // anatomy-aware default preset: pick motion by what the part IS (its id), falling back to the role
 // default. So roles alone give sensible motion — a tail wags, ears twitch, eyes blink — instead of
 // the generic walk/pulse. Returns [state, presetName].
-export function defaultPresetFor(id, role) {
+export function defaultPresetFor(id, role, kind = null) {
+  // a subject kind outranks id/role: a wheel spins, a flag waves, a mouth talks (the land-rover fix).
+  const byKind = { wheel: ["active", "spin"], flag: ["alert", "wave"], mouth: ["active", "talk"] };
+  if (kind && byKind[kind]) return byKind[kind];
   if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
   if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
   if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];
@@ -242,7 +245,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
   for (const id of Object.keys(model.parts())) {
     if (!model.rectsOf(id).length) continue;
-    const def = defaultPresetFor(id, model.parts()[id].role);
+    const def = defaultPresetFor(id, model.parts()[id].role, model.parts()[id].kind);
     if (def && !hasPreset(model, id)) model.setPreset(def[0], id, def[1]);
   }
   let out;
