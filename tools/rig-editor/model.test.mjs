@@ -114,4 +114,14 @@ function sample() {
 }
 
 assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
+
+// part kind metadata (Phase 2a)
+{
+  const m = sample();
+  assert.equal(m.parts()["part-a"].kind, null, "kind defaults to null");
+  m.setKind("part-a", "wheel");
+  assert.equal(m.parts()["part-a"].kind, "wheel", "setKind stores the kind");
+  assert.throws(() => m.setKind("part-a", "bogus"), /kind/, "unknown kind rejected");
+}
+
 console.log("model.test.mjs: all assertions passed.");

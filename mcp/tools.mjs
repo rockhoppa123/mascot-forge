@@ -17,8 +17,9 @@ import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
-import { emitAnimatedSvg, emitDemoHtml } from "../tools/rig-editor/emit.js";
+import { emitAnimatedSvg, emitShowcaseHtml } from "../tools/rig-editor/emit.js";
 import { emitRegionsPreview } from "./regions-preview.mjs";
+import { gradeInput } from "../tools/rig-editor/grade.js";
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sessions = new Map();      // id -> { model, vb }
@@ -31,7 +32,10 @@ const DEFAULT_PRESET = { core: ["idle", "breathe"], limb: ["active", "walk"], ac
 // anatomy-aware default preset: pick motion by what the part IS (its id), falling back to the role
 // default. So roles alone give sensible motion — a tail wags, ears twitch, eyes blink — instead of
 // the generic walk/pulse. Returns [state, presetName].
-export function defaultPresetFor(id, role) {
+export function defaultPresetFor(id, role, kind = null) {
+  // a subject kind outranks id/role: a wheel spins, a flag waves, a mouth talks (the land-rover fix).
+  const byKind = { wheel: ["active", "spin"], flag: ["alert", "wave"], mouth: ["active", "talk"] };
+  if (kind && byKind[kind]) return byKind[kind];
   if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
   if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
   if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];
@@ -68,18 +72,24 @@ function rigStatus(model) {
   return status;
 }
 // turn the validator's terse errors into a plain-English, actionable summary any user can act on.
+// Plain-English guidance for state-coverage problems. Maps both hard errors and soft warnings (a
+// declared state with no recipe) to a hint about which role to add. Used on the failure path for
+// errors and on the success path to surface warnings.
 function explainValidation(v) {
   const roleFor = {
     idle: "core (the body — it breathes)",
     active: "limb (an arm, leg, or tail — it moves)",
     alert: "accent (eyes or another small mover)",
   };
-  const parts = [];
-  for (const e of v.errors || []) {
-    const m = /state '(\w+)' must have at least one animation/.exec(e);
-    parts.push(m ? `nothing animates in the '${m[1]}' state — give a part the ${roleFor[m[1]] || "right"} role so something moves there` : e);
-  }
-  return parts.length ? `Can't emit yet: ${parts.join("; ")}.` : "The rig didn't pass validation — check the parts and their roles.";
+  const friendly = (msg) => {
+    const m = /state '(\w+)' /.exec(msg);
+    return m ? `nothing animates in the '${m[1]}' state — give a part the ${roleFor[m[1]] || "right"} role so something moves there` : msg;
+  };
+  const errs = (v.errors || []).map(friendly);
+  const warns = (v.warnings || []).map(friendly);
+  if (errs.length) return `Can't emit yet: ${[...errs, ...warns].join("; ")}.`;
+  if (warns.length) return `Emitted, with gaps: ${warns.join("; ")}.`;
+  return null;
 }
 
 // reject paths outside the project (no arbitrary fs)
@@ -130,8 +140,9 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
   // keep the source PNG as a data URI so the demo page can show it beside the animated mascot.
   const sourceDataUri = `data:image/png;base64,${base64 || buf.toString("base64")}`;
   sessions.set(session, { model, vb: parseVB(model.viewBox()), sourceDataUri });
+  const inputGrade = gradeInput(model);
   return {
-    session, viewBox: model.viewBox(), parts: partList(model),
+    session, viewBox: model.viewBox(), parts: partList(model), inputGrade,
     note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image. Pick presets by anatomy: ears/antennae -> twitch, tail -> wag, eyes -> blink. Part ids are auto-prefixed with 'part-'.",
   };
 }
@@ -184,10 +195,8 @@ export function assignRegion({ session, box, partId, role } = {}) {
 export function forgePropose({ session, outDir } = {}) {
   const s = getSession(session);
   const parts = partList(s.model);
-  const fills = new Set(s.model.rects().map((r) => r.fill).filter(Boolean));
-  const advisory = fills.size <= 2
-    ? "single-colour silhouette — parts can't be auto-separated; provide a layered or multi-colour source for full rigging, or it will animate as one body"
-    : null;
+  const grade = gradeInput(s.model);
+  const advisory = grade.grade === "silhouette" ? grade.recommendation : null;
   const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
   let preview;
   if (outDir) {
@@ -236,7 +245,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
   for (const id of Object.keys(model.parts())) {
     if (!model.rectsOf(id).length) continue;
-    const def = defaultPresetFor(id, model.parts()[id].role);
+    const def = defaultPresetFor(id, model.parts()[id].role, model.parts()[id].kind);
     if (def && !hasPreset(model, id)) model.setPreset(def[0], id, def[1]);
   }
   let out;
@@ -244,8 +253,10 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   catch (e) { return { ok: false, error: e.message }; }
   const v = validate(out.riggedJson);
   if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
+  // open states: a declared state with no recipe warns (not fails) — surface it on the success path.
+  const advisory = v.warnings.length ? { warnings: v.warnings, message: explainValidation(v) } : {};
   const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
-  const demo = emitDemoHtml(out.riggedJson, svg, assetName, sourceDataUri);
+  const demo = emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri);
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
     const files = [
@@ -253,13 +264,13 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
       [join(dir, `${assetName}-mascot-demo.html`), demo],
     ];
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, written: files.map(([f]) => f) };
+    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
   }
-  return { ok: true, validation: v, svgBytes: svg.length, demoBytes: demo.length };
+  return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
 }
 
 // set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.
-export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
+export function setPart({ session, partId, role, kind, bone, pivot, presets } = {}) {
   const s = getSession(session);
   if (!partId) throw new Error("partId is required");
   partId = normPartId(partId);
@@ -277,6 +288,7 @@ export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
       if (chosen && !presetsFor(role, st).includes(chosen)) model.setPreset(st, partId, null);
     }
   }
+  if (kind !== undefined) model.setKind(partId, kind); // throws on an unknown kind
   if (bone !== undefined) model.setBone(partId, bone);
 
   const effectiveRole = model.parts()[partId].role;
@@ -302,7 +314,7 @@ export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
 
   const m = model.parts()[partId];
   return {
-    part: { id: partId, role: m.role, bone: m.bone, pivot: m.pivot, rectCount: model.rectsOf(partId).length, bbox: bb },
+    part: { id: partId, role: m.role, kind: m.kind, bone: m.bone, pivot: m.pivot, rectCount: model.rectsOf(partId).length, bbox: bb },
     rigStatus: rigStatus(model),
   };
 }

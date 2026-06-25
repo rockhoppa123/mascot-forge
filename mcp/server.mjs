@@ -31,7 +31,9 @@ export function buildServer() {
       description:
         "Start a rig session from a PNG (base64 preferred; or a project-relative path). Vectorises + " +
         "proposes coarse parts. Returns { session, viewBox, parts:[{id,role,rectCount,bbox}] }. The auto " +
-        "parts are a hint — re-segment with assign_region by what you SEE.",
+        "parts are a hint — re-segment with assign_region by what you SEE. Returns inputGrade " +
+        "{grade,reason,recommendation} — tell the user the grade BEFORE rigging; on 'silhouette', " +
+        "suggest a layered/multi-colour source.",
       inputSchema: {
         base64: z.string().optional(),
         path: z.string().optional(),
@@ -80,11 +82,14 @@ export function buildServer() {
         "rotates, accent=small mover like eyes/tongue, passive=still), bone, pivot (x,y each 0..1 of the " +
         "viewBox — omit for a role-aware default: limb hinges at its top-edge joint, others at bbox " +
         "centre), and presets per state ({ idle?, active?, alert? }). Changing role clears any preset no " +
-        "longer valid for it; an invalid preset for the role/state is rejected. Returns { part, rigStatus }.",
+        "longer valid for it; an invalid preset for the role/state is rejected. Optional kind is a subject " +
+        "hint (wheel/flag/limb/eye/mouth/body/accent) that unlocks subject-aware default motion (a wheel " +
+        "spins, a flag waves). Returns { part, rigStatus }.",
       inputSchema: {
         session: z.string(),
         partId: z.string(),
         role: z.enum(["core", "limb", "accent", "passive"]).optional(),
+        kind: z.enum(["wheel", "flag", "limb", "eye", "mouth", "body", "accent"]).optional(),
         bone: z.string().optional(),
         pivot: z.object({ x: z.number(), y: z.number() }).optional(),
         presets: z.object({ idle: z.string().nullable().optional(), active: z.string().nullable().optional(), alert: z.string().nullable().optional() }).optional(),

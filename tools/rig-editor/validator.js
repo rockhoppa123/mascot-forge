@@ -6,15 +6,19 @@
 //   1. version === 2
 //   2. states is a non-empty array
 //   3. each part has an id, a CSS origin string, and a numeric pivot {x, y}
-//   4. animations cover exactly the states, and every state has >= 1 recipe
+//   4. states are open: any declared state is allowed, and animations declare no undeclared state.
+//      The rig must have >= 1 animation overall (else error); a declared state with no recipe WARNS
+//      (it animates as inert) rather than failing — so partial/custom state sets are allowed.
 //   5. every recipe carries part/name/durationMs/timing/iteration/keyframes
 //   6. every recipe.part references a real parts[] id
 
 export function validate(rig) {
   const errors = [];
+  const warnings = [];
   const fail = (m) => errors.push(m);
+  const warn = (m) => warnings.push(m);
 
-  if (!rig || typeof rig !== "object") return { ok: false, errors: ["rig is not an object"] };
+  if (!rig || typeof rig !== "object") return { ok: false, errors: ["rig is not an object"], warnings: [] };
 
   if (rig.version !== 2) fail(`version must be 2 (got ${JSON.stringify(rig.version)})`);
 
@@ -34,9 +38,11 @@ export function validate(rig) {
   }
 
   const anim = rig.animations && typeof rig.animations === "object" ? rig.animations : {};
+  let totalRecipes = 0;
   for (const s of states) {
     const recipes = Array.isArray(anim[s]) ? anim[s] : [];
-    if (recipes.length === 0) { fail(`state '${s}' must have at least one animation recipe`); continue; }
+    if (recipes.length === 0) { warn(`state '${s}' has no animation recipe — it will render inert`); continue; }
+    totalRecipes += recipes.length;
     for (const rec of recipes) {
       for (const k of ["part", "name", "durationMs", "timing", "iteration", "keyframes"]) {
         if (rec[k] === undefined || rec[k] === null) fail(`recipe '${rec.name || "?"}' in '${s}' is missing '${k}'`);
@@ -49,9 +55,10 @@ export function validate(rig) {
       }
     }
   }
+  if (totalRecipes === 0) fail("rig has no animation in any state — at least one state needs a recipe");
   for (const k of Object.keys(anim)) {
     if (!states.includes(k)) fail(`animations has state '${k}' not declared in states`);
   }
 
-  return { ok: errors.length === 0, errors };
+  return { ok: errors.length === 0, errors, warnings };
 }
