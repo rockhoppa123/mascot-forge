@@ -77,8 +77,8 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
     ensurePart(partId).role = role;
   }
   function setKind(partId, kind) {
-    if (!KINDS.includes(kind)) throw new Error(`setKind: unknown kind '${kind}'.`);
-    ensurePart(partId).kind = kind;
+    if (kind != null && !KINDS.includes(kind)) throw new Error(`setKind: unknown kind '${kind}'.`);
+    ensurePart(partId).kind = kind || null; // null/"" clears the overlay
   }
   function setPivot(partId, pivot, origin) {
     const p = ensurePart(partId);

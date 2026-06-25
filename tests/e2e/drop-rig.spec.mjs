@@ -42,6 +42,27 @@ test("dropped PNG → assign a role + preset in-browser → export downloads a s
   expect(errors, "no uncaught page errors during export").toEqual([]);
 });
 
+test("tagging a limb part kind=wheel auto-selects the spin preset and exports (subject-aware reach)", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto(PAGE);
+  await page.setInputFiles("#file", BLOCKS);
+  await expect(page.locator("#status")).toContainText("Vectorised");
+
+  await page.locator("#parts li").first().click();
+  await expect(page.locator("#partedit")).toBeVisible();
+  await page.selectOption("#role", "limb");      // wheels live in the limb family
+  await page.selectOption("#kind", "wheel");      // the Phase-2 reach: kind picks spin automatically
+  await expect(page.locator("#preset-active")).toHaveValue("spin");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.click("#exportanim"),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/mascot\.svg$/);
+  expect(errors, "no uncaught page errors").toEqual([]);
+});
+
 test("the dropzone's own drop listener loads a file (not just the #file input)", async ({ page }) => {
   await page.goto(PAGE);
   // synthesize a drop on #dropzone with a real File built from the fixture bytes (read in-page).

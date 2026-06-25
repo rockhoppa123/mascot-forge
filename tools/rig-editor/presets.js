@@ -232,6 +232,14 @@ export const PRESETS = {
   passive: {},
 };
 
+// A kind's signature [state, presetName] — the motion that makes it read as itself. Single source of
+// truth for both the MCP auto-fill (defaultPresetFor) and the browser editor's kind selector, so the
+// two can't drift. Kinds without a signature (limb/eye/body/accent) fall back to role-based defaults.
+const KIND_DEFAULT = { wheel: ["active", "spin"], flag: ["alert", "wave"], mouth: ["active", "talk"] };
+export function kindDefaultPreset(kind) {
+  return KIND_DEFAULT[kind] ? [...KIND_DEFAULT[kind]] : null;
+}
+
 export function presetsFor(roleOrKind, state) {
   const byState = PRESETS[resolveFamily(roleOrKind)];
   if (!byState || !byState[state]) return [];
