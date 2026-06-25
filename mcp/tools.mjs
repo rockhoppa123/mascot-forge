@@ -259,7 +259,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
 }
 
 // set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.
-export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
+export function setPart({ session, partId, role, kind, bone, pivot, presets } = {}) {
   const s = getSession(session);
   if (!partId) throw new Error("partId is required");
   partId = normPartId(partId);
@@ -277,6 +277,7 @@ export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
       if (chosen && !presetsFor(role, st).includes(chosen)) model.setPreset(st, partId, null);
     }
   }
+  if (kind !== undefined) model.setKind(partId, kind); // throws on an unknown kind
   if (bone !== undefined) model.setBone(partId, bone);
 
   const effectiveRole = model.parts()[partId].role;
@@ -302,7 +303,7 @@ export function setPart({ session, partId, role, bone, pivot, presets } = {}) {
 
   const m = model.parts()[partId];
   return {
-    part: { id: partId, role: m.role, bone: m.bone, pivot: m.pivot, rectCount: model.rectsOf(partId).length, bbox: bb },
+    part: { id: partId, role: m.role, kind: m.kind, bone: m.bone, pivot: m.pivot, rectCount: model.rectsOf(partId).length, bbox: bb },
     rigStatus: rigStatus(model),
   };
 }

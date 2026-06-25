@@ -6,6 +6,7 @@
 // Pure data + closures (mirrors runtime/mascot-state.js); no DOM, so it runs under `node`.
 
 export const ROLES = ["core", "limb", "accent", "passive"];
+export const KINDS = ["wheel", "flag", "limb", "eye", "mouth", "body", "accent"]; // optional subject overlay
 export const BACKGROUND_PART = "part-background";
 const DEFAULT_STATES = ["idle", "active", "alert"];
 
@@ -22,6 +23,7 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
     return {
       id,
       role: meta.role && ROLES.includes(meta.role) ? meta.role : "passive",
+      kind: meta.kind && KINDS.includes(meta.kind) ? meta.kind : null,
       bone: meta.bone || null,
       pivot: meta.pivot || null,
       origin: meta.origin || null,
@@ -73,6 +75,10 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
   function setRole(partId, role) {
     if (!ROLES.includes(role)) throw new Error(`setRole: unknown role '${role}'.`);
     ensurePart(partId).role = role;
+  }
+  function setKind(partId, kind) {
+    if (!KINDS.includes(kind)) throw new Error(`setKind: unknown kind '${kind}'.`);
+    ensurePart(partId).kind = kind;
   }
   function setPivot(partId, pivot, origin) {
     const p = ensurePart(partId);
@@ -133,6 +139,7 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
     rename,
     remove,
     setRole,
+    setKind,
     setPivot,
     setBone,
     setPreset,
