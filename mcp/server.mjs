@@ -31,7 +31,9 @@ export function buildServer() {
       description:
         "Start a rig session from a PNG (base64 preferred; or a project-relative path). Vectorises + " +
         "proposes coarse parts. Returns { session, viewBox, parts:[{id,role,rectCount,bbox}] }. The auto " +
-        "parts are a hint — re-segment with assign_region by what you SEE.",
+        "parts are a hint — re-segment with assign_region by what you SEE. Returns inputGrade " +
+        "{grade,reason,recommendation} — tell the user the grade BEFORE rigging; on 'silhouette', " +
+        "suggest a layered/multi-colour source.",
       inputSchema: {
         base64: z.string().optional(),
         path: z.string().optional(),

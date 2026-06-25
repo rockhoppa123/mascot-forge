@@ -222,7 +222,7 @@ function smileyPngBase64() {
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
   const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
   const mp = forgePropose({ session: sm.session });
-  assert.ok(mp.advisory && /silhouette/.test(mp.advisory), "monochrome input flags a silhouette advisory");
+  assert.ok(mp.advisory && /auto-separated/.test(mp.advisory), "monochrome input flags a silhouette advisory");
 }
 
 // applyTweaks: inline rename + role change at the checkpoint (Phase 4)
@@ -258,6 +258,17 @@ assert.deepEqual(defaultPresetFor("part-arm", "limb"), ["active", "walk"], "gene
   const out2 = forgeEmit({ session: s.session, assetName: "under" });
   assert.equal(out2.ok, false, "a core-only rig fails validation");
   assert.ok(/active/.test(out2.message) && /limb/.test(out2.message), "message names the missing state + the role to add");
+}
+
+// input grade is surfaced at start, from the shared heuristic
+{
+  const mono = new PNG({ width: 30, height: 30 });
+  for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 50; mono.data[i + 1] = 50; mono.data[i + 2] = 50; mono.data[i + 3] = 255; }
+  const sg = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
+  assert.equal(sg.inputGrade.grade, "silhouette", "monochrome start is graded silhouette");
+  assert.ok(sg.inputGrade.recommendation, "grade carries a recommendation");
+  const cg = startFromImage({ base64: blocksPngBase64(), colors: 4 });
+  assert.ok(["good", "borderline"].includes(cg.inputGrade.grade), "multi-colour start is not a silhouette");
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);

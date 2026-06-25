@@ -19,6 +19,7 @@ import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitDemoHtml } from "../tools/rig-editor/emit.js";
 import { emitRegionsPreview } from "./regions-preview.mjs";
+import { gradeInput } from "../tools/rig-editor/grade.js";
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sessions = new Map();      // id -> { model, vb }
@@ -130,8 +131,9 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
   // keep the source PNG as a data URI so the demo page can show it beside the animated mascot.
   const sourceDataUri = `data:image/png;base64,${base64 || buf.toString("base64")}`;
   sessions.set(session, { model, vb: parseVB(model.viewBox()), sourceDataUri });
+  const inputGrade = gradeInput(model);
   return {
-    session, viewBox: model.viewBox(), parts: partList(model),
+    session, viewBox: model.viewBox(), parts: partList(model), inputGrade,
     note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image. Pick presets by anatomy: ears/antennae -> twitch, tail -> wag, eyes -> blink. Part ids are auto-prefixed with 'part-'.",
   };
 }
@@ -184,10 +186,8 @@ export function assignRegion({ session, box, partId, role } = {}) {
 export function forgePropose({ session, outDir } = {}) {
   const s = getSession(session);
   const parts = partList(s.model);
-  const fills = new Set(s.model.rects().map((r) => r.fill).filter(Boolean));
-  const advisory = fills.size <= 2
-    ? "single-colour silhouette — parts can't be auto-separated; provide a layered or multi-colour source for full rigging, or it will animate as one body"
-    : null;
+  const grade = gradeInput(s.model);
+  const advisory = grade.grade === "silhouette" ? grade.recommendation : null;
   const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
   let preview;
   if (outDir) {
