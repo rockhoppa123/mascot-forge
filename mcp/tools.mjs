@@ -69,18 +69,24 @@ function rigStatus(model) {
   return status;
 }
 // turn the validator's terse errors into a plain-English, actionable summary any user can act on.
+// Plain-English guidance for state-coverage problems. Maps both hard errors and soft warnings (a
+// declared state with no recipe) to a hint about which role to add. Used on the failure path for
+// errors and on the success path to surface warnings.
 function explainValidation(v) {
   const roleFor = {
     idle: "core (the body — it breathes)",
     active: "limb (an arm, leg, or tail — it moves)",
     alert: "accent (eyes or another small mover)",
   };
-  const parts = [];
-  for (const e of v.errors || []) {
-    const m = /state '(\w+)' must have at least one animation/.exec(e);
-    parts.push(m ? `nothing animates in the '${m[1]}' state — give a part the ${roleFor[m[1]] || "right"} role so something moves there` : e);
-  }
-  return parts.length ? `Can't emit yet: ${parts.join("; ")}.` : "The rig didn't pass validation — check the parts and their roles.";
+  const friendly = (msg) => {
+    const m = /state '(\w+)' /.exec(msg);
+    return m ? `nothing animates in the '${m[1]}' state — give a part the ${roleFor[m[1]] || "right"} role so something moves there` : msg;
+  };
+  const errs = (v.errors || []).map(friendly);
+  const warns = (v.warnings || []).map(friendly);
+  if (errs.length) return `Can't emit yet: ${[...errs, ...warns].join("; ")}.`;
+  if (warns.length) return `Emitted, with gaps: ${warns.join("; ")}.`;
+  return null;
 }
 
 // reject paths outside the project (no arbitrary fs)
@@ -244,6 +250,8 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   catch (e) { return { ok: false, error: e.message }; }
   const v = validate(out.riggedJson);
   if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
+  // open states: a declared state with no recipe warns (not fails) — surface it on the success path.
+  const advisory = v.warnings.length ? { warnings: v.warnings, message: explainValidation(v) } : {};
   const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
   const demo = emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri);
   if (outDir) {
@@ -253,9 +261,9 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
       [join(dir, `${assetName}-mascot-demo.html`), demo],
     ];
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, written: files.map(([f]) => f) };
+    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
   }
-  return { ok: true, validation: v, svgBytes: svg.length, demoBytes: demo.length };
+  return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
 }
 
 // set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.
