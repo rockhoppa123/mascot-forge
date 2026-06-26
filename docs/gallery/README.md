@@ -102,6 +102,51 @@ Tag parts with a `kind` so the right motion is the default
 Generic movers (`bounce`, `shake`, `nod`, `float`, `jump`, `wobble`) are available to any limb or
 accent part and bind to whatever state you like (`error → shake`, `success → bounce`).
 
+### App-signal states: `loading` / `error` / `success`
+
+`loading`, `error`, and `success` are the universal dashboard signals. They are **opt-in** states a
+rig declares **at start** — a rig's vocabulary is fixed at creation. They reuse existing motion via
+`STATE_FAMILY` ([`presets.js`](../../tools/rig-editor/presets.js)): `loading → active`,
+`success → active`, `error → alert`. So `set_part`'s preset list for a signal state is the same one
+the matching base state offers (a wheel can `spin` while `loading`; an accent can `shake` on `error`).
+
+**Author the rig** — declare the vocabulary at start, then give parts a preset per signal state:
+
+```js
+// 1. declare all six states up front (immutable for this rig). states[0] = idle = resting.
+forge_start_from_image({ base64, states: ["idle", "active", "alert", "loading", "error", "success"] })
+
+// 2. assign roles, then a preset per signal state (each reuses active/alert motion).
+set_part({ session, partId: "part-wheel", role: "limb",  presets: { loading: "spin" } })   // loading→active
+set_part({ session, partId: "part-eyes",  role: "accent", presets: { error: "shake" } })    // error→alert
+set_part({ session, partId: "part-body",  role: "limb",  presets: { success: "bounce" } })  // success→active
+// forge_emit → a self-contained SVG whose CSS keys on [data-state="loading"|"error"|"success"]
+```
+
+**Bind real signals** — map your deploy/CI events onto those states:
+
+```js
+import { createMascot, fromEvents } from "../../runtime/mascot-state.js";
+
+// vocabulary order = PRIORITY (error outranks success outranks loading); states[0] = resting.
+const mascot = createMascot({
+  root: document.querySelector("#mascot"),
+  states: ["idle", "active", "alert", "loading", "error", "success"],
+});
+
+const mapSignal = (e) => ({
+  deploy_started: "loading",   // → the wheel spins
+  ci_failed:      "error",     // → the eyes shake (higher priority — interrupts immediately)
+  deploy_ok:      "success",   // → the body bounces
+}[e.data.type] ?? null);        // null → nothing asserted → falls back to idle under hysteresis
+
+const stop = mascot.bind(fromEvents(deployBus, mapSignal)); // deployBus: any EventTarget / EventSource
+// later: stop();  // unbinds
+```
+
+A preset set for a state the rig never declared is rejected at `set_part` time — the rig can only
+animate states in its declared vocabulary, so the binding and the authoring stay in lock-step.
+
 ---
 
 ## 3. Motion presets
