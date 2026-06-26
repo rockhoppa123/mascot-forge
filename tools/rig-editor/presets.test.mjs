@@ -80,4 +80,13 @@ for (const [role, state, name] of [["core", "idle", "sway"], ["accent", "idle", 
 assert.ok(recipeFor("accent", "alert", "jolt", "p").keyframes.some((k) => /translateY/.test(k.transform)), "jolt moves on Y");
 assert.ok(recipeFor("core", "idle", "sway", "p").keyframes.some((k) => /rotate/.test(k.transform)), "sway rotates");
 
+// app-signal states reuse an existing state's motion via STATE_FAMILY (error→alert, loading/success→active)
+{
+  assert.deepEqual(presetsFor("accent", "error"), presetsFor("accent", "alert"), "error reuses alert's accent presets");
+  assert.deepEqual(presetsFor("limb", "loading"), presetsFor("limb", "active"), "loading reuses active's limb presets");
+  assert.ok(presetsFor("limb", "loading").includes("spin"), "a wheel can spin while loading");
+  assertValidRecipe(recipeFor("accent", "error", "shake", "part-x"), "part-x");
+  assertValidRecipe(recipeFor("limb", "success", "jump", "part-x"), "part-x"); // jump is in limb.active
+}
+
 console.log("presets.test.mjs: all assertions passed.");

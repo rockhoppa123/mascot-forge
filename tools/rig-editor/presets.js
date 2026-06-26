@@ -103,6 +103,11 @@ function resolveFamily(roleOrKind) {
   return KIND_FAMILY[roleOrKind] || roleOrKind;          // a kind → its family (else pass through to fail)
 }
 
+// An app-signal state reuses an existing state's preset table — error reads like alert, loading/success
+// like active. Keeps one motion library; new states add meaning, not duplicate templates.
+const STATE_FAMILY = { error: "alert", loading: "active", success: "active" };
+const resolveState = (state) => STATE_FAMILY[state] || state;
+
 export const PRESETS = {
   core: {
     idle: {
@@ -270,13 +275,14 @@ export function kindDefaultPreset(kind) {
 
 export function presetsFor(roleOrKind, state) {
   const byState = PRESETS[resolveFamily(roleOrKind)];
-  if (!byState || !byState[state]) return [];
-  return Object.keys(byState[state]);
+  if (!byState || !byState[resolveState(state)]) return [];
+  return Object.keys(byState[resolveState(state)]);
 }
 
 export function recipeFor(roleOrKind, state, presetName, partId) {
   const role = resolveFamily(roleOrKind);
-  const template = PRESETS[role] && PRESETS[role][state] && PRESETS[role][state][presetName];
+  const resolvedState = resolveState(state);
+  const template = PRESETS[role] && PRESETS[role][resolvedState] && PRESETS[role][resolvedState][presetName];
   if (!template) throw new Error(`recipeFor: no preset '${presetName}' for role '${roleOrKind}' in state '${state}'.`);
   // deep clone the template so callers can't mutate the shared definition, then stamp identity.
   const recipe = structuredClone(template);
