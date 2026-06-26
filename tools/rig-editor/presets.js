@@ -70,6 +70,30 @@ const WOBBLE = {
   channels: [ch(0, {}), ch(0.3, { r: -6 }), ch(0.7, { r: 6 }), ch(1, {})],
   reduced: {}, reducedChannel: {},
 };
+const SWAY = { // core idle alt: slow gentle whole-part lean — suits rigid subjects where breathe looks wrong
+  durationMs: 3200, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "rotate(-2deg)" }, { offset: "50%", transform: "rotate(2deg)" }],
+  channels: [ch(0, { r: -2 }), ch(0.5, { r: 2 }), ch(1, { r: -2 })],
+  reduced: { transform: "rotate(0deg)" }, reducedChannel: ch(0, {}),
+};
+const GLANCE = { // accent idle alt: eyes dart left/right then settle — more characterful than a blink
+  durationMs: 4000, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 30%, 100%", transform: "translateX(0)" }, { offset: "45%", transform: "translateX(-2px)" }, { offset: "70%", transform: "translateX(2px)" }],
+  channels: [ch(0, {}), ch(0.3, {}), ch(0.45, { x: -2 }), ch(0.7, { x: 2 }), ch(1, {})],
+  reduced: {}, reducedChannel: {},
+};
+const LEAN = { // core active: body tilts into motion — pairs with limb walk so the WHOLE mascot moves
+  durationMs: 520, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "rotate(-3deg)" }, { offset: "50%", transform: "rotate(3deg)" }],
+  channels: [ch(0, { r: -3 }), ch(0.5, { r: 3 }), ch(1, { r: -3 })],
+  reduced: { transform: "rotate(2deg)" }, reducedChannel: ch(0, { r: 2 }),
+};
+const JOLT = { // accent alert: a sharp upward startle (the only alert preset using translateY)
+  durationMs: 360, timing: "cubic-bezier(.2, .7, .3, 1)", iteration: "infinite", ease: "power2.out", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "translateY(0)" }, { offset: "35%", transform: "translateY(-6px)" }],
+  channels: [ch(0, {}), ch(0.35, { y: -6 }), ch(1, {})],
+  reduced: { transform: "translateY(-3px)" }, reducedChannel: ch(0, { y: -3 }),
+};
 
 // A kind is an optional subject overlay over a role; it resolves to the role family that owns its
 // presets. limb/accent are both roles and kinds → resolve to themselves via PRESETS first.
@@ -97,7 +121,9 @@ export const PRESETS = {
         reduced: { transform: "scale(1)" },
         reducedChannel: { rotate: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 },
       },
+      sway: SWAY,
     },
+    active: { lean: LEAN },
   },
   limb: {
     active: {
@@ -189,6 +215,7 @@ export const PRESETS = {
         reduced: {},
         reducedChannel: {},
       },
+      glance: GLANCE,
     },
     active: {
       // mouth->talk, plus generic movers usable by any accent part.
@@ -227,6 +254,7 @@ export const PRESETS = {
         reduced: { transform: "translateX(-4px)" },
         reducedChannel: { rotate: 0, scaleX: 1, scaleY: 1, x: -4, y: 0 },
       },
+      jolt: JOLT,
     },
   },
   passive: {},

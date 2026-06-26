@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import { presetsFor, recipeFor, PRESETS } from "./presets.js";
 
 // the picker offers only role-appropriate presets per state
-assert.deepEqual(presetsFor("core", "idle"), ["breathe"]);
+assert.deepEqual(presetsFor("core", "idle"), ["breathe", "sway"], "core/idle now offers sway too");
 assert.ok(presetsFor("limb", "active").includes("walk"));
 assert.ok(presetsFor("accent", "alert").includes("pulse"));
 assert.deepEqual(presetsFor("passive", "idle"), [], "passive parts have no presets");
-assert.deepEqual(presetsFor("core", "active"), [], "a core preset is idle-only");
+assert.deepEqual(presetsFor("core", "active"), ["lean"], "core gains an active lean");
 
 const required = ["part", "name", "durationMs", "timing", "iteration", "keyframes"];
 const v2 = ["ease", "repeat", "yoyo", "channels", "reducedChannel"];
@@ -68,7 +68,16 @@ for (const [role, state, name] of [["accent", "alert", "shake"], ["accent", "act
   assertValidRecipe(recipeFor(role, state, name, "part-x"), "part-x");
 }
 // existing role-keyed lookups are unchanged (back-compat: kind overlay, not replacement)
-assert.deepEqual(presetsFor("core", "idle"), ["breathe"], "core/idle still exactly breathe");
-assert.deepEqual(presetsFor("core", "active"), [], "core/active still empty");
+assert.deepEqual(presetsFor("core", "idle"), ["breathe", "sway"], "core/idle = breathe + sway");
+assert.deepEqual(presetsFor("core", "active"), ["lean"], "core/active = lean");
+
+// Phase-1 curated batch: four new transform-only presets, each a valid schema-v2 recipe.
+for (const [role, state, name] of [["core", "idle", "sway"], ["accent", "idle", "glance"], ["core", "active", "lean"], ["accent", "alert", "jolt"]]) {
+  assert.ok(presetsFor(role, state).includes(name), `${name} offered for ${role}/${state}`);
+  assertValidRecipe(recipeFor(role, state, name, "part-x"), "part-x");
+}
+// jolt is the vertical alert (translateY); sway/lean are rotational
+assert.ok(recipeFor("accent", "alert", "jolt", "p").keyframes.some((k) => /translateY/.test(k.transform)), "jolt moves on Y");
+assert.ok(recipeFor("core", "idle", "sway", "p").keyframes.some((k) => /rotate/.test(k.transform)), "sway rotates");
 
 console.log("presets.test.mjs: all assertions passed.");
