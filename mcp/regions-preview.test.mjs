@@ -12,6 +12,9 @@ assert.ok(html.includes("data:image/png;base64,AAAA"), "embeds the source image"
 assert.ok(html.includes('viewBox="0 0 100 80"'), "overlay uses the viewBox");
 assert.ok(html.includes("part-body") && html.includes("part-eyes"), "labels every part");
 assert.ok((html.match(/<rect /g) || []).length >= 2, "draws a box per part");
+assert.ok(html.includes("Proposed parts"), "renders the key panel");
+assert.ok(/breathes on idle/.test(html), "key says what the core part will do");
+assert.ok(html.includes("#2563eb") && html.includes("#dc2626"), "parts get distinct colours");
 
 // empty parts list still renders (no boxes, just the image)
 const bare = emitRegionsPreview("data:image/png;base64,BBBB", "0 0 10 10", []);

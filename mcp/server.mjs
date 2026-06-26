@@ -21,7 +21,11 @@ export function buildServer() {
         "2) for each part you SEE in the image, call assign_region with a box in 0..1 fractions of the " +
         "viewBox and a role (core=body that breathes, limb=arm/leg that rotates, accent=small mover like " +
         "eyes/tongue, passive=still); read back `moved` and adjust the box if needed; 3) forge_emit. " +
-        "Roles alone produce animation (a default preset per role is applied).",
+        "Roles alone produce animation (a default preset per role is applied). " +
+        "Always report the input grade in plain language first. If the user hasn't specified the " +
+        "parts/roles/presets, prefer the GUIDED path: call forge_propose, show the proposed parts, and " +
+        "confirm with the user before forge_emit (the `rig_mascot` prompt scripts this). Only one-shot " +
+        "straight to forge_emit when the user has handed you an explicit spec.",
     }
   );
 
@@ -197,6 +201,42 @@ export function buildServer() {
         return ok({ elicitation: true, action, decision: res.action });
       } catch (e) { return fail(e); }
     }
+  );
+
+  // Guided-rig prompt: surfaces as a slash command in the host. Scripts the checkpointed flow so the
+  // user gets walked through it (grade → propose → confirm → emit) instead of having to hand a full spec.
+  server.registerPrompt(
+    "rig_mascot",
+    {
+      title: "Rig a mascot (guided)",
+      description:
+        "Walk me through rigging a flat-art image into an animated mascot: grade it, propose the parts with " +
+        "a visual overlay, confirm with me, then emit. Use this instead of handing over a full spec.",
+      argsSchema: { image: z.string().optional() },
+    },
+    ({ image } = {}) => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text:
+              "Rig a flat-art image into an animated mascot — GUIDED, with checkpoints. Do not one-shot it.\n" +
+              (image ? `Image: ${image}\n` : "I'll provide the image (attached, or I'll give a path).\n") +
+              "1. forge_start_from_image. Tell me the input grade in plain words FIRST (e.g. \"borderline — " +
+              "gradient source, edges may look rough\"). If it grades 'silhouette', stop and ask me for a " +
+              "layered or multi-colour source.\n" +
+              "2. forge_propose to draw the proposed part-boxes over my image. Show me that overlay and list " +
+              "the parts you found (id + role).\n" +
+              "3. Ask me to confirm or adjust. Apply tweaks with forge_apply_tweaks (rename/role) or re-carve " +
+              "with assign_region. Do NOT proceed until I approve.\n" +
+              "4. After I approve: set a preset per state (idle/active/alert) with set_part, run forge_status " +
+              "to confirm every state is covered, then forge_emit.\n" +
+              "5. Give me the output file paths and how to open the demo.",
+          },
+        },
+      ],
+    })
   );
 
   return server;

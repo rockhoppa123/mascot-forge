@@ -5,5 +5,6 @@ import { buildServer } from "./server.mjs";
 
 const server = buildServer();
 assert.ok(server && server.constructor.name === "McpServer", "buildServer returns an McpServer");
+assert.ok(server._registeredPrompts && server._registeredPrompts.rig_mascot, "rig_mascot prompt registers");
 
-console.log("server.test.mjs: MCP server builds + tools register.");
+console.log("server.test.mjs: MCP server builds + tools/prompts register.");
