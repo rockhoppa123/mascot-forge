@@ -126,4 +126,13 @@ assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
   assert.throws(() => m.setKind("part-a", "bogus"), /kind/, "unknown kind rejected");
 }
 
+// model already supports a custom vocabulary — guard it so Phase 2 can rely on it
+{
+  const m = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "part-a" }], parts: { "part-a": { role: "core" } }, states: ["idle", "loading", "error"] });
+  assert.deepEqual(m.states(), ["idle", "loading", "error"]);
+  m.setPreset("loading", "part-a", "spin");
+  assert.equal(m.preset("loading", "part-a"), "spin");
+  assert.throws(() => m.setPreset("success", "part-a", "jump"), /state/, "an undeclared state is rejected");
+}
+
 console.log("model.test.mjs: all assertions passed.");

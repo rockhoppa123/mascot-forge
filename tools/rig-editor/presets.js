@@ -70,6 +70,30 @@ const WOBBLE = {
   channels: [ch(0, {}), ch(0.3, { r: -6 }), ch(0.7, { r: 6 }), ch(1, {})],
   reduced: {}, reducedChannel: {},
 };
+const SWAY = { // core idle alt: slow gentle whole-part lean — suits rigid subjects where breathe looks wrong
+  durationMs: 3200, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "rotate(-2deg)" }, { offset: "50%", transform: "rotate(2deg)" }],
+  channels: [ch(0, { r: -2 }), ch(0.5, { r: 2 }), ch(1, { r: -2 })],
+  reduced: { transform: "rotate(0deg)" }, reducedChannel: ch(0, {}),
+};
+const GLANCE = { // accent idle alt: eyes dart left/right then settle — more characterful than a blink
+  durationMs: 4000, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 30%, 100%", transform: "translateX(0)" }, { offset: "45%", transform: "translateX(-2px)" }, { offset: "70%", transform: "translateX(2px)" }],
+  channels: [ch(0, {}), ch(0.3, {}), ch(0.45, { x: -2 }), ch(0.7, { x: 2 }), ch(1, {})],
+  reduced: {}, reducedChannel: {},
+};
+const LEAN = { // core active: body tilts into motion — pairs with limb walk so the WHOLE mascot moves
+  durationMs: 520, timing: "ease-in-out", iteration: "infinite", ease: "sine.inOut", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "rotate(-3deg)" }, { offset: "50%", transform: "rotate(3deg)" }],
+  channels: [ch(0, { r: -3 }), ch(0.5, { r: 3 }), ch(1, { r: -3 })],
+  reduced: { transform: "rotate(2deg)" }, reducedChannel: ch(0, { r: 2 }),
+};
+const JOLT = { // accent alert: a sharp upward startle (the only alert preset using translateY)
+  durationMs: 360, timing: "cubic-bezier(.2, .7, .3, 1)", iteration: "infinite", ease: "power2.out", repeat: -1, yoyo: false,
+  keyframes: [{ offset: "0%, 100%", transform: "translateY(0)" }, { offset: "35%", transform: "translateY(-6px)" }],
+  channels: [ch(0, {}), ch(0.35, { y: -6 }), ch(1, {})],
+  reduced: { transform: "translateY(-3px)" }, reducedChannel: ch(0, { y: -3 }),
+};
 
 // A kind is an optional subject overlay over a role; it resolves to the role family that owns its
 // presets. limb/accent are both roles and kinds → resolve to themselves via PRESETS first.
@@ -78,6 +102,11 @@ function resolveFamily(roleOrKind) {
   if (PRESETS[roleOrKind]) return roleOrKind;            // already a role
   return KIND_FAMILY[roleOrKind] || roleOrKind;          // a kind → its family (else pass through to fail)
 }
+
+// An app-signal state reuses an existing state's preset table — error reads like alert, loading/success
+// like active. Keeps one motion library; new states add meaning, not duplicate templates.
+const STATE_FAMILY = { error: "alert", loading: "active", success: "active" };
+const resolveState = (state) => STATE_FAMILY[state] || state;
 
 export const PRESETS = {
   core: {
@@ -97,7 +126,9 @@ export const PRESETS = {
         reduced: { transform: "scale(1)" },
         reducedChannel: { rotate: 0, scaleX: 1, scaleY: 1, x: 0, y: 0 },
       },
+      sway: SWAY,
     },
+    active: { lean: LEAN },
   },
   limb: {
     active: {
@@ -189,6 +220,7 @@ export const PRESETS = {
         reduced: {},
         reducedChannel: {},
       },
+      glance: GLANCE,
     },
     active: {
       // mouth->talk, plus generic movers usable by any accent part.
@@ -227,6 +259,7 @@ export const PRESETS = {
         reduced: { transform: "translateX(-4px)" },
         reducedChannel: { rotate: 0, scaleX: 1, scaleY: 1, x: -4, y: 0 },
       },
+      jolt: JOLT,
     },
   },
   passive: {},
@@ -242,13 +275,14 @@ export function kindDefaultPreset(kind) {
 
 export function presetsFor(roleOrKind, state) {
   const byState = PRESETS[resolveFamily(roleOrKind)];
-  if (!byState || !byState[state]) return [];
-  return Object.keys(byState[state]);
+  if (!byState || !byState[resolveState(state)]) return [];
+  return Object.keys(byState[resolveState(state)]);
 }
 
 export function recipeFor(roleOrKind, state, presetName, partId) {
   const role = resolveFamily(roleOrKind);
-  const template = PRESETS[role] && PRESETS[role][state] && PRESETS[role][state][presetName];
+  const resolvedState = resolveState(state);
+  const template = PRESETS[role] && PRESETS[role][resolvedState] && PRESETS[role][resolvedState][presetName];
   if (!template) throw new Error(`recipeFor: no preset '${presetName}' for role '${roleOrKind}' in state '${state}'.`);
   // deep clone the template so callers can't mutate the shared definition, then stamp identity.
   const recipe = structuredClone(template);

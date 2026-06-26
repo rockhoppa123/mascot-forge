@@ -8,7 +8,11 @@
 export const ROLES = ["core", "limb", "accent", "passive"];
 export const KINDS = ["wheel", "flag", "limb", "eye", "mouth", "body", "accent"]; // optional subject overlay
 export const BACKGROUND_PART = "part-background";
-const DEFAULT_STATES = ["idle", "active", "alert"];
+// The default rig vocabulary. SIGNAL_STATES are the opt-in app-signal states a rig can additionally
+// declare at creation (they reuse alert/active motion via presets.js STATE_FAMILY).
+export const STANDARD_STATES = ["idle", "active", "alert"];
+export const SIGNAL_STATES = ["loading", "error", "success"];
+const DEFAULT_STATES = STANDARD_STATES;
 
 export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, states = DEFAULT_STATES } = {}) {
   // rects: clone so callers can't mutate our store from underneath us.

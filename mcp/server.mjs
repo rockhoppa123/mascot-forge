@@ -37,12 +37,16 @@ export function buildServer() {
         "proposes coarse parts. Returns { session, viewBox, parts:[{id,role,rectCount,bbox}] }. The auto " +
         "parts are a hint — re-segment with assign_region by what you SEE. Returns inputGrade " +
         "{grade,reason,recommendation} — tell the user the grade BEFORE rigging; on 'silhouette', " +
-        "suggest a layered/multi-colour source.",
+        "suggest a layered/multi-colour source. Optionally pass `states` to declare app-signal states up " +
+        "front (e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"error\",\"success\"]); signal states reuse " +
+        "alert/active motion and must be declared here — a rig's vocabulary is fixed at start. Defaults to " +
+        "[\"idle\",\"active\",\"alert\"].",
       inputSchema: {
         base64: z.string().optional(),
         path: z.string().optional(),
         colors: z.number().int().min(1).max(32).optional(),
         maxDim: z.number().int().min(16).max(1024).optional(),
+        states: z.array(z.string()).optional(),
       },
     },
     async (a) => { try { return ok(startFromImage(a)); } catch (e) { return fail(e); } }
@@ -85,7 +89,9 @@ export function buildServer() {
         "Set a part's motion metadata in one call: role (core=body that breathes, limb=arm/leg that " +
         "rotates, accent=small mover like eyes/tongue, passive=still), bone, pivot (x,y each 0..1 of the " +
         "viewBox — omit for a role-aware default: limb hinges at its top-edge joint, others at bbox " +
-        "centre), and presets per state ({ idle?, active?, alert? }). Changing role clears any preset no " +
+        "centre), and presets per state ({ idle?, active?, alert?, loading?, error?, success? }). Signal " +
+        "states (loading/error/success) reuse active/alert motion and only apply if the rig declared them " +
+        "at start. Changing role clears any preset no " +
         "longer valid for it; an invalid preset for the role/state is rejected. Optional kind is a subject " +
         "hint (wheel/flag/limb/eye/mouth/body/accent) that unlocks subject-aware default motion (a wheel " +
         "spins, a flag waves). Returns { part, rigStatus }.",
@@ -96,7 +102,7 @@ export function buildServer() {
         kind: z.enum(["wheel", "flag", "limb", "eye", "mouth", "body", "accent"]).optional(),
         bone: z.string().optional(),
         pivot: z.object({ x: z.number(), y: z.number() }).optional(),
-        presets: z.object({ idle: z.string().nullable().optional(), active: z.string().nullable().optional(), alert: z.string().nullable().optional() }).optional(),
+        presets: z.object({ idle: z.string().nullable().optional(), active: z.string().nullable().optional(), alert: z.string().nullable().optional(), loading: z.string().nullable().optional(), error: z.string().nullable().optional(), success: z.string().nullable().optional() }).optional(),
       },
     },
     async (a) => { try { return ok(setPart(a)); } catch (e) { return fail(e); } }

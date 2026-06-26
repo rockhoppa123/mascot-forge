@@ -17,7 +17,7 @@ function attr(s, name) {
   return m ? m[1] : undefined;
 }
 
-export function parseSegmented(svgText) {
+export function parseSegmented(svgText, { states } = {}) {
   const svgOpen = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
 
@@ -50,7 +50,7 @@ export function parseSegmented(svgText) {
     }
   }
 
-  return createModel({ viewBox, rects, parts });
+  return createModel({ viewBox, rects, parts, states });
 }
 
 // D7 read side: a parts-spec.json declares candidate parts + bone hints. Merge bone onto any part
