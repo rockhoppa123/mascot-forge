@@ -101,3 +101,60 @@ Tag parts with a `kind` so the right motion is the default
 
 Generic movers (`bounce`, `shake`, `nod`, `float`, `jump`, `wobble`) are available to any limb or
 accent part and bind to whatever state you like (`error → shake`, `success → bounce`).
+
+---
+
+## 3. Motion presets
+
+Every preset lives in
+[`tools/rig-editor/presets.js`](../../tools/rig-editor/presets.js) under the
+`PRESETS[role][state][name]` tree. The editor's preset pickers and the
+`forge_propose` overlay key are generated from the same `presetsFor` helper, so
+this table is the human-readable mirror of that single source of truth.
+
+### core
+
+| State | Preset | What it does |
+|---|---|---|
+| idle | `breathe` | subtle scale pulse — the universal resting motion |
+| idle | `sway` | gentle idle lean |
+| active | `lean` | body tilts while active |
+
+### limb
+
+| State | Preset | What it does |
+|---|---|---|
+| active | `walk` | alternating leg swing (14°/−18°) |
+| active | `walk-mirror` | mirror of `walk` for the opposite leg |
+| active | `wag` | fast wide tail/flag swing (±22°) |
+| active | `spin` | continuous 360° rotation (wheels) |
+| active | `bounce` | vertical hop (−12 px) |
+| active | `shake` | horizontal rattle (±4 px) |
+| active | `nod` | slow rotational dip (10°) |
+| active | `float` | slow gentle drift (−6 px) |
+| active | `jump` | sharp upward leap (−20 px) |
+| active | `wobble` | quick alternating tilt (±6°) |
+
+### accent
+
+| State | Preset | What it does |
+|---|---|---|
+| idle | `twitch` | quick rotational ear/antenna flick |
+| idle | `blink` | vertical scale crush — eye blink |
+| idle | `glance` | eyes dart |
+| active | `talk` | fast vertical scale — mouth open/close |
+| active | `bounce` | vertical hop (−12 px) |
+| active | `float` | slow gentle drift (−6 px) |
+| active | `jump` | sharp upward leap (−20 px) |
+| alert | `wave` | slow wide sway (±6°) — flag/ribbon |
+| alert | `shake` | horizontal rattle (±4 px) |
+| alert | `nod` | slow rotational dip (10°) |
+| alert | `wobble` | quick alternating tilt (±6°) |
+| alert | `pulse` | rhythmic scale swell (→1.16×) |
+| alert | `recoil` | sharp horizontal flinch (−5 px) |
+| alert | `jolt` | upward startle on alert |
+
+### passive
+
+No presets. Passive parts are inert — they inherit the parent's transform but
+carry no animation of their own.
