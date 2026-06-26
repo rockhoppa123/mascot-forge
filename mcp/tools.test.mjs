@@ -278,4 +278,15 @@ assert.deepEqual(defaultPresetFor("part-tail", "limb", null), ["active", "wag"],
   assert.ok(["good", "borderline"].includes(cg.inputGrade.grade), "multi-colour start is not a silhouette");
 }
 
+// app-signal states: a session can be started with extra states and set_part fills a preset for them
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4, states: ["idle", "loading", "error"] });
+  assert.deepEqual(s.states, ["idle", "loading", "error"], "start declares the signal-state vocabulary");
+  const partId = s.parts[0].id;
+  setPart({ session: s.session, partId, role: "limb", presets: { loading: "spin" } });
+  const st = forgeStatus({ session: s.session });
+  // the loading state now has coverage (rigStatus tracks per declared state)
+  assert.ok(st.rigStatus.loading >= 1, "set_part applied a preset to the loading state");
+}
+
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);

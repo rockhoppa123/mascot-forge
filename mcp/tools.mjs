@@ -10,7 +10,7 @@ import { vectorizeRaster } from "../tools/rig-editor/vectorize.js";
 import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
 import { vtracerSvg, elementsFromVtracerSvg } from "./vectorize-vtracer.mjs";
-import { createModel } from "../tools/rig-editor/model.js";
+import { createModel, STANDARD_STATES } from "../tools/rig-editor/model.js";
 import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
@@ -118,7 +118,7 @@ function downscale({ rgba, w, h }, maxDim) {
 
 // --- TOOLS ---------------------------------------------------------------------------------------
 
-export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine = "scanline" } = {}) {
+export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) {
   if (!base64 && !path) throw new Error("provide base64 or path (PNG)");
   const buf = base64 ? Buffer.from(base64, "base64") : readFileSync(safePath(path));
 
@@ -127,12 +127,12 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
     // path-based: VTracer -> geometry-agnostic elements -> one passive part the agent re-assigns.
     const { viewBox, elements } = elementsFromVtracerSvg(vtracerSvg(buf, { colorPrecision: Math.max(1, Math.round(Math.log2(colors))) }));
     const rects = elements.map((e) => ({ ...e, part: "part-body" }));
-    model = createModel({ viewBox, rects, parts: { "part-body": { role: "core" } } });
+    model = createModel({ viewBox, rects, parts: { "part-body": { role: "core" } }, states });
   } else {
     const grid = downscale(decodePng(buf), maxDim);
     const flat = vectorizeRaster({ rgba: grid.rgba, w: grid.w, h: grid.h }, { colors });
     const seg = segment(flat.rects, { viewBoxSize: Math.max(grid.w, grid.h) });
-    model = parseSegmented(seg.svg);
+    model = parseSegmented(seg.svg, { states });
   }
 
   if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
@@ -142,7 +142,7 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
   sessions.set(session, { model, vb: parseVB(model.viewBox()), sourceDataUri });
   const inputGrade = gradeInput(model);
   return {
-    session, viewBox: model.viewBox(), parts: partList(model), inputGrade,
+    session, viewBox: model.viewBox(), parts: partList(model), inputGrade, states: model.states(),
     note: "Parts are a coarse first pass. Coords in assign_region are 0..1 fractions of the viewBox — reassign by what you SEE in the image. Pick presets by anatomy: ears/antennae -> twitch, tail -> wag, eyes -> blink. Part ids are auto-prefixed with 'part-'.",
   };
 }
