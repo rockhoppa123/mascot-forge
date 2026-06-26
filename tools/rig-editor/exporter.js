@@ -99,7 +99,10 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
   lines.push(
     `<svg id="mascot" data-state="${states[0]}" data-render-method="${renderMethod}" ` +
       `data-source-bounds="${sourceBounds}" xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" ` +
-      `role="img" aria-labelledby="title desc">`
+      // crispEdges disables edge anti-aliasing so the stack of 1px run-rects tiles seamlessly. Without
+      // it, gradient/anti-aliased sources (which defeat the vertical rect-merge) render hairline white
+      // seams between every row. Matches tools/emit-svg-css.ps1's shape-rendering: crispEdges.
+      `shape-rendering="crispEdges" role="img" aria-labelledby="title desc">`
   );
   lines.push(`  <title id="title">${assetName} Manual Part SVG</title>`);
   lines.push(`  <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>`);

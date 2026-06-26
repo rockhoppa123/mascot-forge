@@ -16,6 +16,21 @@ assert.equal(gradeInput(mk([
   { x: 0, y: 0, w: 25, h: 50, fill: "#a11" }, { x: 25, y: 0, w: 25, h: 50, fill: "#1a1" },
   { x: 50, y: 0, w: 25, h: 50, fill: "#11a" }, { x: 75, y: 0, w: 25, h: 50, fill: "#aa1" },
 ])).grade, "good");
+// colour-separable but fragmented (gradient/anti-aliased) -> borderline, flags the source kind
+{
+  // 60 one-px strips across 4 colours: rich palette, no dominant region, but mean rect height ~1px.
+  const strips = [];
+  for (let i = 0; i < 60; i++) strips.push({ x: 0, y: i, w: 40, h: 1, fill: ["#a11", "#1a1", "#11a", "#aa1"][i % 4] });
+  const v = gradeInput(mk(strips));
+  assert.equal(v.grade, "borderline", "fragmented multi-colour source is borderline, not good");
+  assert.match(v.reason, /fragmented/, "reason names the fragmentation");
+}
+// flat multi-colour art with tall merged rects stays good (not tripped by the fragmentation check)
+assert.equal(gradeInput(mk([
+  { x: 0, y: 0, w: 25, h: 50, fill: "#a11" }, { x: 25, y: 0, w: 25, h: 50, fill: "#1a1" },
+  { x: 50, y: 0, w: 25, h: 50, fill: "#11a" }, { x: 75, y: 0, w: 25, h: 50, fill: "#aa1" },
+])).grade, "good");
+
 // every verdict carries reason + recommendation strings
 const g = gradeInput(mk([{ x: 0, y: 0, w: 10, h: 10, fill: "#000" }]));
 assert.ok(g.reason && g.recommendation, "grade carries reason + recommendation");

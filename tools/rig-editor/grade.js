@@ -13,6 +13,20 @@ export function gradeInput(model) {
       recommendation: "parts can't be auto-separated — use a layered or multi-colour source, or it will animate as one body",
     };
   }
+  // Colour-separable but anti-aliased/gradient source: smooth shading defeats the vectoriser's vertical
+  // rect-merge, so the art comes back as a stack of ~1px strips. Flat pixel art merges into tall rects,
+  // so a low mean rect height reliably flags "not flat". crispEdges now hides the seams, but thin
+  // tapering features (a pointed tail, thin limbs) still shatter into detached slivers — warn first.
+  const meanHeight = rects.length ? rects.reduce((a, r) => a + r.h, 0) / rects.length : 0;
+  // ponytail: 2px threshold splits flat pixel art (tall merged rects) from gradient rasters (~1px
+  // strips); 50-rect floor avoids tripping on tiny fixtures. Tune if a legit fine-detail sprite trips it.
+  if (rects.length >= 50 && meanHeight < 2) {
+    return {
+      grade: "borderline",
+      reason: `${fills.size} colours but heavily fragmented (mean rect height ${meanHeight.toFixed(1)}px) — a gradient/anti-aliased source, not flat pixel art`,
+      recommendation: "edges will look rough and thin features (a tapered tail, thin limbs) may break into slivers — use flat hard-edged pixel art or a layered SVG for a clean rig",
+    };
+  }
   if (fills.size >= 4 && maxShare <= 0.8) {
     return { grade: "good", reason: `${fills.size} distinct colours, no single dominant region`, recommendation: "rig away — use the vtracer engine for smooth, small output" };
   }
