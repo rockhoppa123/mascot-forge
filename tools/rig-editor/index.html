@@ -33,9 +33,7 @@
       <div id="banner" hidden></div>
       <div id="states" hidden>
         <span>preview:</span>
-        <button data-state="idle" class="on">idle</button>
-        <button data-state="active">active</button>
-        <button data-state="alert">alert</button>
+        <span id="states-row"></span>
         <label><input type="checkbox" id="reduce" /> reduced motion</label>
         <label><input type="checkbox" id="realcolours" /> real colours</label>
       </div>
@@ -89,9 +87,7 @@
         <p id="pivotinfo" class="hint">pivot: —</p>
         <fieldset>
           <legend title="How this part animates in each app state.">presets — motion per state</legend>
-          <label>idle <select id="preset-idle"></select></label>
-          <label>active <select id="preset-active"></select></label>
-          <label>alert <select id="preset-alert"></select></label>
+          <div id="preset-pickers"></div>
         </fieldset>
         <button id="rename">rename…</button>
         <button id="remove" class="danger">remove (→ background)</button>

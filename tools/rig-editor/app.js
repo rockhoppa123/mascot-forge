@@ -53,9 +53,9 @@ function paletteFor(ids) {
   ids.forEach((id, i) => colours.set(id, `hsl(${(i * 67) % 360} 70% 55%)`));
 }
 
-function loadText(text, name) {
+function loadText(text, name, states) {
   assetName = (name || "mascot").replace(/-segmented\.svg$/i, "").replace(/\.svg$/i, "");
-  model = parseSegmented(text);
+  model = parseSegmented(text, { states }); // states optional — declares the rig vocabulary up front
   showModel(`Loaded ${model.rects().length} rects, ${visibleParts().length} proposed parts.`);
 }
 
@@ -70,6 +70,7 @@ function showModel(msg) {
   $("states").hidden = false;
   $("panel").hidden = false;
   $("exportbar").hidden = false;
+  renderStateControls();
   render();
   renderParts();
   regenCss();
@@ -97,6 +98,32 @@ function updateBanner() {
 function setState(s) {
   $("stage").setAttribute("data-state", s);
   $("states").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.state === s));
+}
+
+// Render the preview-state buttons and the per-state preset pickers from the rig's DECLARED vocabulary
+// (model.states()) rather than a hardcoded idle/active/alert trio — so a rig declaring loading/error/
+// success shows those controls. Re-run on every load. states()[0] is the resting state (selected first).
+function renderStateControls() {
+  const row = $("states-row");
+  row.replaceChildren();
+  for (const s of model.states()) {
+    const b = document.createElement("button");
+    b.dataset.state = s;
+    b.textContent = s;
+    row.appendChild(b);
+  }
+  const pk = $("preset-pickers");
+  pk.replaceChildren();
+  for (const s of model.states()) {
+    const label = document.createElement("label");
+    label.append(s + " ");
+    const sel = document.createElement("select");
+    sel.id = `preset-${s}`;
+    sel.onchange = (e) => { if (selected) { pushUndo(); model.setPreset(s, selected, e.target.value || null); regenCss(); } };
+    label.appendChild(sel);
+    pk.appendChild(label);
+  }
+  setState(model.states()[0]);
 }
 
 // Always-visible rig health: which states have a valid animation, and how many parts animate.
@@ -365,9 +392,7 @@ $("kind").onchange = (e) => {
   regenCss();
 };
 $("bone").onchange = (e) => { if (selected) { pushUndo(); model.setBone(selected, e.target.value.trim()); } };
-for (const s of ["idle", "active", "alert"]) {
-  $(`preset-${s}`).onchange = (e) => { if (selected) { pushUndo(); model.setPreset(s, selected, e.target.value || null); regenCss(); } };
-}
+// (preset-picker onchange handlers are wired in renderStateControls — pickers are now dynamic per state)
 $("rename").onclick = () => {
   if (!selected) return;
   const next = prompt("Rename part id to:", selected);
