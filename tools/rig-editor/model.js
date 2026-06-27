@@ -16,6 +16,7 @@ export const SIGNAL_STATES = ["loading", "error", "success"];
 const DEFAULT_STATES = STANDARD_STATES;
 
 export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, states = DEFAULT_STATES } = {}) {
+  states = states.slice(); // own a private copy — addState/removeState must not mutate the caller's/shared default array
   // rects: clone so callers can't mutate our store from underneath us.
   const rectList = rects.map((r) => ({ ...r }));
   const partMap = {};
@@ -127,10 +128,20 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
   function everyRectGrouped() {
     return ungroupedRects().length === 0;
   }
+  // editor authoring: dial the rig's reactivity after creation. idle (states[0]) is the mandatory resting
+  // state. The MCP/runtime keep declare-at-start; this mutates only this editor model (export = new snapshot).
+  function addState(name) { if (!states.includes(name)) { states.push(name); selections[name] = selections[name] || {}; } }
+  function removeState(name) {
+    if (name === states[0]) throw new Error(`cannot remove the resting state '${states[0]}'`);
+    const i = states.indexOf(name); if (i >= 0) states.splice(i, 1);
+    delete selections[name];
+  }
 
   return {
     viewBox: () => viewBox,
     states: () => states.slice(),
+    addState,
+    removeState,
     rects: () => rectList.map((r) => ({ ...r })),
     parts: () => {
       const out = {};

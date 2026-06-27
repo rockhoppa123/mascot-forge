@@ -135,6 +135,23 @@ assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
   assert.throws(() => m.setPreset("success", "part-a", "jump"), /state/, "an undeclared state is rejected");
 }
 
+{ // editor authoring: states can be added/removed (idle is mandatory)
+  const m = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "part-a" }], parts: { "part-a": { role: "limb" } }, states: ["idle", "active", "alert"] });
+  m.addState("loading");
+  assert.deepEqual(m.states(), ["idle", "active", "alert", "loading"], "addState appends");
+  m.setPreset("loading", "part-a", "spin");
+  assert.equal(m.preset("loading", "part-a"), "spin", "preset works on the new state");
+  m.removeState("loading");
+  assert.ok(!m.states().includes("loading"), "removeState drops it");
+  assert.throws(() => m.removeState("idle"), /idle|resting/, "idle cannot be removed");
+}
+{ // addState must not mutate the shared STANDARD_STATES default (the v1->v2 plan-optimizer fix)
+  const a = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "p" }], parts: { p: { role: "core" } } });
+  a.addState("loading");
+  const b = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "p" }], parts: { p: { role: "core" } } });
+  assert.deepEqual(b.states(), ["idle", "active", "alert"], "a default-states model is unaffected by another's addState");
+}
+
 { // Simple tier: a single resting state, no state machine
   const m = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "part-a" }], parts: { "part-a": { role: "core" } }, states: SIMPLE_STATES });
   assert.deepEqual(m.states(), ["idle"], "Simple tier declares only idle");
