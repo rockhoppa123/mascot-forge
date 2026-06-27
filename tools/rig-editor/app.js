@@ -194,6 +194,12 @@ function loadLayeredSvg(svgText, name) {
   document.body.appendChild(wrap);
 
   const DRAW = "rect,path,circle,ellipse,polygon,polyline,line";
+  // self-describing handoff rig: root data-states + per-group role/bone/pivot/preset-* rebuild a live,
+  // ANIMATED model. A plain layered SVG (Figma/Inkscape) lacks these attrs → partsMeta stays empty → same
+  // geometry-only behaviour as before.
+  const rootStates = svgEl.getAttribute("data-states");
+  const states = rootStates ? rootStates.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const partsMeta = {};
   const used = new Set();
   const elements = [];
   let eid = 0, layerN = 0;
@@ -202,6 +208,11 @@ function loadLayeredSvg(svgText, name) {
   for (const g of layers) {
     const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;
     const part = sanitizeId(label, used);
+    const meta = partsMeta[part] || (partsMeta[part] = {});
+    const role = g.getAttribute("data-role"); if (role) meta.role = role;
+    const bone = g.getAttribute("data-bone"); if (bone) meta.bone = bone;
+    const piv = g.getAttribute("data-pivot"); if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
+    for (const a of g.getAttributeNames()) if (a.startsWith("data-preset-")) (meta.presets || (meta.presets = {}))[a.slice("data-preset-".length)] = g.getAttribute(a);
     for (const el of g.querySelectorAll(DRAW)) {
       let bb; try { bb = el.getBBox(); } catch { bb = { x: 0, y: 0, width: 0, height: 0 }; }
       elements.push({ id: `e${eid++}`, part, markup: el.outerHTML, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
@@ -210,7 +221,7 @@ function loadLayeredSvg(svgText, name) {
   document.body.removeChild(wrap);
   if (!elements.length) { status("No shapes found in that SVG."); return; }
 
-  model = toModel({ viewBox, elements });
+  model = toModel({ viewBox, elements, parts: partsMeta, states });
   assetName = (name || "mascot").replace(/\.svg$/i, "");
   showModel(`Loaded ${elements.length} shapes across ${visibleParts().length} layer-parts. Set roles/pivots/presets, then export.`);
 }
@@ -685,3 +696,7 @@ dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
 window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, emitAnimatedSvg, emitDemoHtml, get rectSel() { return rectSel.slice(); } };
+
+// auto-load a handoff rig passed by forge_open_editor: ?rig=<project-relative path> (served from repo root)
+const rigParam = new URLSearchParams(location.search).get("rig");
+if (rigParam) fetch("/" + rigParam.replace(/^\/+/, "")).then((r) => r.ok ? r.text() : Promise.reject(new Error("rig not found"))).then((t) => loadLayeredSvg(t, rigParam.split("/").pop())).catch((e) => status("✗ " + e.message));
