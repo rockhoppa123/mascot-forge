@@ -239,8 +239,8 @@ test("handoff rig loads animated", async ({ page }) => {
     ].join("\n");
     window.__rigEditor.loadLayeredSvg(svg, "handoff");
   });
-  // the body's idle preset survived the load -> the rig animates, not 0/N
-  await expect(page.locator("#rigstatus")).toContainText("idle");
+  // the body's idle preset survived the load -> the rig ANIMATES (badge shows idle ✓, not ✗/0-N)
+  await expect(page.locator("#rigstatus")).toContainText("idle ✓");
   const idleBreathe = await page.evaluate(() => window.__rigEditor.model.preset("idle", "part-body"));
   expect(idleBreathe).toBe("breathe");
 });
@@ -333,10 +333,11 @@ In `forgeEmit`, in the `outDir` branch, compute the demo path and add `open`:
     return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f), open: servedUrl(demoPath) };
 ```
 
-In `editorHandoff`, when `written` is set, add `open`:
+In `editorHandoff`, when `written` is set, add `open` — note this is the **editor** URL with a `?rig=` param (not the raw SVG URL), so it auto-loads the handoff (Task 3):
 
 ```javascript
-  return { svg, written, editor: "tools/rig-editor/index.html", open: written ? servedUrl(join(safePath(outDir), "rig-handoff.svg")) : null };
+  const rigRel = written ? written.slice(PROJECT_ROOT.length + 1).replace(/\\/g, "/") : null;
+  return { svg, written, editor: "tools/rig-editor/index.html", open: rigRel ? `http://localhost:${SERVE_PORT}/tools/rig-editor/index.html?rig=${rigRel}` : null };
 ```
 
 (b) Create `tools/serve.ps1`:
@@ -427,19 +428,19 @@ assert.match(tt, /Simple|Standard|Signals/, "prompt offers reactivity tiers");
 assert.match(tt, /silhouette/i, "prompt steers silhouettes to whole-body");
 ```
 
-(b) Append to `mcp/tools.test.mjs` (asserts the silhouette advisory recommends a single whole-body part). The existing monochrome fixture trips the silhouette grade:
+IMPORTANT — do NOT delete the existing `server.test.mjs` assertions from the prior plan (`/signal state/i`, `/\bplan\b/i`, `/options|alternativ/i`, `/continue/i`, `/change/i`, `/forge_open_editor/`). The Step-0 rewrite below keeps the phrase "app-signal states" and leaves Steps 2-4 (plan table / checkpoint / forge_open_editor) intact, so those stay green. Run the full `node mcp/server.test.mjs` in Step 4 to confirm.
+
+(b) Append to `mcp/tools.test.mjs` (asserts the silhouette advisory recommends a single whole-body part). `PNG` is already imported at the top of `tools.test.mjs`; reuse it. The monochrome fixture trips the silhouette grade:
 
 ```javascript
 { // a silhouette is steered to whole-body Simple, not carved into fake parts
-  const W = 40, mono = new (await import("pngjs")).PNG({ width: W, height: W });
+  const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
-  const sm = startFromImage({ base64: (await import("pngjs")).PNG.sync.write(mono).toString("base64"), colors: 4 });
+  const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
   const prop = forgePropose({ session: sm.session });
   assert.match(prop.advisory || "", /whole-body|one part|Simple/i, "silhouette advisory recommends whole-body Simple");
 }
 ```
-
-(Note: `PNG` is already imported at the top of `tools.test.mjs` — use that import directly rather than the dynamic import above if simpler; the dynamic form avoids assuming. Prefer the existing top-level `PNG` import: `new PNG({width:W,height:W})` and `PNG.sync.write(mono)`.)
 
 - [ ] **Step 2: Run, verify FAIL** — `node mcp/server.test.mjs` and `node mcp/tools.test.mjs` (expect: prompt lacks tier text; advisory lacks the whole-body recommendation).
 
@@ -459,7 +460,7 @@ assert.match(tt, /silhouette/i, "prompt steers silhouettes to whole-body");
 "0. FIRST ask me how reactive this mascot should be — pick a TIER:\n" +
 "   • Simple — one looping animation, no app states, no JS (states: [\"idle\"]).\n" +
 "   • Standard — reacts idle/active/alert to your data (states: [\"idle\",\"active\",\"alert\"]).\n" +
-"   • Signals — Standard plus loading/error/success (the universal dashboard signals).\n" +
+"   • Signals — Standard plus the loading/error/success app-signal states (the universal dashboard signals).\n" +
 "   Pass the matching `states` to forge_start_from_image. The vocabulary is fixed at start.\n" +
 ```
 
@@ -511,7 +512,15 @@ git commit -m "feat(mcp): rig_mascot reactivity tiers + silhouette->whole-body s
 
 - [ ] **Step 2: Run, verify FAIL** — `node tools/rig-editor/model.test.mjs` (expect: `m.addState is not a function`).
 
-- [ ] **Step 3: Implement.** In `tools/rig-editor/model.js`, inside `createModel` (where `states` and `selections` are in scope), add two closures and expose them. Add before the `return { … }`:
+- [ ] **Step 3: Implement.** In `tools/rig-editor/model.js`, inside `createModel`:
+
+**(a) First make the model own its states array** so add/remove can't mutate a caller's array or the shared `STANDARD_STATES` default. Immediately after the destructuring line `export function createModel({ … states = DEFAULT_STATES } = {}) {`, add as the first statement:
+
+```javascript
+  states = states.slice(); // own a private copy — addState/removeState must not mutate the caller's/default array
+```
+
+**(b)** Then add two closures and expose them (where `states` and `selections` are in scope), before the `return { … }`:
 
 ```javascript
   function addState(name) { if (!states.includes(name)) { states.push(name); selections[name] = selections[name] || {}; } }
