@@ -5,7 +5,7 @@
 // Part ops: rename/role/pivot/preset/merge/remove (part-level) plus drag-marquee rect-level SPLIT
 // (peel colour-fused rects — e.g. land-rover wheels stuck in part-body — into their own part via
 // model.assign). Geometry/selection logic is in the node-tested modules; this stays thin glue.
-import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
+import { createModel, ROLES, BACKGROUND_PART, STANDARD_STATES, SIGNAL_STATES } from "./model.js";
 import { parseSegmented, applyPartsSpec } from "./loader.js";
 import { bboxOf, dragToPivot, pivotToOrigin, defaultPivotFor } from "./pivot.js";
 import { presetsFor, recipeFor, kindDefaultPreset } from "./presets.js";
@@ -106,12 +106,23 @@ function setState(s) {
 function renderStateControls() {
   const row = $("states-row");
   row.replaceChildren();
+  const resting = model.states()[0];
   for (const s of model.states()) {
     const b = document.createElement("button");
     b.dataset.state = s;
     b.textContent = s;
     row.appendChild(b);
+    if (s !== resting) { // every non-resting state can be removed
+      const x = document.createElement("button");
+      x.className = "rmstate"; x.dataset.rmstate = s; x.textContent = "×"; x.title = `remove ${s}`;
+      row.appendChild(x);
+    }
   }
+  // "+ add state": offer the standard trio + signal states not yet declared
+  const addSel = $("addstate");
+  addSel.replaceChildren(new Option("+ add state", ""));
+  for (const s of [...STANDARD_STATES, ...SIGNAL_STATES].filter((s) => !model.states().includes(s))) addSel.appendChild(new Option(s, s));
+  addSel.onchange = (e) => { const s = e.target.value; if (s) { pushUndo(); model.addState(s); renderStateControls(); regenCss(); } };
   const pk = $("preset-pickers");
   pk.replaceChildren();
   for (const s of model.states()) {
@@ -592,6 +603,8 @@ function regenCss() {
 }
 
 $("states").addEventListener("click", (e) => {
+  const rm = e.target.closest("button[data-rmstate]");
+  if (rm) { pushUndo(); model.removeState(rm.dataset.rmstate); renderStateControls(); regenCss(); return; }
   const b = e.target.closest("button[data-state]");
   if (!b) return;
   $("stage").setAttribute("data-state", b.dataset.state);

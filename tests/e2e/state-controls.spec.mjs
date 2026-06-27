@@ -29,3 +29,11 @@ test("editor surfaces declared signal states", async ({ page }) => {
   await page.selectOption("#role", "limb");
   await expect(page.locator("#preset-pickers #preset-loading option", { hasText: "spin" })).toHaveCount(1);
 });
+
+test("editor can add a signal state", async ({ page }) => {
+  await loadEditorWithStates(page, ["idle", "active", "alert"]);
+  await expect(page.locator("#states-row button", { hasText: "loading" })).toHaveCount(0);
+  await page.selectOption("#addstate", "loading");
+  await expect(page.locator("#states-row button", { hasText: "loading" })).toHaveCount(1);
+  await expect(page.locator("#preset-pickers #preset-loading")).toHaveCount(1);
+});
