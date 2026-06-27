@@ -142,8 +142,11 @@ export function buildServer() {
       description:
         "Analyze-first report: assemble the current proposed parts + write a regions-overlay preview " +
         "(original image with the proposed part boxes drawn over it) the human can eyeball before emit. " +
-        "Returns { parts, rigStatus, preview, advisory }. `advisory` flags a single-colour silhouette " +
-        "that can't be auto-separated — provide a layered/multi-colour source for full rigging.",
+        "Returns { parts, rigStatus, preview, advisory, plan }. `plan` is the per-part motion plan: each " +
+        "part's recommended preset (mirror-aware — two limbs alternate walk/walk-mirror) plus the " +
+        "alternative `options` per declared state — present it so the user can confirm or swap a motion. " +
+        "`advisory` flags a single-colour silhouette that can't be auto-separated — provide a layered/" +
+        "multi-colour source for full rigging.",
       inputSchema: { session: z.string(), outDir: z.string().optional() },
     },
     async (a) => { try { return ok(forgePropose(a)); } catch (e) { return fail(e); } }

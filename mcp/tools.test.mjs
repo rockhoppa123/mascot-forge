@@ -4,8 +4,9 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
-import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg } from "./tools.mjs";
+import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg, planFor, _sessions } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
+import { createModel } from "../tools/rig-editor/model.js";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -287,6 +288,51 @@ assert.deepEqual(defaultPresetFor("part-tail", "limb", null), ["active", "wag"],
   const st = forgeStatus({ session: s.session });
   // the loading state now has coverage (rigStatus tracks per declared state)
   assert.ok(st.rigStatus.loading >= 1, "set_part applied a preset to the loading state");
+}
+
+// planFor: mirror-aware recommendation engine — two limbs alternate walk/walk-mirror (fault #1), and
+// options are keyed by every DECLARED state from the single presetsFor source of truth.
+{
+  const m = createModel({
+    viewBox: "0 0 100 100",
+    rects: [
+      { id: "r0", x: 0, y: 0, w: 20, h: 40, fill: "#111", part: "part-leg-a" },
+      { id: "r1", x: 40, y: 0, w: 20, h: 40, fill: "#111", part: "part-leg-b" },
+      { id: "r2", x: 20, y: 50, w: 30, h: 30, fill: "#222", part: "part-body" },
+    ],
+    parts: { "part-leg-a": { role: "limb" }, "part-leg-b": { role: "limb" }, "part-body": { role: "core" } },
+  });
+  const plan = planFor(m);
+  const legs = plan.filter((p) => p.role === "limb");
+  assert.deepEqual(legs.map((l) => l.recommended.preset), ["walk", "walk-mirror"], "two limbs alternate walk/walk-mirror (no lockstep)");
+  const legA = plan.find((p) => p.id === "part-leg-a");
+  assert.ok(legA.options.active.includes("walk"), "plan entries carry per-state options from presetsFor");
+}
+{
+  // options follow the rig's declared vocabulary, incl. signal states (loading reuses active via STATE_FAMILY)
+  const m = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "part-w" }], parts: { "part-w": { role: "limb" } }, states: ["idle", "active", "loading"] });
+  const p = planFor(m)[0];
+  assert.deepEqual(Object.keys(p.options).sort(), ["active", "idle", "loading"], "options keyed by declared states");
+  assert.ok(p.options.loading.includes("spin"), "loading options reuse active motion (spin)");
+}
+{
+  // forge_propose now returns the motion plan alongside parts/overlay
+  const sp = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: sp.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const prop = forgePropose({ session: sp.session });
+  assert.ok(Array.isArray(prop.plan) && prop.plan.length >= 1, "propose returns a motion plan");
+  assert.ok(prop.plan[0].options && typeof prop.plan[0].options === "object", "plan entries carry options");
+}
+{
+  // fault #1 regression: forge_emit auto-fill must NOT give two limbs the same in-phase preset
+  const sd = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: sd.session, box: { x: 0.04, y: 0.30, w: 0.20, h: 0.28 }, partId: "hand-left", role: "limb" });
+  assignRegion({ session: sd.session, box: { x: 0.74, y: 0.30, w: 0.22, h: 0.28 }, partId: "hand-right", role: "limb" });
+  assignRegion({ session: sd.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  forgeEmit({ session: sd.session, assetName: "desync" });
+  const sel = _sessions.get(sd.session).model.selections();
+  const lp = ["part-hand-left", "part-hand-right"].map((id) => sel.active && sel.active[id]);
+  assert.ok(lp[0] && lp[1] && lp[0] !== lp[1], `two auto-filled limbs differ, no lockstep (${lp[0]} vs ${lp[1]})`);
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
