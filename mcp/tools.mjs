@@ -248,11 +248,18 @@ export function applyTweaks({ session, edits } = {}) {
 // outDir given) + the editor entry; the human fixes it visually, then emits.
 export function editorHandoff({ session, outDir } = {}) {
   const { model } = getSession(session);
-  const lines = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${model.viewBox()}">`];
+  const states = model.states();
+  const lines = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${model.viewBox()}" data-states="${states.join(",")}">`];
   for (const id of Object.keys(model.parts())) {
     const rs = model.rectsOf(id);
     if (!rs.length) continue;
-    lines.push(`  <g id="${id}">`);
+    const meta = model.parts()[id];
+    const attrs = [`id="${id}"`];
+    if (meta.role) attrs.push(`data-role="${meta.role}"`);
+    if (meta.bone) attrs.push(`data-bone="${meta.bone}"`);
+    if (meta.pivot) attrs.push(`data-pivot="${meta.pivot.x},${meta.pivot.y}"`);
+    for (const st of states) { const p = model.preset(st, id); if (p) attrs.push(`data-preset-${st}="${p}"`); }
+    lines.push(`  <g ${attrs.join(" ")}>`);
     for (const r of rs) lines.push(r.markup ? `    ${r.markup}` : `    <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.fill || "#888888"}"/>`);
     lines.push("  </g>");
   }

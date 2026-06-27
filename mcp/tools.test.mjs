@@ -336,3 +336,18 @@ assert.deepEqual(defaultPresetFor("part-tail", "limb", null), ["active", "wag"],
 }
 
 console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved}/${a2.moved}/${a3.moved} svgBytes=${out.svgBytes}`);
+
+// editorHandoff carries the FULL rig (roles/pivots/presets/states), not just geometry, so the editor animates
+{
+  const s = startFromImage({ base64: smileyPngBase64(), colors: 6, states: ["idle", "active", "alert"] });
+  assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  assignRegion({ session: s.session, box: { x: 0.04, y: 0.30, w: 0.20, h: 0.28 }, partId: "hand-left", role: "limb" });
+  setPart({ session: s.session, partId: "part-body", role: "core", presets: { idle: "breathe" } });
+  setPart({ session: s.session, partId: "part-hand-left", role: "limb", presets: { active: "walk" } });
+  const { svg } = editorHandoff({ session: s.session });
+  assert.match(svg, /<svg[^>]*\bdata-states="idle,active,alert"/, "root carries the declared states");
+  assert.match(svg, /<g id="part-body"[^>]*\bdata-role="core"/, "body group carries its role");
+  assert.match(svg, /<g id="part-body"[^>]*\bdata-preset-idle="breathe"/, "body group carries its idle preset");
+  assert.match(svg, /<g id="part-hand-left"[^>]*\bdata-preset-active="walk"/, "limb group carries its active preset");
+  assert.match(svg, /<g id="part-body"[^>]*\bdata-pivot="\d+(\.\d+)?,\d+(\.\d+)?"/, "body group carries its pivot");
+}
