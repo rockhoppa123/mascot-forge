@@ -10,6 +10,7 @@ export const KINDS = ["wheel", "flag", "limb", "eye", "mouth", "body", "accent"]
 export const BACKGROUND_PART = "part-background";
 // The default rig vocabulary. SIGNAL_STATES are the opt-in app-signal states a rig can additionally
 // declare at creation (they reuse alert/active motion via presets.js STATE_FAMILY).
+export const SIMPLE_STATES = ["idle"]; // Simple tier: one looping animation, no state machine
 export const STANDARD_STATES = ["idle", "active", "alert"];
 export const SIGNAL_STATES = ["loading", "error", "success"];
 const DEFAULT_STATES = STANDARD_STATES;

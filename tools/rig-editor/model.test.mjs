@@ -1,7 +1,7 @@
 // Self-check for the rig-editor in-memory model. No framework — node:assert, mirror
 // runtime/mascot-state.test.mjs. Run: `node tools/rig-editor/model.test.mjs`.
 import assert from "node:assert/strict";
-import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
+import { createModel, ROLES, BACKGROUND_PART, SIMPLE_STATES } from "./model.js";
 
 function sample() {
   return createModel({
@@ -133,6 +133,12 @@ assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
   m.setPreset("loading", "part-a", "spin");
   assert.equal(m.preset("loading", "part-a"), "spin");
   assert.throws(() => m.setPreset("success", "part-a", "jump"), /state/, "an undeclared state is rejected");
+}
+
+{ // Simple tier: a single resting state, no state machine
+  const m = createModel({ viewBox: "0 0 10 10", rects: [{ id: "r0", x: 0, y: 0, w: 10, h: 10, fill: "#000", part: "part-a" }], parts: { "part-a": { role: "core" } }, states: SIMPLE_STATES });
+  assert.deepEqual(m.states(), ["idle"], "Simple tier declares only idle");
+  assert.deepEqual(SIMPLE_STATES, ["idle"]);
 }
 
 console.log("model.test.mjs: all assertions passed.");
