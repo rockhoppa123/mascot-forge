@@ -42,6 +42,29 @@ export function defaultPresetFor(id, role, kind = null) {
   return DEFAULT_PRESET[role];
 }
 
+// planFor: the guided flow's motion plan + the single recommendation source for auto-fill. Per rect-
+// bearing part: the recommended motion (mirror-aware) and the alternative options per DECLARED state
+// (from presetsFor, so the menu always matches the library incl. signal states via STATE_FAMILY).
+// Mirror rule: walking limbs alternate walk / walk-mirror so two legs never move in lockstep (fault #1).
+// Only the generic `walk` default is mirrored — a kind/id-specific default (wag/spin/blink) is left as-is.
+export function planFor(model) {
+  const states = model.states();
+  const ids = Object.keys(model.parts()).filter((id) => model.rectsOf(id).length > 0);
+  let walks = 0;
+  return ids.map((id) => {
+    const { role, kind } = model.parts()[id];
+    const def = defaultPresetFor(id, role, kind);
+    let recommended = def ? { state: def[0], preset: def[1] } : null;
+    if (recommended && recommended.preset === "walk") {
+      if (walks % 2 === 1) recommended = { state: recommended.state, preset: "walk-mirror" };
+      walks++;
+    }
+    const options = {};
+    for (const s of states) options[s] = presetsFor(role, s);
+    return { id, role, kind: kind || null, recommended, options };
+  });
+}
+
 function getSession(id) {
   const s = sessions.get(id);
   if (!s) throw new Error(`unknown session '${id}'`);
@@ -203,7 +226,7 @@ export function forgePropose({ session, outDir } = {}) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
     const f = join(dir, "regions-preview.html"); writeFileSync(f, html); preview = f;
   } else preview = html.length;
-  return { parts, rigStatus: rigStatus(s.model), preview, advisory };
+  return { parts, rigStatus: rigStatus(s.model), preview, advisory, plan: planFor(s.model) };
 }
 
 // forge_apply_tweaks: inline fixes at the checkpoint (rename a part, change its role) without leaving
@@ -242,11 +265,10 @@ export function editorHandoff({ session, outDir } = {}) {
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   const { model, sourceDataUri } = getSession(session);
-  // auto-fill a default preset per role so roles alone produce a valid animated rig (M1)
-  for (const id of Object.keys(model.parts())) {
-    if (!model.rectsOf(id).length) continue;
-    const def = defaultPresetFor(id, model.parts()[id].role, model.parts()[id].kind);
-    if (def && !hasPreset(model, id)) model.setPreset(def[0], id, def[1]);
+  // auto-fill a default preset per role so roles alone produce a valid animated rig (M1). Uses the same
+  // mirror-aware recommendation as planFor, so two limbs auto-fill walk/walk-mirror, not lockstep (#1).
+  for (const p of planFor(model)) {
+    if (p.recommended && !hasPreset(model, p.id)) model.setPreset(p.recommended.state, p.id, p.recommended.preset);
   }
   let out;
   try { out = exportRig(model, { assetName, recipeFor }); }

@@ -142,8 +142,11 @@ export function buildServer() {
       description:
         "Analyze-first report: assemble the current proposed parts + write a regions-overlay preview " +
         "(original image with the proposed part boxes drawn over it) the human can eyeball before emit. " +
-        "Returns { parts, rigStatus, preview, advisory }. `advisory` flags a single-colour silhouette " +
-        "that can't be auto-separated — provide a layered/multi-colour source for full rigging.",
+        "Returns { parts, rigStatus, preview, advisory, plan }. `plan` is the per-part motion plan: each " +
+        "part's recommended preset (mirror-aware — two limbs alternate walk/walk-mirror) plus the " +
+        "alternative `options` per declared state — present it so the user can confirm or swap a motion. " +
+        "`advisory` flags a single-colour silhouette that can't be auto-separated — provide a layered/" +
+        "multi-colour source for full rigging.",
       inputSchema: { session: z.string(), outDir: z.string().optional() },
     },
     async (a) => { try { return ok(forgePropose(a)); } catch (e) { return fail(e); } }
@@ -220,32 +223,49 @@ export function buildServer() {
         "a visual overlay, confirm with me, then emit. Use this instead of handing over a full spec.",
       argsSchema: { image: z.string().optional() },
     },
-    ({ image } = {}) => ({
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text:
-              "Rig a flat-art image into an animated mascot — GUIDED, with checkpoints. Do not one-shot it.\n" +
-              (image ? `Image: ${image}\n` : "I'll provide the image (attached, or I'll give a path).\n") +
-              "1. forge_start_from_image. Tell me the input grade in plain words FIRST (e.g. \"borderline — " +
-              "gradient source, edges may look rough\"). If it grades 'silhouette', stop and ask me for a " +
-              "layered or multi-colour source.\n" +
-              "2. forge_propose to draw the proposed part-boxes over my image. Show me that overlay and list " +
-              "the parts you found (id + role).\n" +
-              "3. Ask me to confirm or adjust. Apply tweaks with forge_apply_tweaks (rename/role) or re-carve " +
-              "with assign_region. Do NOT proceed until I approve.\n" +
-              "4. After I approve: set a preset per state (idle/active/alert) with set_part, run forge_status " +
-              "to confirm every state is covered, then forge_emit.\n" +
-              "5. Give me the output file paths and how to open the demo.",
-          },
-        },
-      ],
-    })
+    rigMascotPrompt
   );
 
   return server;
+}
+
+// The guided-rigging script (exported so server.test can assert its steps). Scripts: declare signal
+// states up front -> grade -> propose + PRESENT THE MOTION PLAN with per-part options -> checkpoint
+// (continue / change) -> apply + emit. The MCP is request/response, so this prompt is what makes Claude
+// present the plan and wait — the options come from forge_propose's `plan` field.
+export function rigMascotPrompt({ image } = {}) {
+  return {
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text:
+            "Rig a flat-art image into an animated mascot — GUIDED, with checkpoints. Do not one-shot it.\n" +
+            (image ? `Image: ${image}\n` : "I'll provide the image (attached, or I'll give a path).\n") +
+            "0. FIRST ask me whether this mascot should react to app-signal states — loading / error / " +
+            "success (e.g. a deploy or CI dashboard). If yes, pass `states` to forge_start_from_image " +
+            "(e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"error\",\"success\"]). The vocabulary is fixed " +
+            "at start, so decide now. If I don't need them, use the default idle/active/alert.\n" +
+            "1. forge_start_from_image. Tell me the input grade in plain words FIRST (e.g. \"borderline — " +
+            "gradient source, edges may look rough\"). If it grades 'silhouette', stop and ask me for a " +
+            "layered or multi-colour source.\n" +
+            "2. forge_propose. Show me the regions overlay AND present the returned `plan` as a readable " +
+            "table: each part, its role, the RECOMMENDED motion per state, and the alternative `options` " +
+            "I could pick instead. Call out mirrored legs explicitly (e.g. \"legs: walk / walk-mirror — " +
+            "mirrored so they don't move in lockstep\").\n" +
+            "3. CHECKPOINT — do NOT emit until I approve. Offer me: (a) CONTINUE with the plan as shown; " +
+            "(b) CHANGE a part's motion to one of its listed options; (c) CHANGE the parts — re-carve with " +
+            "assign_region or rename/role with forge_apply_tweaks, then re-run forge_propose to refresh the " +
+            "plan + overlay; (d) if I skipped signal states and now want them, note they must be declared " +
+            "at start and offer to restart forge_start_from_image with them.\n" +
+            "4. After I approve: apply the chosen presets with set_part (per state), run forge_status to " +
+            "confirm coverage, then forge_emit. Give me the output file paths, and note that forge_open_editor " +
+            "opens the browser editor for a LIVE motion preview (the overlay shows parts, not motion).",
+        },
+      },
+    ],
+  };
 }
 
 // Start the stdio server only when run directly (not when imported by a test).
