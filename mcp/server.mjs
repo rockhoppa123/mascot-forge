@@ -232,10 +232,11 @@ export function buildServer() {
   return server;
 }
 
-// The guided-rigging script (exported so server.test can assert its steps). Scripts: declare signal
-// states up front -> grade -> propose + PRESENT THE MOTION PLAN with per-part options -> checkpoint
-// (continue / change) -> apply + emit. The MCP is request/response, so this prompt is what makes Claude
-// present the plan and wait — the options come from forge_propose's `plan` field.
+// The guided-rigging script (exported so server.test can assert its steps). Scripts: pick a reactivity
+// TIER (Simple/Standard/Signals) -> grade (silhouette/borderline => whole-body Simple, no fake limbs) ->
+// propose + PRESENT THE MOTION PLAN with per-part options -> checkpoint (continue / change) -> apply +
+// emit. The MCP is request/response, so this prompt is what makes Claude present the plan and wait — the
+// options come from forge_propose's `plan` field.
 export function rigMascotPrompt({ image } = {}) {
   return {
     messages: [
@@ -246,13 +247,15 @@ export function rigMascotPrompt({ image } = {}) {
           text:
             "Rig a flat-art image into an animated mascot — GUIDED, with checkpoints. Do not one-shot it.\n" +
             (image ? `Image: ${image}\n` : "I'll provide the image (attached, or I'll give a path).\n") +
-            "0. FIRST ask me whether this mascot should react to app-signal states — loading / error / " +
-            "success (e.g. a deploy or CI dashboard). If yes, pass `states` to forge_start_from_image " +
-            "(e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"error\",\"success\"]). The vocabulary is fixed " +
-            "at start, so decide now. If I don't need them, use the default idle/active/alert.\n" +
+            "0. FIRST ask me how reactive this mascot should be — pick a TIER:\n" +
+            "   • Simple — one looping animation, no app states, no JS (states: [\"idle\"]).\n" +
+            "   • Standard — reacts idle/active/alert to my data (states: [\"idle\",\"active\",\"alert\"]).\n" +
+            "   • Signals — Standard plus the loading/error/success app-signal states (the universal dashboard signals).\n" +
+            "   Pass the matching `states` to forge_start_from_image. The vocabulary is fixed at start.\n" +
             "1. forge_start_from_image. Tell me the input grade in plain words FIRST (e.g. \"borderline — " +
-            "gradient source, edges may look rough\"). If it grades 'silhouette', stop and ask me for a " +
-            "layered or multi-colour source.\n" +
+            "gradient source, edges may look rough\"). If it grades 'silhouette' (or borderline), do NOT carve " +
+            "limbs — rig it as ONE whole-body part on the Simple tier (a gentle breathe/sway) and tell me a " +
+            "layered or multi-colour source is needed for separable parts.\n" +
             "2. forge_propose. Show me the regions overlay AND present the returned `plan` as a readable " +
             "table: each part, its role, the RECOMMENDED motion per state, and the alternative `options` " +
             "I could pick instead. Call out mirrored legs explicitly (e.g. \"legs: walk / walk-mirror — " +

@@ -223,7 +223,9 @@ export function forgePropose({ session, outDir } = {}) {
   const s = getSession(session);
   const parts = partList(s.model);
   const grade = gradeInput(s.model);
-  const advisory = grade.grade === "silhouette" ? grade.recommendation : null;
+  const advisory = grade.grade === "silhouette"
+    ? `${grade.recommendation} For now, rig it as ONE whole-body part (Simple tier: a single 'idle' with breathe/sway) rather than carving fake limbs from a single-colour shape.`
+    : null;
   const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
   let preview;
   if (outDir) {

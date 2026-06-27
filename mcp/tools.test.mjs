@@ -361,3 +361,11 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   const h = editorHandoff({ session: s.session, outDir: "out/_test_open" });
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
 }
+
+{ // a silhouette is steered to whole-body Simple, not carved into fake parts
+  const W = 40, mono = new PNG({ width: W, height: W });
+  for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
+  const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
+  const prop = forgePropose({ session: sm.session });
+  assert.match(prop.advisory || "", /whole-body|one part|Simple/i, "silhouette advisory recommends whole-body Simple");
+}
