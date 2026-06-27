@@ -351,3 +351,13 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(svg, /<g id="part-hand-left"[^>]*\bdata-preset-active="walk"/, "limb group carries its active preset");
   assert.match(svg, /<g id="part-body"[^>]*\bdata-pivot="\d+(\.\d+)?,\d+(\.\d+)?"/, "body group carries its pivot");
 }
+
+// emit + handoff return a copy-pasteable open URL (frictionless open)
+{
+  const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+  assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+  const e = forgeEmit({ session: s.session, assetName: "blip", outDir: "out/_test_open" });
+  assert.match(e.open, /^http:\/\/localhost:\d+\/out\/_test_open\/blip-mascot-demo\.html$/, "emit returns a demo URL");
+  const h = editorHandoff({ session: s.session, outDir: "out/_test_open" });
+  assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
+}

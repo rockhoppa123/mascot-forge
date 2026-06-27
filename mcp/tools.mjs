@@ -22,6 +22,10 @@ import { emitRegionsPreview } from "./regions-preview.mjs";
 import { gradeInput } from "../tools/rig-editor/grade.js";
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const SERVE_PORT = process.env.MF_SERVE_PORT || "4178"; // matches tools/serve.ps1 + the editor's in-page hint
+// repo-relative path of an absolute path, forward-slashed (for building localhost URLs the server serves)
+const repoRel = (absPath) => absPath.slice(PROJECT_ROOT.length + 1).replace(/\\/g, "/");
+const servedUrl = (absPath) => `http://localhost:${SERVE_PORT}/${repoRel(absPath)}`;
 const sessions = new Map();      // id -> { model, vb }
 let nextId = 1;
 const MAX_SESSIONS = 20;         // simple cap so a long-lived server can't leak
@@ -267,7 +271,9 @@ export function editorHandoff({ session, outDir } = {}) {
   const svg = lines.join("\n") + "\n";
   let written = null;
   if (outDir) { const dir = safePath(outDir); mkdirSync(dir, { recursive: true }); written = join(dir, "rig-handoff.svg"); writeFileSync(written, svg); }
-  return { svg, written, editor: "tools/rig-editor/index.html" };
+  // `open` is the EDITOR url with ?rig= (auto-loads the handoff), not the raw svg path.
+  const open = written ? `http://localhost:${SERVE_PORT}/tools/rig-editor/index.html?rig=${repoRel(written)}` : null;
+  return { svg, written, editor: "tools/rig-editor/index.html", open };
 }
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
@@ -293,7 +299,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
       [join(dir, `${assetName}-mascot-demo.html`), demo],
     ];
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
+    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f), open: servedUrl(join(dir, `${assetName}-mascot-demo.html`)) };
   }
   return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
 }

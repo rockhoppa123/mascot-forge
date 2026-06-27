@@ -126,7 +126,8 @@ export function buildServer() {
       description:
         "Validate the rig and emit a self-contained animated mascot (SVG that animates on its own + a " +
         "demo HTML). Roles are enough. Writes to outDir (project-relative) if given, else returns sizes. " +
-        "Returns { ok, validation, ... } — if ok is false, fix the parts/roles and retry.",
+        "Returns { ok, validation, ..., open } — `open` is a ready demo URL (run tools/serve.ps1, default " +
+        "port 4178, then open it). If ok is false, fix the parts/roles and retry.",
       inputSchema: {
         session: z.string(),
         assetName: z.string().optional(),
@@ -175,8 +176,10 @@ export function buildServer() {
     {
       description:
         "Deep-fix handoff: emit the current rig as a layered SVG the browser rig editor can load, for " +
-        "manual fixing, then come back and forge_emit. Writes to outDir (project-relative) if given. " +
-        "Returns { svg, written, editor }.",
+        "manual fixing, then come back and forge_emit. The handoff is a self-describing SVG (roles/pivots/" +
+        "presets/states as data-* attrs) so the editor loads it ANIMATED. Writes to outDir (project-relative) " +
+        "if given. Returns { svg, written, editor, open } — `open` is the editor URL with ?rig= that auto-loads " +
+        "the handoff (run tools/serve.ps1, default port 4178, then open it).",
       inputSchema: { session: z.string(), outDir: z.string().optional() },
     },
     async (a) => { try { return ok(editorHandoff(a)); } catch (e) { return fail(e); } }
