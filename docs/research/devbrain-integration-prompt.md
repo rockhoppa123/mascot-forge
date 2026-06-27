@@ -1,5 +1,9 @@
 # DevBrain Integration — fresh-agent planning prompt
 
+> 2026-06-26 supersession: this prompt is historical. DevBrain no longer integrates
+> the mascot. The former DevBrain mascot now lives in `mascot-forge/assets/devbrain/`
+> as the showoff asset and legacy baseline for before/after comparison.
+
 > Copy everything below the line into a fresh Claude Code session rooted at
 > `C:\Users\student1\Dev\mascot-forge`. Your deliverable is a **plan document**,
 > not implementation. Do NOT edit any source file in either repo.

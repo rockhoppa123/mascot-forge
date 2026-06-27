@@ -109,7 +109,7 @@ The mascot sits on a homelab dashboard and reflects system state:
 | Active / container sync | Rhythmic walk-cycle (legs articulate) |
 | Alert (RAM/temp spike) | Rapid antenna pulse + body jitter |
 
-The current DevBrain mascot **cannot** do the walk-cycle convincingly because legs and
+The legacy DevBrain mascot **cannot** do the walk-cycle convincingly because legs and
 antenna are baked into static PNG poses — proving the need for true part articulation.
 
 ---
@@ -148,7 +148,7 @@ antenna are baked into static PNG poses — proving the need for true part artic
 **The project succeeds (v1) if:**
 1. A pixel-art PNG can be turned into a rigged, multi-part animated React component in
    **minutes, not hours**, with the human only confirming segmentation.
-2. The DevBrain mascot rebuilt through mascot-forge **visibly out-classes** the current
+2. The DevBrain mascot rebuilt through mascot-forge **visibly out-classes** the legacy
    PNG-flipbook (independent leg/antenna motion; smooth idle/active/alert states).
 3. The emitted code is **readable and editable** — a developer can tweak a timing or
    colour without the tool.

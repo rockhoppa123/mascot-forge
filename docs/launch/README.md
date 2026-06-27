@@ -15,7 +15,10 @@ runbook + the talking points, not an automation.
 
 ## Demo script (for the GIF + transcript)
 
-1. `forge_start_from_image` on a real mascot PNG (colour-distinct → use the `vtracer` engine).
+Use the former DevBrain mascot in `assets/devbrain/` as the flagship showoff unless Andrew deliberately
+chooses a different public asset.
+
+1. `forge_start_from_image` on the DevBrain showoff mascot PNG (colour-distinct → use the `vtracer` engine).
 2. `forge_propose` → open the written `regions-preview.html` (original + proposed part boxes).
 3. `forge_review` → approve at the elicitation prompt.
 4. `forge_emit` → open the side-by-side demo HTML (original beside the animated mascot).

@@ -9,6 +9,9 @@ All notable changes to mascot-forge are documented here. Format follows
 Public-ready state — staged for the `v1.0.0` release (cut at public launch alongside the live demo).
 
 ### Added
+- **DevBrain mascot ownership migration** — the former DevBrain mascot is now the flagship showoff
+  asset for mascot-forge. Source sheets, exported PNG poses, and the old DevBrain runtime baseline live
+  under `assets/devbrain/` for before/after comparison and MCP demo material.
 - **Browser rig editor** (`tools/rig-editor/`) — a dependency-free static page that sits between
   `mf forge` and `mf emit`: assign parts, roles, pivots, and per-state animation presets, live-preview
   the motion, validate, and export the `manual-part.svg` + `rigged.json` (+ `parts-spec.json`) pair.

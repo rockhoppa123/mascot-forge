@@ -8,6 +8,8 @@ and research as needed.
 - [`technical-proposal.md`](technical-proposal.md) — architecture, phases, stack, open questions (the *how*).
 
 ## Reference
+- [`../assets/devbrain/`](../assets/devbrain/) — the former DevBrain mascot, now the flagship showoff
+  asset and legacy baseline for before/after comparisons.
 - [`adr/`](adr/) — Architecture Decision Records (0001–0010): the load-bearing choices and their rationale.
 - [`buildable-slice/`](buildable-slice/) — the v1 slice: rig fixture, emitted output, and the live demos
   (`orchestrator-demo.html`, `showcase.html`).

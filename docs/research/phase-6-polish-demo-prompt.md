@@ -13,7 +13,7 @@ You are implementing Phase 6 (Polish & Demo) of mascot-forge in C:\Users\student
 ## Context (carry forward — Phases 1–4 all shipped)
 - Pipeline, all DONE: PNG →[P1 vectorize ✅]→ flat.svg →[P2 segment ✅]→ named parts + pivots →[P3 codegen ✅]→ emitters →[P4 orchestrator ✅]→ data-reactive mascot.
 - P4 shipped a dep-free state machine (`runtime/mascot-state.js`) + React hook (`tools/emit-react-gsap/src/useMascotState.ts`) + a static `docs/buildable-slice/orchestrator-demo.html` that fetches+injects the locked generated SVG and drives `data-state` from a mock feed. REUSE that mechanism — do not rebuild it.
-- LOCKED ground truth, MUST NOT be overwritten/altered: devbrain-rigged.json, devbrain-manual-part.svg, both emitters (emit-svg-css.ps1, emit-react-gsap/), the accepted reduced-motion goldens, the locked generated demo (devbrain-svg-css.generated-demo.html), the generated SVG/CSS, every ADR. The Clean Mascot Source PNG (DevBrain/public/mascot/default.png) is read-only and external — never touch it.
+- LOCKED ground truth, MUST NOT be overwritten/altered: devbrain-rigged.json, devbrain-manual-part.svg, both emitters (emit-svg-css.ps1, emit-react-gsap/), the accepted reduced-motion goldens, the locked generated demo (devbrain-svg-css.generated-demo.html), the generated SVG/CSS, every ADR. The Clean Mascot Source PNG (`assets/devbrain/poses/default.png`) is read-only — never touch it.
 
 ## 0. Read first (do not skip)
 - docs/phase-6-polish-demo-implementation-plan.md — the full design (file map, ponytail audit, steps). This prompt is the operational summary; the plan is the detail.

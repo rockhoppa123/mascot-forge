@@ -32,6 +32,10 @@ _Avoid_: Link list, article roundup
 A single transparent PNG pose used as the Buildable Slice input. It excludes labelled reference-sheet cleanup, crop detection, shadow removal, and background removal.
 _Avoid_: Reference sheet, source sheet, production asset
 
+**Showoff Asset**:
+The mascot used to demonstrate mascot-forge's value in public docs, demos, launch material, and MCP flows. The current Showoff Asset is the former DevBrain mascot under `assets/devbrain/`, including source sheets, exported PNG poses, and the old DevBrain runtime baseline for before/after comparison.
+_Avoid_: DevBrain runtime asset, sample only, throwaway fixture
+
 **Manual Part SVG**:
 A hand-authored SVG representation of the Clean Mascot Source used by the Buildable Slice to prove rigging and Output Targets before PNG-to-SVG vectorization exists.
 _Avoid_: Vectorizer output, generated SVG, final asset

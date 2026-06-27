@@ -43,9 +43,9 @@ This is the portfolio close-out (mascot-forge is portfolio-first, MIT — ADR-00
   runtime code yet."* The pipeline diagram (§Pipeline) has **no ✅ markers**; the repository-layout
   block omits `runtime/`, `tools/`, and the generated buildable slice; the design-decisions table
   stops at ADR-0005 (0006–0009 exist).
-- **Baseline asset** — `assets/devbrain-mascot-reference-v1.png` is "test case #1 … the baseline
-  mascot-forge must beat" (README §origin). The Clean Mascot Source is the read-only
-  `DevBrain/public/mascot/default.png` (192×192, 15670 bytes — do not touch).
+- **Baseline asset** — `assets/devbrain/` is "test case #1 … the baseline mascot-forge must beat"
+  (README §showoff asset). The Clean Mascot Source is the read-only
+  `assets/devbrain/poses/default.png` (192×192, 15670 bytes — do not touch).
 - **Forged "after" surface (reuse, do not rebuild):** `docs/buildable-slice/orchestrator-demo.html`
   (Phase 4) already fetches+injects the locked `generated/devbrain-svg-css.generated.svg` and drives
   `data-state` from a mock feed. The showcase reuses this exact mechanism.

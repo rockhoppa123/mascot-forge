@@ -10,6 +10,10 @@ identifies the parts by vision and rigs them through the mascot-forge **MCP**; y
 **SVG/CSS or React+GSAP** whose animation **states bind to your app's live data** — no binary runtime,
 no black box. Prefer to drive it yourself? The same engine has a browser rig editor.
 
+The former DevBrain mascot now lives here as the flagship showoff asset: source sheets, exported poses,
+and the old DevBrain runtime baseline are kept under [`assets/devbrain/`](assets/devbrain/) so the
+project can prove the whole loop from existing art → MCP-assisted rig → owned animated code.
+
 > The two differentiators are the **MCP agent-rigging path** (vision-driven semantic parts) and the
 > **live-data binding** (animation states wired to your app's data as code you own). See
 > [Rig an image with your agent](#rig-an-image-with-your-agent-mcp) and the live demo above.
@@ -79,14 +83,14 @@ animation **states bind to your app's live data**. That data-reactive binding, a
 the part Rive and Lottie structurally can't give you. And since **GSAP became 100% free (all plugins,
 commercial use) in April 2025**, the React+GSAP output carries no licensing asterisk.
 
-## The origin: DevBrain
+## The showoff asset: DevBrain
 
 mascot-forge starts as dogfooding. [DevBrain](https://github.com/) (the author's
-self-hosted homelab dashboard) has a pixel-art moustache mascot. Its current
-implementation is a **flipbook of pre-rendered PNG poses** swapped per state, with
-whole-sprite motion — which is exactly why it looks "good but not pro": the legs and
-antenna can't move independently. That asset is **test case #1**
-(see [`assets/`](assets/)) and the baseline mascot-forge must beat.
+self-hosted homelab dashboard) used to carry a pixel-art moustache mascot. That mascot has moved out
+of DevBrain and into mascot-forge. Its old implementation was a **flipbook of pre-rendered PNG poses**
+swapped per state, with whole-sprite motion — exactly why it looked "good but not pro": the legs and
+antenna could not move independently. That asset is now the flagship showoff asset
+(see [`assets/devbrain/`](assets/devbrain/)) and the baseline mascot-forge must beat.
 
 ## Pipeline (shipped — v1 buildable slice)
 
@@ -149,7 +153,7 @@ mascot-forge/
 │   ├── research/              ← landscape, references, research-log, phase plans
 │   └── adr/                   ← architecture decision records (0001–0009)
 └── assets/
-    └── devbrain-mascot-reference-v1.png   ← test case #1 (the baseline to beat)
+    └── devbrain/                 ← flagship showoff asset + legacy DevBrain baseline
 ```
 
 ## Rig an image with your agent (MCP)
