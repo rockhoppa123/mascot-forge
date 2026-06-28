@@ -5,7 +5,7 @@
 // Part ops: rename/role/pivot/preset/merge/remove (part-level) plus drag-marquee rect-level SPLIT
 // (peel colour-fused rects — e.g. land-rover wheels stuck in part-body — into their own part via
 // model.assign). Geometry/selection logic is in the node-tested modules; this stays thin glue.
-import { createModel, ROLES, BACKGROUND_PART } from "./model.js";
+import { createModel, ROLES, BACKGROUND_PART, STANDARD_STATES, SIGNAL_STATES } from "./model.js";
 import { parseSegmented, applyPartsSpec } from "./loader.js";
 import { bboxOf, dragToPivot, pivotToOrigin, defaultPivotFor } from "./pivot.js";
 import { presetsFor, recipeFor, kindDefaultPreset } from "./presets.js";
@@ -106,12 +106,23 @@ function setState(s) {
 function renderStateControls() {
   const row = $("states-row");
   row.replaceChildren();
+  const resting = model.states()[0];
   for (const s of model.states()) {
     const b = document.createElement("button");
     b.dataset.state = s;
     b.textContent = s;
     row.appendChild(b);
+    if (s !== resting) { // every non-resting state can be removed
+      const x = document.createElement("button");
+      x.className = "rmstate"; x.dataset.rmstate = s; x.textContent = "×"; x.title = `remove ${s}`;
+      row.appendChild(x);
+    }
   }
+  // "+ add state": offer the standard trio + signal states not yet declared
+  const addSel = $("addstate");
+  addSel.replaceChildren(new Option("+ add state", ""));
+  for (const s of [...STANDARD_STATES, ...SIGNAL_STATES].filter((s) => !model.states().includes(s))) addSel.appendChild(new Option(s, s));
+  addSel.onchange = (e) => { const s = e.target.value; if (s) { pushUndo(); model.addState(s); renderStateControls(); regenCss(); } };
   const pk = $("preset-pickers");
   pk.replaceChildren();
   for (const s of model.states()) {
@@ -194,6 +205,12 @@ function loadLayeredSvg(svgText, name) {
   document.body.appendChild(wrap);
 
   const DRAW = "rect,path,circle,ellipse,polygon,polyline,line";
+  // self-describing handoff rig: root data-states + per-group role/bone/pivot/preset-* rebuild a live,
+  // ANIMATED model. A plain layered SVG (Figma/Inkscape) lacks these attrs → partsMeta stays empty → same
+  // geometry-only behaviour as before.
+  const rootStates = svgEl.getAttribute("data-states");
+  const states = rootStates ? rootStates.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const partsMeta = {};
   const used = new Set();
   const elements = [];
   let eid = 0, layerN = 0;
@@ -202,6 +219,12 @@ function loadLayeredSvg(svgText, name) {
   for (const g of layers) {
     const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;
     const part = sanitizeId(label, used);
+    const meta = partsMeta[part] || (partsMeta[part] = {});
+    const role = g.getAttribute("data-role"); if (role) meta.role = role;
+    const kind = g.getAttribute("data-kind"); if (kind) meta.kind = kind;
+    const bone = g.getAttribute("data-bone"); if (bone) meta.bone = bone;
+    const piv = g.getAttribute("data-pivot"); if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
+    for (const a of g.getAttributeNames()) if (a.startsWith("data-preset-")) (meta.presets || (meta.presets = {}))[a.slice("data-preset-".length)] = g.getAttribute(a);
     for (const el of g.querySelectorAll(DRAW)) {
       let bb; try { bb = el.getBBox(); } catch { bb = { x: 0, y: 0, width: 0, height: 0 }; }
       elements.push({ id: `e${eid++}`, part, markup: el.outerHTML, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
@@ -210,7 +233,7 @@ function loadLayeredSvg(svgText, name) {
   document.body.removeChild(wrap);
   if (!elements.length) { status("No shapes found in that SVG."); return; }
 
-  model = toModel({ viewBox, elements });
+  model = toModel({ viewBox, elements, parts: partsMeta, states });
   assetName = (name || "mascot").replace(/\.svg$/i, "");
   showModel(`Loaded ${elements.length} shapes across ${visibleParts().length} layer-parts. Set roles/pivots/presets, then export.`);
 }
@@ -581,6 +604,8 @@ function regenCss() {
 }
 
 $("states").addEventListener("click", (e) => {
+  const rm = e.target.closest("button[data-rmstate]");
+  if (rm) { pushUndo(); model.removeState(rm.dataset.rmstate); renderStateControls(); regenCss(); return; }
   const b = e.target.closest("button[data-state]");
   if (!b) return;
   $("stage").setAttribute("data-state", b.dataset.state);
@@ -685,3 +710,7 @@ dz.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
 
 // test/debug hook: drive the editor from a script (used by preview verification).
 window.__rigEditor = { loadText, loadLayeredSvg, loadFile, loadExample, get model() { return model; }, exportRig, validate, recipeFor, rectsInMarquee, vectorizeRaster, segment, emitAnimatedSvg, emitDemoHtml, get rectSel() { return rectSel.slice(); } };
+
+// auto-load a handoff rig passed by forge_open_editor: ?rig=<project-relative path> (served from repo root)
+const rigParam = new URLSearchParams(location.search).get("rig");
+if (rigParam) fetch("/" + rigParam.replace(/^\/+/, "")).then((r) => r.ok ? r.text() : Promise.reject(new Error("rig not found"))).then((t) => loadLayeredSvg(t, rigParam.split("/").pop())).catch((e) => status("✗ " + e.message));

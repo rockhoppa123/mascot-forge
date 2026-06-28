@@ -40,6 +40,9 @@ function rectBBox(attrsStr) {
 export function parseLayered(svgText) {
   const svgOpen = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
+  const statesAttr = svgOpen && attr(svgOpen[0], "data-states");
+  const states = statesAttr ? statesAttr.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const partsMeta = {};
   const used = new Set();
   const elements = [];
   let eid = 0, layerN = 0;
@@ -49,6 +52,13 @@ export function parseLayered(svgText) {
     const gAttrs = g[1], inner = g[2];
     const name = inkLabel(gAttrs) || attr(gAttrs, "id") || attr(gAttrs, "data-name") || `layer-${++layerN}`;
     const part = sanitizeId(name, used);
+    const meta = partsMeta[part] || (partsMeta[part] = {});
+    const role = attr(gAttrs, "data-role"); if (role) meta.role = role;
+    const kind = attr(gAttrs, "data-kind"); if (kind) meta.kind = kind;
+    const bone = attr(gAttrs, "data-bone"); if (bone) meta.bone = bone;
+    const piv = attr(gAttrs, "data-pivot");
+    if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
+    for (const pm of gAttrs.matchAll(/\bdata-preset-([a-z]+)="([^"]*)"/g)) { (meta.presets || (meta.presets = {}))[pm[1]] = pm[2]; }
     EL_RE.lastIndex = 0;
     let m;
     while ((m = EL_RE.exec(inner)) !== null) {
@@ -60,13 +70,22 @@ export function parseLayered(svgText) {
       elements.push({ id: `e${eid++}`, part, markup: m[0], bbox });
     }
   }
-  return { viewBox, elements };
+  return { viewBox, elements, parts: partsMeta, states };
 }
 
-export function toModel({ viewBox, elements }) {
+export function toModel({ viewBox, elements, parts: meta = {}, states } = {}) {
   const parts = {};
   for (const el of elements) parts[el.part] = parts[el.part] || {};
-  return createModel({ viewBox, rects: elements, parts });
+  const model = createModel({ viewBox, rects: elements, parts, ...(states ? { states } : {}) });
+  for (const [id, m] of Object.entries(meta)) {
+    if (!(id in parts)) continue;
+    if (m.role) model.setRole(id, m.role);
+    if (m.kind) model.setKind(id, m.kind);
+    if (m.bone) model.setBone(id, m.bone);
+    if (m.pivot) model.setPivot(id, m.pivot);
+    if (m.presets) for (const [st, name] of Object.entries(m.presets)) if (model.states().includes(st)) model.setPreset(st, id, name);
+  }
+  return model;
 }
 
 // text -> model. Rect bboxes are filled; any non-rect element still needs its bbox injected (via

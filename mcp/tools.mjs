@@ -22,6 +22,10 @@ import { emitRegionsPreview } from "./regions-preview.mjs";
 import { gradeInput } from "../tools/rig-editor/grade.js";
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const SERVE_PORT = process.env.MF_SERVE_PORT || "4178"; // matches tools/serve.ps1 + the editor's in-page hint
+// repo-relative path of an absolute path, forward-slashed (for building localhost URLs the server serves)
+const repoRel = (absPath) => absPath.slice(PROJECT_ROOT.length + 1).replace(/\\/g, "/");
+const servedUrl = (absPath) => `http://localhost:${SERVE_PORT}/${repoRel(absPath)}`;
 const sessions = new Map();      // id -> { model, vb }
 let nextId = 1;
 const MAX_SESSIONS = 20;         // simple cap so a long-lived server can't leak
@@ -219,7 +223,9 @@ export function forgePropose({ session, outDir } = {}) {
   const s = getSession(session);
   const parts = partList(s.model);
   const grade = gradeInput(s.model);
-  const advisory = grade.grade === "silhouette" ? grade.recommendation : null;
+  const advisory = grade.grade === "silhouette"
+    ? `${grade.recommendation} For now, rig it as ONE whole-body part (Simple tier: a single 'idle' with breathe/sway) rather than carving fake limbs from a single-colour shape.`
+    : null;
   const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
   let preview;
   if (outDir) {
@@ -248,11 +254,19 @@ export function applyTweaks({ session, edits } = {}) {
 // outDir given) + the editor entry; the human fixes it visually, then emits.
 export function editorHandoff({ session, outDir } = {}) {
   const { model } = getSession(session);
-  const lines = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${model.viewBox()}">`];
+  const states = model.states();
+  const lines = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${model.viewBox()}" data-states="${states.join(",")}">`];
   for (const id of Object.keys(model.parts())) {
     const rs = model.rectsOf(id);
     if (!rs.length) continue;
-    lines.push(`  <g id="${id}">`);
+    const meta = model.parts()[id];
+    const attrs = [`id="${id}"`];
+    if (meta.role) attrs.push(`data-role="${meta.role}"`);
+    if (meta.kind) attrs.push(`data-kind="${meta.kind}"`);
+    if (meta.bone) attrs.push(`data-bone="${meta.bone}"`);
+    if (meta.pivot) attrs.push(`data-pivot="${meta.pivot.x},${meta.pivot.y}"`);
+    for (const st of states) { const p = model.preset(st, id); if (p) attrs.push(`data-preset-${st}="${p}"`); }
+    lines.push(`  <g ${attrs.join(" ")}>`);
     for (const r of rs) lines.push(r.markup ? `    ${r.markup}` : `    <rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${r.fill || "#888888"}"/>`);
     lines.push("  </g>");
   }
@@ -260,7 +274,9 @@ export function editorHandoff({ session, outDir } = {}) {
   const svg = lines.join("\n") + "\n";
   let written = null;
   if (outDir) { const dir = safePath(outDir); mkdirSync(dir, { recursive: true }); written = join(dir, "rig-handoff.svg"); writeFileSync(written, svg); }
-  return { svg, written, editor: "tools/rig-editor/index.html" };
+  // `open` is the EDITOR url with ?rig= (auto-loads the handoff), not the raw svg path.
+  const open = written ? `http://localhost:${SERVE_PORT}/tools/rig-editor/index.html?rig=${repoRel(written)}` : null;
+  return { svg, written, editor: "tools/rig-editor/index.html", open };
 }
 
 export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
@@ -286,7 +302,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
       [join(dir, `${assetName}-mascot-demo.html`), demo],
     ];
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
+    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f), open: servedUrl(join(dir, `${assetName}-mascot-demo.html`)) };
   }
   return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
 }

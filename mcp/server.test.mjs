@@ -16,5 +16,7 @@ assert.match(t, /options|alternativ/i, "prompt presents per-part motion options"
 assert.match(t, /continue/i, "checkpoint offers continue");
 assert.match(t, /change/i, "checkpoint offers change");
 assert.match(t, /forge_open_editor/, "points to the editor for live motion preview");
+assert.match(t, /Simple|Standard|Signals/, "prompt offers reactivity tiers");
+assert.match(t, /silhouette/i, "prompt steers silhouettes to whole-body");
 
 console.log("server.test.mjs: MCP server builds + tools/prompts register; rig_mascot scripts the guided plan flow.");

@@ -77,4 +77,31 @@ const LAYERED = `<?xml version="1.0"?>
   assert.ok(/id="part-head"[^>]*class="part"/.test(out.manualSvg), "named part group emitted");
 }
 
+// a self-describing rig SVG (editorHandoff output) rebuilds a fully-animated model
+{
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-states="idle,active,loading">',
+    '  <g id="part-body" data-role="core" data-pivot="50,50" data-preset-idle="breathe">',
+    '    <rect x="30" y="30" width="40" height="40" fill="#111"/>',
+    '  </g>',
+    '  <g id="part-arm" data-role="limb" data-bone="arm" data-kind="wheel" data-preset-active="walk" data-preset-loading="spin">',
+    '    <rect x="5" y="35" width="14" height="30" fill="#222"/>',
+    '  </g>',
+    '</svg>',
+  ].join("\n");
+  const parsed = parseLayered(svg);
+  assert.deepEqual(parsed.states, ["idle", "active", "loading"], "root data-states parsed");
+  assert.equal(parsed.parts["part-body"].role, "core");
+  assert.deepEqual(parsed.parts["part-body"].pivot, { x: 50, y: 50 });
+  assert.equal(parsed.parts["part-body"].presets.idle, "breathe");
+  assert.equal(parsed.parts["part-arm"].kind, "wheel", "data-kind parsed");
+  assert.equal(parsed.parts["part-arm"].presets.loading, "spin");
+  const m = toModel(parsed);
+  assert.deepEqual(m.states(), ["idle", "active", "loading"], "model built with the declared vocabulary");
+  assert.equal(m.parts()["part-body"].role, "core", "role applied");
+  assert.equal(m.parts()["part-arm"].kind, "wheel", "kind applied to the model");
+  assert.equal(m.preset("idle", "part-body"), "breathe", "preset applied");
+  assert.equal(m.preset("loading", "part-arm"), "spin", "signal-state preset applied");
+}
+
 console.log("layer-ingest.test.mjs: all assertions passed.");
