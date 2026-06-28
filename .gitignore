@@ -6,6 +6,7 @@ node_modules/
 test-results/
 playwright-report/
 .playwright/
+tests/e2e/fixtures/handoff-fixture.svg
 
 # Build output
 dist/
