@@ -54,6 +54,7 @@ export function parseLayered(svgText) {
     const part = sanitizeId(name, used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
     const role = attr(gAttrs, "data-role"); if (role) meta.role = role;
+    const kind = attr(gAttrs, "data-kind"); if (kind) meta.kind = kind;
     const bone = attr(gAttrs, "data-bone"); if (bone) meta.bone = bone;
     const piv = attr(gAttrs, "data-pivot");
     if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
@@ -79,6 +80,7 @@ export function toModel({ viewBox, elements, parts: meta = {}, states } = {}) {
   for (const [id, m] of Object.entries(meta)) {
     if (!(id in parts)) continue;
     if (m.role) model.setRole(id, m.role);
+    if (m.kind) model.setKind(id, m.kind);
     if (m.bone) model.setBone(id, m.bone);
     if (m.pivot) model.setPivot(id, m.pivot);
     if (m.presets) for (const [st, name] of Object.entries(m.presets)) if (model.states().includes(st)) model.setPreset(st, id, name);

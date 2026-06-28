@@ -262,6 +262,7 @@ export function editorHandoff({ session, outDir } = {}) {
     const meta = model.parts()[id];
     const attrs = [`id="${id}"`];
     if (meta.role) attrs.push(`data-role="${meta.role}"`);
+    if (meta.kind) attrs.push(`data-kind="${meta.kind}"`);
     if (meta.bone) attrs.push(`data-bone="${meta.bone}"`);
     if (meta.pivot) attrs.push(`data-pivot="${meta.pivot.x},${meta.pivot.y}"`);
     for (const st of states) { const p = model.preset(st, id); if (p) attrs.push(`data-preset-${st}="${p}"`); }

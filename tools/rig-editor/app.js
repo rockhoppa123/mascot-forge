@@ -221,6 +221,7 @@ function loadLayeredSvg(svgText, name) {
     const part = sanitizeId(label, used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
     const role = g.getAttribute("data-role"); if (role) meta.role = role;
+    const kind = g.getAttribute("data-kind"); if (kind) meta.kind = kind;
     const bone = g.getAttribute("data-bone"); if (bone) meta.bone = bone;
     const piv = g.getAttribute("data-pivot"); if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
     for (const a of g.getAttributeNames()) if (a.startsWith("data-preset-")) (meta.presets || (meta.presets = {}))[a.slice("data-preset-".length)] = g.getAttribute(a);

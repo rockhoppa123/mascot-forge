@@ -42,8 +42,9 @@ test("a click after a marquee still selects a part (regression: bug #2 suppressC
 test("export animated mascot downloads a self-contained svg", async ({ page }) => {
   await page.goto(URL);
   await page.click("#loadexample");
+  await expect(page.locator("#parts li")).toHaveCount(5); // wait for the async example load before exporting (de-flake)
   const [download] = await Promise.all([
-    page.waitForEvent("download"),
+    page.waitForEvent("download", { timeout: 60000 }),
     page.click("#exportanim"),
   ]);
   expect(download.suggestedFilename()).toMatch(/mascot\.svg$/);
