@@ -114,7 +114,7 @@ the matching base state offers (a wheel can `spin` while `loading`; an accent ca
 
 ```js
 // 1. declare all six states up front (immutable for this rig). states[0] = idle = resting.
-forge_start_from_image({ base64, states: ["idle", "active", "alert", "loading", "error", "success"] })
+forge_start_from_image({ base64, states: ["idle", "active", "alert", "loading", "success", "error"] })
 
 // 2. assign roles, then a preset per signal state (each reuses active/alert motion).
 set_part({ session, partId: "part-wheel", role: "limb",  presets: { loading: "spin" } })   // loading→active
@@ -131,7 +131,7 @@ import { createMascot, fromEvents } from "../../runtime/mascot-state.js";
 // vocabulary order = PRIORITY (error outranks success outranks loading); states[0] = resting.
 const mascot = createMascot({
   root: document.querySelector("#mascot"),
-  states: ["idle", "active", "alert", "loading", "error", "success"],
+  states: ["idle", "active", "alert", "loading", "success", "error"],
 });
 
 const mapSignal = (e) => ({

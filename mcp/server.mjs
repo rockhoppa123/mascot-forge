@@ -38,7 +38,8 @@ export function buildServer() {
         "parts are a hint — re-segment with assign_region by what you SEE. Returns inputGrade " +
         "{grade,reason,recommendation} — tell the user the grade BEFORE rigging; on 'silhouette', " +
         "suggest a layered/multi-colour source. Optionally pass `states` to declare app-signal states up " +
-        "front (e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"error\",\"success\"]); signal states reuse " +
+        "front (e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"success\",\"error\"] — order is runtime priority, " +
+        "error last = highest); signal states reuse " +
         "alert/active motion and must be declared here — a rig's vocabulary is fixed at start. Defaults to " +
         "[\"idle\",\"active\",\"alert\"].",
       inputSchema: {

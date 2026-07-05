@@ -12,7 +12,7 @@ export const BACKGROUND_PART = "part-background";
 // declare at creation (they reuse alert/active motion via presets.js STATE_FAMILY).
 export const SIMPLE_STATES = ["idle"]; // Simple tier: one looping animation, no state machine
 export const STANDARD_STATES = ["idle", "active", "alert"];
-export const SIGNAL_STATES = ["loading", "error", "success"];
+export const SIGNAL_STATES = ["loading", "success", "error"]; // ascending priority; error (highest) last
 const DEFAULT_STATES = STANDARD_STATES;
 
 export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, states = DEFAULT_STATES } = {}) {
