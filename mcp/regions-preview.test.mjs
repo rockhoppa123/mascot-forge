@@ -20,4 +20,11 @@ assert.ok(html.includes("#2563eb") && html.includes("#dc2626"), "parts get disti
 const bare = emitRegionsPreview("data:image/png;base64,BBBB", "0 0 10 10", []);
 assert.ok(bare.includes("data:image/png;base64,BBBB"), "renders with no parts");
 
+// U4: a part flush against the top edge must not render its label at a negative y (clipped outside the SVG).
+{
+  const top = emitRegionsPreview("data:,x", "0 0 100 100", [{ id: "part-top", role: "core", bbox: { x: 0, y: 0, w: 20, h: 10 } }]);
+  const m = top.match(/<text x="[^"]*" y="([^"]*)"/);
+  assert.ok(m && parseFloat(m[1]) >= 0, `label y is clamped to >= 0 (got ${m && m[1]})`);
+}
+
 console.log("regions-preview.test.mjs: all assertions passed.");

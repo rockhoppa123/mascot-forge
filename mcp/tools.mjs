@@ -155,7 +155,7 @@ function downscale({ rgba, w, h }, maxDim) {
 
 // --- TOOLS ---------------------------------------------------------------------------------------
 
-export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) {
+export function startFromImage({ base64, path, colors = 6, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) { // colors default matches the editor + docs (6)
   if (!base64 && !path) throw new Error("provide base64 or path (PNG)");
   const buf = base64 ? Buffer.from(base64, "base64") : readFileSync(safePath(path));
 
