@@ -30,6 +30,18 @@ test("editor surfaces declared signal states", async ({ page }) => {
   await expect(page.locator("#preset-pickers #preset-loading option", { hasText: "spin" })).toHaveCount(1);
 });
 
+// C1 (editor side): a Simple-tier rig + kind=wheel must not throw when the wheel's signature state
+// ('active') isn't declared. The kind handler must skip a preset for an undeclared state.
+test("Simple-tier rig: choosing kind=wheel does not crash when 'active' is undeclared", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await loadEditorWithStates(page, ["idle"]);           // idle-only vocabulary
+  await page.click('#parts li[data-id="part-leg-left"]');
+  await page.selectOption("#role", "limb");
+  await page.selectOption("#kind", "wheel");            // signature preset is active:spin — undeclared here
+  expect(errors, "no uncaught page error from the kind handler").toEqual([]);
+});
+
 test("editor can add a signal state", async ({ page }) => {
   await loadEditorWithStates(page, ["idle", "active", "alert"]);
   await expect(page.locator("#states-row button", { hasText: "loading" })).toHaveCount(0);

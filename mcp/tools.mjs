@@ -59,6 +59,13 @@ export function planFor(model) {
     const { role, kind } = model.parts()[id];
     const def = defaultPresetFor(id, role, kind);
     let recommended = def ? { state: def[0], preset: def[1] } : null;
+    // C1: only recommend a DECLARED state. If the natural state isn't in the rig's vocabulary
+    // (e.g. a limb's 'active' on a Simple idle-only rig), fall back to the first declared state
+    // that offers this role a preset, else leave the part inert.
+    if (recommended && !states.includes(recommended.state)) {
+      const alt = states.find((st) => presetsFor(role, st).length);
+      recommended = alt ? { state: alt, preset: presetsFor(role, alt)[0] } : null;
+    }
     if (recommended && recommended.preset === "walk") {
       if (walks % 2 === 1) recommended = { state: recommended.state, preset: "walk-mirror" };
       walks++;

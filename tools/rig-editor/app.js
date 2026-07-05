@@ -409,7 +409,11 @@ $("kind").onchange = (e) => {
   if (def) {
     const [state, name] = def;
     const role = model.parts()[selected].role;
-    if (presetsFor(role, state).includes(name) && !model.preset(state, selected)) model.setPreset(state, selected, name);
+    // C1: only apply the kind's signature preset when its state is DECLARED and the picker isn't
+    // already set — otherwise setPreset throws on an undeclared state (Simple-tier rig).
+    if (model.states().includes(state) && presetsFor(role, state).includes(name) && !model.preset(state, selected)) {
+      model.setPreset(state, selected, name);
+    }
   }
   refreshPresetPickers();
   regenCss();

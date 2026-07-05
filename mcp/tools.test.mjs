@@ -363,6 +363,20 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
 }
 
+// C1 regression: a Simple-tier rig (idle only) with a limb must EMIT, not crash. The limb has no
+// idle preset, so it simply stays inert; the core still breathes. Auto-fill must not reach for 'active'.
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4, states: ["idle"] });
+  assignRegion({ session: s.session, box: { x: 0.05, y: 0.05, w: 0.9, h: 0.30 }, partId: "body", role: "core" });
+  assignRegion({ session: s.session, box: { x: 0.05, y: 0.62, w: 0.9, h: 0.27 }, partId: "leg", role: "limb" });
+  const out = forgeEmit({ session: s.session, assetName: "simple" });
+  assert.equal(out.ok, true, `Simple-tier emit must not crash: ${JSON.stringify(out.error || out.validation)}`);
+  // planFor must not recommend an undeclared state for the limb
+  const legPlan = planFor(_sessions.get(s.session).model).find((p) => p.id === "part-leg");
+  assert.ok(!legPlan.recommended || legPlan.recommended.state === "idle",
+    `limb recommendation stays within declared states (got ${JSON.stringify(legPlan.recommended)})`);
+}
+
 { // a silhouette is steered to whole-body Simple, not carved into fake parts
   const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
