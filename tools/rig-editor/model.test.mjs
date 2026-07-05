@@ -158,6 +158,17 @@ assert.ok(ROLES.includes("passive") && ROLES.length === 4, "four roles");
   assert.deepEqual(SIMPLE_STATES, ["idle"]);
 }
 
+// M2: renaming onto an existing part id would clobber that part's metadata and merge its rects.
+// Reject the collision so no metadata is silently lost.
+{
+  const m = createModel({
+    viewBox: "0 0 10 10",
+    rects: [{ id: "r0", x: 0, y: 0, w: 5, h: 5, fill: "#a", part: "part-a" }, { id: "r1", x: 5, y: 5, w: 3, h: 3, fill: "#b", part: "part-b" }],
+    parts: { "part-a": { role: "core" }, "part-b": { role: "limb" } },
+  });
+  assert.throws(() => m.rename("part-a", "part-b"), /exists|collision/i, "rename onto an existing id is rejected");
+}
+
 // I4: runtime priority = index in states (mascot-state.js). The suggested signal vocabulary must put
 // 'error' last so it OUTRANKS 'success'/'loading' — the opposite of the old [loading,error,success].
 {

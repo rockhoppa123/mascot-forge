@@ -58,6 +58,7 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
   function rename(oldId, newId) {
     if (oldId === newId) return;
     if (!partMap[oldId]) throw new Error(`rename: unknown part '${oldId}'.`);
+    if (partMap[newId]) throw new Error(`rename: target id '${newId}' already exists (would clobber it).`);
     const meta = partMap[oldId];
     delete partMap[oldId];
     partMap[newId] = { ...meta, id: newId };

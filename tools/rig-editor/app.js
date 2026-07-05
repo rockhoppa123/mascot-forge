@@ -427,7 +427,8 @@ $("rename").onclick = () => {
   const next = sanitizeId(rawNext); // valid CSS/SVG id (I2)
   if (next === selected) return;
   pushUndo();
-  model.rename(selected, next);
+  try { model.rename(selected, next); }
+  catch (e) { undoStack.pop(); status("✗ " + (e && e.message ? e.message : e)); return; }
   const was = selected; selected = next;
   render(); renderParts(); selectPart(next); regenCss();
   status(`Renamed ${was} → ${next}.`);
