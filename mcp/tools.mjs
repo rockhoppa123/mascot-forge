@@ -188,7 +188,7 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
 export function startFromLayeredSvg({ svg, path } = {}) {
   if (!svg && !path) throw new Error("provide svg (string) or path (.svg)");
   const text = svg ? svg : readFileSync(safePath(path), "utf8");
-  const { viewBox, elements } = parseLayered(text);
+  const { viewBox, elements, parts, states } = parseLayered(text);
   if (!elements.length) throw new Error("no drawable shapes found — need top-level <g> layers containing shapes");
   const noBox = elements.filter((e) => !e.bbox);
   if (noBox.length) {
@@ -197,7 +197,7 @@ export function startFromLayeredSvg({ svg, path } = {}) {
       `which need a node rasterizer (deferred). Rig this in the browser editor, or trace to paths/rects.`
     );
   }
-  const model = toModel({ viewBox, elements });
+  const model = toModel({ viewBox, elements, parts, states });
   if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
   const session = "s" + nextId++;
   sessions.set(session, { model, vb: parseVB(model.viewBox()) });

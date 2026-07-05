@@ -363,6 +363,20 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
 }
 
+// I1: a self-describing layered SVG (data-role/pivot/preset-*/states) must round-trip through the
+// MCP alt entry, not just the browser. Regression for the dropped parts/states in startFromLayeredSvg.
+{
+  const rig =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-states="idle,active,alert,loading">' +
+    '<g id="part-body" data-role="core" data-pivot="50,50" data-preset-idle="breathe">' +
+    '<rect x="30" y="30" width="40" height="40" fill="#26a69a"/></g></svg>';
+  const s = startFromLayeredSvg({ svg: rig });
+  const m = _sessions.get(s.session).model;
+  assert.deepEqual(m.states(), ["idle", "active", "alert", "loading"], "declared states survive MCP ingest");
+  assert.equal(m.parts()["part-body"].role, "core", "role survives MCP ingest");
+  assert.equal(m.preset("idle", "part-body"), "breathe", "preset survives MCP ingest");
+}
+
 // C1 regression: a Simple-tier rig (idle only) with a limb must EMIT, not crash. The limb has no
 // idle preset, so it simply stays inert; the core still breathes. Auto-fill must not reach for 'active'.
 {
