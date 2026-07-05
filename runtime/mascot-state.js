@@ -117,6 +117,7 @@ export function pollJson(url, mapFn, intervalMs = 1000) {
     async function tick() {
       try {
         const res = await fetch(url);
+        if (!res.ok) { emit(null); return; } // a failed request asserts nothing -> resting under hysteresis
         emit(mapFn(await res.json()));
       } catch {
         emit(null); // a dead feed asserts nothing -> falls back to resting under hysteresis

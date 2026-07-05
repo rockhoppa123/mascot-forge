@@ -3,7 +3,7 @@
 // asserts the resulting state timeline (priority interrupt + downgrade hysteresis), then proves
 // the same sequence yields an identical timeline (determinism).
 import assert from "node:assert/strict";
-import { createMascot } from "./mascot-state.js";
+import { createMascot, pollJson } from "./mascot-state.js";
 
 const states = ["idle", "active", "alert"];
 
@@ -69,6 +69,20 @@ assert.deepEqual(b.timeline, a.timeline, "same signal sequence must yield the sa
   const h = harness();
   h.signal(["idle", "active", "alert"], 0);
   assert.equal(h.m.getState(), "alert", "highest-priority asserted state wins");
+}
+
+// M3: a 500 with a JSON body must assert nothing (not map the error payload to a state). pollJson
+// checks res.ok. A macrotask flush lets the immediate tick() resolve before we assert.
+{
+  const calls = [];
+  const savedFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, status: 500, json: async () => ({ failing: true }) });
+  const source = pollJson("/x", (d) => (d.failing ? "alert" : null), 100000);
+  const stop = source((asserted) => calls.push(asserted));
+  await new Promise((r) => setTimeout(r, 0)); // let the immediate tick settle
+  stop();
+  globalThis.fetch = savedFetch;
+  assert.deepEqual(calls, [null], "a non-ok response asserts nothing (does not map the error body)");
 }
 
 console.log("mascot-state.test.mjs: all assertions passed.");
