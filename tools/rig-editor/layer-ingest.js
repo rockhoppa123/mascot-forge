@@ -5,7 +5,8 @@
 // ponytail: a regex tokenizer for the flat/known-shape case (tests + simple exports). The browser
 // (app.js) uses DOMParser + getBBox for real files — it handles messy whitespace and computes path
 // bboxes — but reuses the naming/sanitize/dedupe + model assembly here so both paths agree.
-// Known v1 limit: per-group/element transforms are not resolved (assume flat exports).
+// Known v1 limits: per-group/element transforms are not resolved, and NESTED <g> layers are rejected
+// (the non-greedy tokenizer would drop the outer group's own geometry) — flatten exports first.
 import { createModel } from "./model.js";
 import { pathBBox } from "./path-bbox.js";
 
@@ -50,6 +51,9 @@ export function parseLayered(svgText) {
   let g;
   while ((g = GROUP_RE.exec(svgText)) !== null) {
     const gAttrs = g[1], inner = g[2];
+    if (/<g\b/.test(inner)) {
+      throw new Error("nested <g> layers are not supported by the flat layered ingest — flatten the export, or rig it in the browser editor (which resolves nesting).");
+    }
     const name = inkLabel(gAttrs) || attr(gAttrs, "id") || attr(gAttrs, "data-name") || `layer-${++layerN}`;
     const part = sanitizeId(name, used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
@@ -58,7 +62,7 @@ export function parseLayered(svgText) {
     const bone = attr(gAttrs, "data-bone"); if (bone) meta.bone = bone;
     const piv = attr(gAttrs, "data-pivot");
     if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
-    for (const pm of gAttrs.matchAll(/\bdata-preset-([a-z]+)="([^"]*)"/g)) { (meta.presets || (meta.presets = {}))[pm[1]] = pm[2]; }
+    for (const pm of gAttrs.matchAll(/\bdata-preset-([a-z0-9-]+?)="([^"]*)"/g)) { (meta.presets || (meta.presets = {}))[pm[1]] = pm[2]; }
     EL_RE.lastIndex = 0;
     let m;
     while ((m = EL_RE.exec(inner)) !== null) {
