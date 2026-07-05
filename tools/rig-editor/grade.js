@@ -6,10 +6,12 @@ export function gradeInput(model) {
   const fills = new Set(rects.map((r) => r.fill).filter(Boolean));
   const total = rects.reduce((a, r) => a + r.w * r.h, 0) || 1;
   const maxShare = rects.reduce((m, r) => Math.max(m, (r.w * r.h) / total), 0);
-  if (fills.size <= 2 || maxShare > 0.8) {
+  // silhouette = too few COLOURS to separate. A dominant region alone is not a silhouette — with
+  // 3+ fills the smaller colours still peel off cleanly (U2); that case falls to borderline below.
+  if (fills.size <= 2) {
     return {
       grade: "silhouette",
-      reason: `flat ${fills.size}-colour shape; one region is ${(maxShare * 100).toFixed(0)}% of the art`,
+      reason: `flat ${fills.size}-colour shape — nothing to separate`,
       recommendation: "parts can't be auto-separated — use a layered or multi-colour source, or it will animate as one body",
     };
   }
