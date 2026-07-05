@@ -252,6 +252,13 @@ assert.deepEqual(defaultPresetFor("part-ears", "accent"), ["idle", "twitch"], "e
 assert.deepEqual(defaultPresetFor("part-eyes", "accent"), ["idle", "blink"], "eyes blink");
 assert.deepEqual(defaultPresetFor("part-arm", "limb"), ["active", "walk"], "generic limb still walks");
 
+// M1: anatomy heuristics must not fire on substrings — 'detail' is not a tail, 'eyebrow' not an eye.
+assert.notDeepEqual(defaultPresetFor("part-detail", "limb"), ["active", "wag"], "'detail' is not a tail");
+assert.notDeepEqual(defaultPresetFor("part-eyebrow", "accent"), ["idle", "blink"], "'eyebrow' is not an eye");
+// real anatomy still matches
+assert.deepEqual(defaultPresetFor("part-tail", "limb"), ["active", "wag"], "a real tail still wags");
+assert.deepEqual(defaultPresetFor("part-left-eye", "accent"), ["idle", "blink"], "a real eye still blinks");
+
 // kind-aware defaults (Phase 2a): a kind hint outranks id/role (the land-rover wheels-rock fix)
 assert.deepEqual(defaultPresetFor("part-wheel-front", "limb", "wheel"), ["active", "spin"], "wheel kind spins");
 assert.deepEqual(defaultPresetFor("part-flag", "accent", "flag"), ["alert", "wave"], "flag waves");

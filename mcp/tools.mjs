@@ -40,9 +40,10 @@ export function defaultPresetFor(id, role, kind = null) {
   // a subject kind outranks id/role: a wheel spins, a flag waves, a mouth talks (the land-rover fix).
   const byKind = kind && kindDefaultPreset(kind);
   if (byKind) return byKind;
-  if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
-  if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
-  if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];
+  // segment-anchored so 'detail' isn't a tail and 'eyebrow' isn't an eye (ids are kebab-case).
+  if (role === "limb" && /(^|-)tails?(-|$)/i.test(id)) return ["active", "wag"];
+  if (role === "accent" && /(^|-)(ear|antenn)/i.test(id)) return ["idle", "twitch"];
+  if (role === "accent" && /(^|-)eyes?(-|$)/i.test(id)) return ["idle", "blink"];
   return DEFAULT_PRESET[role];
 }
 
