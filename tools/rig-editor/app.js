@@ -214,7 +214,12 @@ function loadLayeredSvg(svgText, name) {
   const used = new Set();
   const elements = [];
   let eid = 0, layerN = 0;
-  const groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  let groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  // U1: an exporter re-import wraps parts in a single #rig-root group — descend into it so each
+  // part group is a layer (matches parseLayered's unwrap).
+  if (groups.length === 1 && groups[0].id === "rig-root") {
+    groups = [...groups[0].children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  }
   const layers = groups.length ? groups : [svgEl]; // no groups → one implicit layer
   for (const g of layers) {
     const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;

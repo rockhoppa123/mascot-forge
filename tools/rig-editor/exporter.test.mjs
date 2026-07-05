@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parseSegmented } from "./loader.js";
+import { parseLayered } from "./layer-ingest.js";
 import { createModel } from "./model.js";
 import { recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
@@ -84,6 +85,19 @@ assert.ok(/<g id="rig-root">/.test(out.manualSvg));
 for (const p of out.riggedJson.parts) {
   const re = new RegExp(`id="${p.id}"[^>]*class="part"[^>]*data-origin="[^"]+"[^>]*data-pivot-x="[^"]+"[^>]*data-pivot-y="[^"]+"`);
   assert.ok(re.test(out.manualSvg), `${p.id} group has class/origin/pivot metadata`);
+}
+
+// U1: the export is self-describing — role/kind/pivot/preset/states travel as data-* so the editor's
+// layered loader can rebuild an ANIMATED model from a re-opened export (save-and-resume round-trip).
+{
+  assert.match(out.manualSvg, /<svg[^>]*\bdata-states="idle,active,alert"/, "root carries declared states");
+  assert.match(out.manualSvg, /id="part-body"[^>]*\bdata-role="core"/, "body group carries its role");
+  assert.match(out.manualSvg, /id="part-body"[^>]*\bdata-preset-idle="breathe"/, "body group carries its idle preset");
+  assert.match(out.manualSvg, /id="part-leg-left"[^>]*\bdata-preset-active="walk"/, "limb group carries its active preset");
+  // round-trip: the layered parser rebuilds the same rig metadata from the export alone
+  const { parts } = parseLayered(out.manualSvg);
+  assert.equal(parts["part-body"].role, "core", "re-parsed role");
+  assert.equal(parts["part-body"].presets.idle, "breathe", "re-parsed idle preset");
 }
 
 // (D7) parts-spec write-back carries the final part set + roles

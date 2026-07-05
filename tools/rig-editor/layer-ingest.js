@@ -39,6 +39,10 @@ function rectBBox(attrsStr) {
 // Pure parser for flat layered SVGs. Rect + path bbox are computed here (path via pathBBox); other
 // non-rect shapes (circle/ellipse/…) leave bbox `null` for the browser to fill via getBBox.
 export function parseLayered(svgText) {
+  // U1: exporter output wraps the part groups in a single #rig-root group — unwrap it so each part
+  // <g> is a top-level layer (the editor's own export round-trips like any layered SVG).
+  const wrap = svgText.match(/<g id="rig-root">([\s\S]*)<\/g>/);
+  if (wrap) svgText = svgText.replace(wrap[0], wrap[1]);
   const svgOpen = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
   const statesAttr = svgOpen && attr(svgOpen[0], "data-states");

@@ -32,7 +32,7 @@ export function exportRig(model, opts = {}) {
     if (pivot.x < bb.x - 1 || pivot.x > bb.x + bb.w + 1 || pivot.y < bb.y - 1 || pivot.y > bb.y + bb.h + 1) pivot = centre;
     const origin = meta.origin || pivotToOrigin(pivot, bb);
     const bone = meta.bone || "root";
-    resolved[id] = { id, bone, origin, pivot, role: meta.role || "passive" };
+    resolved[id] = { id, bone, origin, pivot, role: meta.role || "passive", kind: meta.kind || null };
   }
 
   // 3. bones — a flat skeleton: root + one bone per distinct part bone (parent root, root first).
@@ -78,7 +78,7 @@ export function exportRig(model, opts = {}) {
   };
 
   // 6. manual-part.svg.
-  const manualSvg = serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects, opts });
+  const manualSvg = serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects, selections, opts });
 
   // 7. parts-spec.json write-back (D7) — final semantic part set + roles + bones (no background).
   const partsSpec = {
@@ -89,7 +89,7 @@ export function exportRig(model, opts = {}) {
   return { manualSvg, riggedJson, partsSpec, ungrouped: model.ungroupedRects() };
 }
 
-function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects, opts }) {
+function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects, selections, opts }) {
   const renderMethod = opts.renderMethod || "ccl-color-threshold";
   const sourceBounds = opts.sourceBounds || boundsAttr(rects);
   const cssHref = opts.cssHref || `${assetName}-svg-css.css`;
@@ -97,7 +97,7 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   lines.push(`<?xml-stylesheet type="text/css" href="${cssHref}"?>`);
   lines.push(
-    `<svg id="mascot" data-state="${states[0]}" data-render-method="${renderMethod}" ` +
+    `<svg id="mascot" data-state="${states[0]}" data-states="${states.join(",")}" data-render-method="${renderMethod}" ` +
       `data-source-bounds="${sourceBounds}" xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" ` +
       // crispEdges disables edge anti-aliasing so the stack of 1px run-rects tiles seamlessly. Without
       // it, gradient/anti-aliased sources (which defeat the vertical rect-merge) render hairline white
@@ -109,9 +109,16 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
   lines.push(`  <g id="rig-root">`);
   for (const id of orderedIds) {
     const r = resolved[id];
+    // U1 self-describing export: role/kind/pivot(csv)/preset-* so the layered loader rebuilds an
+    // ANIMATED model from a re-opened export. data-pivot-x/-y stay for the emit-svg-css back-compat.
+    const partPresets = states
+      .map((s) => (selections[s] && selections[s][id] ? ` data-preset-${s}="${selections[s][id]}"` : ""))
+      .join("");
     lines.push(
       `    <g id="${id}" class="part" data-bone="${r.bone}" data-origin="${r.origin}" ` +
-        `data-pivot-x="${round(r.pivot.x)}" data-pivot-y="${round(r.pivot.y)}">`
+        `data-pivot-x="${round(r.pivot.x)}" data-pivot-y="${round(r.pivot.y)}" ` +
+        `data-role="${r.role}"${r.kind ? ` data-kind="${r.kind}"` : ""} ` +
+        `data-pivot="${round(r.pivot.x)},${round(r.pivot.y)}"${partPresets}>`
     );
     for (const el of rects.filter((x) => x.part === id)) {
       // ADR-0011: geometry-agnostic — emit the element's source markup if it carries any (paths,
