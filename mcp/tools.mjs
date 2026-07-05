@@ -11,7 +11,7 @@ import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
 import { vtracerSvg, elementsFromVtracerSvg } from "./vectorize-vtracer.mjs";
 import { createModel, STANDARD_STATES } from "../tools/rig-editor/model.js";
-import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
+import { parseLayered, toModel, sanitizeId } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor, kindDefaultPreset } from "../tools/rig-editor/presets.js";
@@ -81,9 +81,11 @@ function getSession(id) {
   if (!s) throw new Error(`unknown session '${id}'`);
   return s;
 }
-// enforce a stable part- prefix so agent-chosen ids can't collide (e.g. "body" vs "part-body").
+// sanitize + enforce a stable part- prefix so agent-chosen ids can't collide (e.g. "body" vs
+// "part-body") or break CSS/SVG ids ("Left Arm" -> "part-left-arm"). sanitizeId lowercases,
+// collapses non-alphanumerics to '-', and prefixes 'part-'; idempotent on already-valid ids.
 function normPartId(id) {
-  return typeof id === "string" && id && !id.startsWith("part-") ? `part-${id}` : id;
+  return typeof id === "string" && id ? sanitizeId(id) : id;
 }
 function parseVB(s) { const [x, y, w, h] = s.split(/\s+/).map(Number); return { x, y, w, h }; }
 function partList(model) {

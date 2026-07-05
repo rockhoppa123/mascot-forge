@@ -363,6 +363,15 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
 }
 
+// I2: an id with a space would produce '<g id="part-left arm">' and a broken '#part-left arm' CSS
+// selector (a silent no-op animation). It must be sanitized to a single valid token at the boundary.
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4 });
+  const r = assignRegion({ session: s.session, box: { x: 0, y: 0, w: 1, h: 1 }, partId: "Left Arm", role: "limb" });
+  assert.ok(r.parts.some((p) => p.id === "part-left-arm"), "'Left Arm' sanitized to 'part-left-arm'");
+  assert.ok(!r.parts.some((p) => /[ "A-Z]/.test(p.id)), "no id carries a space, quote, or uppercase");
+}
+
 // I1: a self-describing layered SVG (data-role/pivot/preset-*/states) must round-trip through the
 // MCP alt entry, not just the browser. Regression for the dropped parts/states in startFromLayeredSvg.
 {

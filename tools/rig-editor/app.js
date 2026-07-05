@@ -422,8 +422,10 @@ $("bone").onchange = (e) => { if (selected) { pushUndo(); model.setBone(selected
 // (preset-picker onchange handlers are wired in renderStateControls — pickers are now dynamic per state)
 $("rename").onclick = () => {
   if (!selected) return;
-  const next = prompt("Rename part id to:", selected);
-  if (!next || next === selected) return;
+  const rawNext = prompt("Rename part id to:", selected);
+  if (!rawNext) return;
+  const next = sanitizeId(rawNext); // valid CSS/SVG id (I2)
+  if (next === selected) return;
   pushUndo();
   model.rename(selected, next);
   const was = selected; selected = next;
@@ -439,8 +441,9 @@ $("remove").onclick = () => {
   render(); renderParts(); regenCss();
 };
 $("addpart").onclick = () => {
-  const id = $("newname").value.trim();
-  if (!id) return;
+  const raw = $("newname").value.trim();
+  if (!raw) return;
+  const id = sanitizeId(raw); // valid CSS/SVG id — "Left Arm" -> "part-left-arm" (I2)
   pushUndo();
   model.assign([], id);           // creates an empty candidate part (assign rects via merge below)
   $("newname").value = "";
@@ -528,8 +531,9 @@ $("stage").addEventListener("pointerup", (e) => {
 
 $("split").onclick = () => {
   if (!rectSel.length) return;
-  const target = $("splitname").value.trim();
-  if (!target) { status("Enter a target part id first."); return; }
+  const rawTarget = $("splitname").value.trim();
+  if (!rawTarget) { status("Enter a target part id first."); return; }
+  const target = sanitizeId(rawTarget); // valid CSS/SVG id (I2)
   const n = rectSel.length;
   pushUndo();
   model.assign(rectSel, target);
