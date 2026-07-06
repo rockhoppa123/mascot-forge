@@ -136,7 +136,10 @@ mascot-forge/
 ├── runtime/                   ← dep-free Phase-4 orchestrator core + node self-check
 │   ├── mascot-state.js
 │   └── mascot-state.test.mjs
+├── mcp/                       ← the agent-rigging MCP server (its own deps; 10 guided tools)
+├── tests/                     ← Playwright e2e for the editor + demos (dev-dependency only)
 ├── tools/                     ← emitters + structural checks (PowerShell + node)
+│   ├── rig-editor/            ← browser rig editor (zero-dependency ESM, no build)
 │   ├── vectorize-pixel.ps1    ← P1: PNG → colour-quantized flat.svg
 │   ├── segment-parts.ps1      ← P2: proposed semantic segmentation
 │   ├── emit-svg-css.ps1       ← P3: SVG+CSS Output Target emitter
@@ -151,7 +154,7 @@ mascot-forge/
 │   │   ├── orchestrator-demo.html  ← Phase-4 data-reactive demo
 │   │   └── showcase.html      ← before (PNG) / after (forged) side-by-side
 │   ├── research/              ← landscape, references, research-log, phase plans
-│   └── adr/                   ← architecture decision records (0001–0009)
+│   └── adr/                   ← architecture decision records (0001–0011)
 └── assets/
     └── devbrain/                 ← flagship showoff asset + legacy DevBrain baseline
 ```
@@ -182,19 +185,23 @@ root (Claude Code auto-discovers it); or add this to your host config:
 }
 ```
 
-**3. Hand the agent an image and ask it to rig it.** The agent runs this loop (six tools):
+**3. Hand the agent an image and ask it to rig it.** The guided path (the `rig_mascot` prompt scripts it):
 
-1. `forge_start_from_image` — vectorises the PNG, proposes coarse parts, returns a `session` + viewBox.
-2. `assign_region` — for each part the agent *sees*, a box in `0..1` fractions of the viewBox + a role
-   (`core` body / `limb` arm-leg / `accent` small mover / `passive` still); reads back `moved` and adjusts.
-3. `set_part` — role, bone, pivot (omit for a role-aware default — limb hinges at its joint), and a
-   preset per state.
-4. `forge_status` — confirm every state (idle/active/alert) has coverage.
-5. `forge_emit` — validate and write a self-contained animated SVG (+ demo HTML) you own.
+1. `forge_start_from_image` — vectorises, grades the input, proposes coarse parts; returns a `session`.
+   Pass `states` to pick a reactivity tier (Simple `["idle"]` / Standard idle-active-alert / Signals
+   adds loading-success-error).
+2. `assign_region` — carve each part the agent *sees* (a box in `0..1` fractions of the viewBox + a role:
+   `core` body / `limb` arm-leg / `accent` small mover / `passive` still); `set_part` — role, kind, bone,
+   pivot (omit for a role-aware default), and a preset per state.
+3. `forge_propose` — a regions overlay + a per-part motion plan (mirror-aware) to confirm at a checkpoint.
+4. `forge_apply_tweaks` / `forge_review` — inline rename/role fixes and a human approve/redo/editor
+   checkpoint (MCP elicitation when the host supports it).
+5. `forge_status` then `forge_emit` — validate and write a self-contained animated SVG (+ demo HTML) you own.
 
-A sixth tool, `forge_start_from_layered_svg`, is an alt entry for a **layered** vector SVG
-(Figma/Inkscape/Illustrator) — each top-level `<g>` becomes a part named by its layer, so the agent
-skips segmentation and goes straight to `set_part` + `forge_emit` (v1 is rect-bearing only).
+`forge_start_from_layered_svg` and `forge_open_editor` complete the **ten tools**: an alt entry for a
+**layered** vector SVG (Figma/Inkscape/Illustrator — each top-level `<g>` becomes a part named by its
+layer, flat exports only), and a self-describing handoff into the browser rig editor (returns a ready
+`?rig=` URL that loads the rig animated).
 
 A runnable, no-live-agent reproduction of the whole loop is `mcp/build-smiley-demo.mjs` (it emits the
 agent-rigged mascot behind the [live-data hero demo](docs/buildable-slice/mcp-live-demo.html)). The tool
