@@ -45,7 +45,7 @@ unchanged — "one rig contract → two emitters" is confirmed viable.
   difference; the schema changes above are the mitigation.
 - **Payload, measured (2026-07-25).** The ~0 KB runtime figure covers the CSS only. The emitted SVG
   geometry is the real payload and scales with pixel complexity: smiley 1 KB gzip, ghost 4 KB gzip,
-  DevBrain **44 KB gzip** (500 KB raw, 5,667 `<rect>`s from scanline RLE). So SVG+CSS is not
+  DevBrain **44 KB gzip** (500 KB raw, 7,555 `<rect>`s from scanline RLE). So SVG+CSS is not
   automatically *lighter* than Lottie for a complex pixel-art asset — a Lottie player is amortised
   across a page while our geometry is per-mascot. The defensible claim is **ownership and zero runtime
   dependency**, not smallest bytes. Curve-based output (the opt-in VTracer engine) is the lever if
