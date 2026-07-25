@@ -241,6 +241,24 @@ function noRoleAdvisory(model) {
     `passive = stays still. At minimum give one part 'core'.`;
 }
 
+// A part that animates while geometry overlapping it stays put visibly tears apart. Compare each
+// pair's bbox overlap as a fraction of the SMALLER box, so a small part sitting inside a big one counts.
+function tearRisksFor(model, plan) {
+  const willMove = new Set(plan.filter((p) => p.recommended).map((p) => p.id));
+  const ids = Object.keys(model.parts()).filter((id) => model.rectsOf(id).length > 0);
+  const box = (id) => bboxOf(model.rectsOf(id));
+  const out = [];
+  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+    if (willMove.has(ids[i]) === willMove.has(ids[j])) continue;   // both move or both still: no tear
+    const a = box(ids[i]), b = box(ids[j]);
+    const ox = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+    const oy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+    const frac = (ox * oy) / Math.max(1e-6, Math.min(a.w * a.h, b.w * b.h));
+    if (frac > 0.5) out.push({ a: ids[i], b: ids[j], overlap: Math.round(frac * 100) / 100 });
+  }
+  return out;
+}
+
 // forge_propose: the analyze-first report — current parts + a regions-overlay preview the human can
 // eyeball, plus an input-quality advisory. A truly monochrome source (<=2 distinct fills) can't be
 // auto-separated into animatable parts (the silhouette ceiling) — steer the user to a layered/
@@ -262,7 +280,8 @@ export function forgePropose({ session, outDir } = {}) {
     const f = join(dir, "regions-preview.html"); writeFileSync(f, html);
     preview = servedUrl(f); // a clickable link for the human checkpoint, matching forge_emit/forge_open_editor
   } else preview = html.length;
-  return { parts, rigStatus: rigStatus(s.model), preview, advisory, plan: planFor(s.model) };
+  const plan = planFor(s.model);
+  return { parts, rigStatus: rigStatus(s.model), preview, advisory, plan, tearRisks: tearRisksFor(s.model, plan) };
 }
 
 // forge_apply_tweaks: inline fixes at the checkpoint (rename a part, change its role) without leaving

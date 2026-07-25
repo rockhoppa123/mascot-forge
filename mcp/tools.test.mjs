@@ -432,6 +432,36 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
     `limb recommendation stays within declared states (got ${JSON.stringify(legPlan.recommended)})`);
 }
 
+// TEAR RISK: if an animated part and an INERT part share most of their box, the moving one visibly
+// separates from the still one. Surface it at the checkpoint rather than letting the human discover
+// it by watching the mascot come apart. Built from an explicit layered SVG so the overlap is exact
+// and the assertion can name the pair — a synthetic PNG's segmentation is not precise enough to
+// assert against, and "it returned an array" would pass even if detection never fired.
+{
+  const rig =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+    '<g id="mover"><rect x="10" y="10" width="60" height="60" fill="#a11"/></g>' +
+    '<g id="stiller"><rect x="20" y="20" width="40" height="40" fill="#1a1"/></g>' +   // fully inside mover
+    '<g id="faraway"><rect x="80" y="80" width="15" height="15" fill="#11a"/></g>' +   // no overlap
+    '</svg>';
+  const s = startFromLayeredSvg({ svg: rig });
+  setPart({ session: s.session, partId: "mover", role: "core" });      // will animate (breathe)
+  setPart({ session: s.session, partId: "stiller", role: "passive" }); // stays put -> tears
+  setPart({ session: s.session, partId: "faraway", role: "passive" });
+
+  const risks = forgePropose({ session: s.session }).tearRisks;
+  assert.equal(risks.length, 1, `exactly one tear risk expected, got ${JSON.stringify(risks)}`);
+  const pair = [risks[0].a, risks[0].b].sort();
+  assert.deepEqual(pair, ["part-mover", "part-stiller"], "the overlapping animated/inert pair is named");
+  assert.ok(risks[0].overlap > 0.9, `stiller sits fully inside mover, so overlap ~1 (got ${risks[0].overlap})`);
+  assert.ok(!JSON.stringify(risks).includes("faraway"), "a non-overlapping part is not flagged");
+
+  // and when nothing is inert, there is nothing to tear against
+  setPart({ session: s.session, partId: "stiller", role: "accent" });
+  assert.deepEqual(forgePropose({ session: s.session }).tearRisks, [],
+    "two ANIMATED overlapping parts are not a tear risk — they move together");
+}
+
 { // a silhouette is steered to whole-body Simple, not carved into fake parts
   const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
