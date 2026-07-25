@@ -9,6 +9,14 @@ All notable changes to mascot-forge are documented here. Format follows
 Public-ready state — staged for the `v1.0.0` release (cut at public launch alongside the live demo).
 
 ### Added
+- **React+GSAP reachable from the MCP agent path** — `forge_emit` gains a `target` parameter
+  (`"svg-css"` default | `"react-gsap"` | `"both"`), implementing ADR-0003's "one rig contract,
+  swappable emitter" for the first time on the agent path. The emitter's logic moved into a pure ESM
+  core (`tools/emit-react-gsap/emit-react.mjs`) shared by the CLI and the MCP so they cannot drift; the
+  committed `generated/` files are its byte-for-byte golden. New **P7** gate stage covers the target,
+  which previously had none, and a cross-target pivot-fidelity test proves both Output Targets rotate
+  every part around the identical absolute point — the risk ADR-0007 named as the biggest one for an
+  automated pipeline, now tested rather than assumed. No new dependency: the core imports only `node:*`.
 - **DevBrain mascot ownership migration** — the former DevBrain mascot is now the flagship showoff
   asset for mascot-forge. Source sheets, exported PNG poses, and the old DevBrain runtime baseline live
   under `assets/devbrain/` for before/after comparison and MCP demo material.
@@ -33,10 +41,23 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   `assign_region` with normalized 0..1 boxes → `forge_emit`) lets a vision agent (e.g. Claude) do the
   *semantic* part identification the deterministic segmenter can't, driving the same shared modules. No
   bundled model; the runtime stays dependency-free.
+- **Guided reactivity tiers + full-fidelity editor round-trip** — the `rig_mascot` prompt now walks the
+  agent through picking a tier (Simple `idle`-only / Standard `idle-active-alert` / Signals adds
+  `loading-success-error`) before rigging, and steers silhouette/borderline input to a whole-body Simple
+  rig instead of fake limbs. `forge_propose` returns a per-part motion plan (mirror-aware) and
+  `forge_apply_tweaks` / `forge_review` add inline rename/role fixes and a human approve/redo/editor
+  checkpoint. The editor gained matching add/remove app-signal-state controls (`idle` stays non-removable).
+- **Self-describing handoff, both directions** — `forge_open_editor` and the editor's own "Export animated
+  mascot" now emit `data-role`/`data-kind`/`data-pivot`/`data-preset-*` per part plus root `data-states`,
+  so a rig opened via `?rig=` (or a re-opened export) rebuilds fully animated instead of loading inert —
+  a save-and-resume round-trip.
 - **Automated tests for the product** — a Playwright e2e smoke suite (`tests/`) covering the editor’s
   happy path and regressing two found bugs; plus an MCP agent-simulation test (`mcp/`). Both run in CI.
 - **Project infrastructure** — GitHub Actions CI (full `check-all.ps1` gate + `e2e` + `mcp` workflows),
   community-health files (Code of Conduct, Security, Citation, issue/PR templates), curated README + badges.
+- **AGENTS.md and DESIGN.md** — a contributor/agent guide (repo orientation, boundaries, the gate command)
+  and the visual/product-surface rules separating the utility rig editor and demos from the emitted
+  mascot as product.
 
 ### Fixed
 - **Marquee suppress-flag could eat the next click** — after a drag, a stale `suppressClick` swallowed
@@ -44,6 +65,31 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
 - Changing a part's role no longer orphans an invalid preset selection — previously this made Export
   throw and silently do nothing. Stale presets are cleared on role change, and the Export button now
   surfaces any error instead of failing quietly.
+- **System audit fixes (2026-07-05)** — a Simple-tier (idle-only) rig no longer crashes on `forge_emit`
+  when a limb/accent's natural preset targets an undeclared state; `forge_start_from_layered_svg` now
+  carries roles/pivots/presets/declared states through the MCP alt entry (previously dropped); part ids
+  are sanitized at every input boundary (MCP + editor) so a space/uppercase id can no longer produce a
+  broken `<g id>` or CSS selector; nested `<g>` layers in a layered-SVG import are now rejected with a
+  clear error instead of silently losing the outer group's geometry; the suggested signal-state
+  vocabulary now orders `error` last (highest priority), matching the runtime; silhouette grading
+  requires ≤2 fills — a dominant-but-colourful image now grades borderline instead of unrigable;
+  `pollJson` treats a non-2xx response as nothing-asserted instead of relying on a JSON-parse throw;
+  anatomy-preset heuristics anchor to word boundaries (`detail` no longer matches `tail`, `eyebrow` no
+  longer matches `eye`); renaming a part onto an existing id is rejected instead of silently clobbering
+  it; region-overlay labels no longer clip above the top edge; the MCP's default first-pass colour count
+  now matches the editor (6).
+- **Post-audit follow-up pass (2026-07-25)** — `safePath` resolved `outDir` against `process.cwd()`
+  instead of the repo root, so `forge_emit`/`forge_open_editor`/`forge_propose` wrote one directory too
+  deep or threw "path outside project root" for any MCP client not launched with cwd pinned to the repo
+  root (the common case); `forge_propose`'s `outDir` branch now returns a clickable URL like the other
+  two, instead of a raw local path; `pollJson` no longer lets a slow tick's stale response overwrite a
+  faster later tick's, and `fromEvents` degrades to nothing-asserted on a throwing `mapFn` instead of
+  raising an uncaught exception, matching `pollJson`'s contract. In the rig editor: the `Escape`/`Ctrl+Z`/
+  `p` global shortcuts no longer fire while a text field has focus (previously hijacked in-field typing,
+  including the browser's native field-undo); the file input is keyboard-reachable again (`hidden` had
+  dropped it from the tab order); the layout no longer squeezes the canvas to a sliver below 700px width;
+  a "Vectorising…" status now appears before the CPU-bound PNG ingest; `--danger` red now meets AA
+  contrast against the button background.
 
 ### Changed
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind

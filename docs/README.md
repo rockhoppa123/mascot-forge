@@ -6,11 +6,12 @@ and research as needed.
 ## Start here
 - [`product-discovery.md`](product-discovery.md) — the problem, market gap, personas, scope, success criteria (the *why*).
 - [`technical-proposal.md`](technical-proposal.md) — architecture, phases, stack, open questions (the *how*).
+- [`../DESIGN.md`](../DESIGN.md) — editor/demo visual constraints and agent UI-skill routing (the *product surface*).
 
 ## Reference
 - [`../assets/devbrain/`](../assets/devbrain/) — the former DevBrain mascot, now the flagship showoff
   asset and legacy baseline for before/after comparisons.
-- [`adr/`](adr/) — Architecture Decision Records (0001–0010): the load-bearing choices and their rationale.
+- [`adr/`](adr/) — Architecture Decision Records (0001–0011): the load-bearing choices and their rationale.
 - [`buildable-slice/`](buildable-slice/) — the v1 slice: rig fixture, emitted output, and the live demos
   (`orchestrator-demo.html`, `showcase.html`).
 - [`research/`](research/) — landscape analysis, references, the research log, and phase prompts.

@@ -5,7 +5,8 @@
 // ponytail: a regex tokenizer for the flat/known-shape case (tests + simple exports). The browser
 // (app.js) uses DOMParser + getBBox for real files — it handles messy whitespace and computes path
 // bboxes — but reuses the naming/sanitize/dedupe + model assembly here so both paths agree.
-// Known v1 limit: per-group/element transforms are not resolved (assume flat exports).
+// Known v1 limits: per-group/element transforms are not resolved, and NESTED <g> layers are rejected
+// (the non-greedy tokenizer would drop the outer group's own geometry) — flatten exports first.
 import { createModel } from "./model.js";
 import { pathBBox } from "./path-bbox.js";
 
@@ -38,6 +39,10 @@ function rectBBox(attrsStr) {
 // Pure parser for flat layered SVGs. Rect + path bbox are computed here (path via pathBBox); other
 // non-rect shapes (circle/ellipse/…) leave bbox `null` for the browser to fill via getBBox.
 export function parseLayered(svgText) {
+  // U1: exporter output wraps the part groups in a single #rig-root group — unwrap it so each part
+  // <g> is a top-level layer (the editor's own export round-trips like any layered SVG).
+  const wrap = svgText.match(/<g id="rig-root">([\s\S]*)<\/g>/);
+  if (wrap) svgText = svgText.replace(wrap[0], wrap[1]);
   const svgOpen = svgText.match(/<svg\b[^>]*>/);
   const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
   const statesAttr = svgOpen && attr(svgOpen[0], "data-states");
@@ -50,6 +55,9 @@ export function parseLayered(svgText) {
   let g;
   while ((g = GROUP_RE.exec(svgText)) !== null) {
     const gAttrs = g[1], inner = g[2];
+    if (/<g\b/.test(inner)) {
+      throw new Error("nested <g> layers are not supported by the flat layered ingest — flatten the export, or rig it in the browser editor (which resolves nesting).");
+    }
     const name = inkLabel(gAttrs) || attr(gAttrs, "id") || attr(gAttrs, "data-name") || `layer-${++layerN}`;
     const part = sanitizeId(name, used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
@@ -58,7 +66,7 @@ export function parseLayered(svgText) {
     const bone = attr(gAttrs, "data-bone"); if (bone) meta.bone = bone;
     const piv = attr(gAttrs, "data-pivot");
     if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
-    for (const pm of gAttrs.matchAll(/\bdata-preset-([a-z]+)="([^"]*)"/g)) { (meta.presets || (meta.presets = {}))[pm[1]] = pm[2]; }
+    for (const pm of gAttrs.matchAll(/\bdata-preset-([a-z0-9-]+?)="([^"]*)"/g)) { (meta.presets || (meta.presets = {}))[pm[1]] = pm[2]; }
     EL_RE.lastIndex = 0;
     let m;
     while ((m = EL_RE.exec(inner)) !== null) {

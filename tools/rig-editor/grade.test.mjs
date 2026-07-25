@@ -7,10 +7,11 @@ const mk = (rects) => createModel({ viewBox: "0 0 100 100", rects: rects.map((r,
 
 // monochrome (1 fill) -> silhouette
 assert.equal(gradeInput(mk([{ x: 0, y: 0, w: 100, h: 100, fill: "#333" }])).grade, "silhouette");
-// one element dominates (>0.8 area) even with 3 fills -> silhouette
+// U2: 3+ fills is never a silhouette, even with a dominant region — the parts CAN be separated by
+// colour. A dominant-but-colourful image grades borderline (previously mis-graded silhouette).
 assert.equal(gradeInput(mk([
   { x: 0, y: 0, w: 100, h: 95, fill: "#111" }, { x: 0, y: 95, w: 3, h: 5, fill: "#222" }, { x: 5, y: 95, w: 3, h: 5, fill: "#333" },
-])).grade, "silhouette");
+])).grade, "borderline");
 // 4+ balanced fills -> good
 assert.equal(gradeInput(mk([
   { x: 0, y: 0, w: 25, h: 50, fill: "#a11" }, { x: 25, y: 0, w: 25, h: 50, fill: "#1a1" },

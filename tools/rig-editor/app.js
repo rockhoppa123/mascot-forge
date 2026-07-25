@@ -214,7 +214,12 @@ function loadLayeredSvg(svgText, name) {
   const used = new Set();
   const elements = [];
   let eid = 0, layerN = 0;
-  const groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  let groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  // U1: an exporter re-import wraps parts in a single #rig-root group — descend into it so each
+  // part group is a layer (matches parseLayered's unwrap).
+  if (groups.length === 1 && groups[0].id === "rig-root") {
+    groups = [...groups[0].children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
+  }
   const layers = groups.length ? groups : [svgEl]; // no groups → one implicit layer
   for (const g of layers) {
     const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;
@@ -409,7 +414,11 @@ $("kind").onchange = (e) => {
   if (def) {
     const [state, name] = def;
     const role = model.parts()[selected].role;
-    if (presetsFor(role, state).includes(name) && !model.preset(state, selected)) model.setPreset(state, selected, name);
+    // C1: only apply the kind's signature preset when its state is DECLARED and the picker isn't
+    // already set — otherwise setPreset throws on an undeclared state (Simple-tier rig).
+    if (model.states().includes(state) && presetsFor(role, state).includes(name) && !model.preset(state, selected)) {
+      model.setPreset(state, selected, name);
+    }
   }
   refreshPresetPickers();
   regenCss();
@@ -418,10 +427,13 @@ $("bone").onchange = (e) => { if (selected) { pushUndo(); model.setBone(selected
 // (preset-picker onchange handlers are wired in renderStateControls — pickers are now dynamic per state)
 $("rename").onclick = () => {
   if (!selected) return;
-  const next = prompt("Rename part id to:", selected);
-  if (!next || next === selected) return;
+  const rawNext = prompt("Rename part id to:", selected);
+  if (!rawNext) return;
+  const next = sanitizeId(rawNext); // valid CSS/SVG id (I2)
+  if (next === selected) return;
   pushUndo();
-  model.rename(selected, next);
+  try { model.rename(selected, next); }
+  catch (e) { undoStack.pop(); status("✗ " + (e && e.message ? e.message : e)); return; }
   const was = selected; selected = next;
   render(); renderParts(); selectPart(next); regenCss();
   status(`Renamed ${was} → ${next}.`);
@@ -435,8 +447,9 @@ $("remove").onclick = () => {
   render(); renderParts(); regenCss();
 };
 $("addpart").onclick = () => {
-  const id = $("newname").value.trim();
-  if (!id) return;
+  const raw = $("newname").value.trim();
+  if (!raw) return;
+  const id = sanitizeId(raw); // valid CSS/SVG id — "Left Arm" -> "part-left-arm" (I2)
   pushUndo();
   model.assign([], id);           // creates an empty candidate part (assign rects via merge below)
   $("newname").value = "";
@@ -524,8 +537,9 @@ $("stage").addEventListener("pointerup", (e) => {
 
 $("split").onclick = () => {
   if (!rectSel.length) return;
-  const target = $("splitname").value.trim();
-  if (!target) { status("Enter a target part id first."); return; }
+  const rawTarget = $("splitname").value.trim();
+  if (!rawTarget) { status("Enter a target part id first."); return; }
+  const target = sanitizeId(rawTarget); // valid CSS/SVG id (I2)
   const n = rectSel.length;
   pushUndo();
   model.assign(rectSel, target);
@@ -567,10 +581,20 @@ $("stage").addEventListener("click", (e) => {
   else deselect();                                            // click empty canvas to deselect
 });
 
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") deselect(); });
+// Global shortcuts must not fire while the user is typing in a field — otherwise 'p' in "pivot_point"
+// arms pivot mode, Escape while editing a bone name collapses the panel, and Ctrl+Z hijacks the
+// browser's native in-field undo instead of restoring what was just typed. `select` is included for
+// the 'p' guard (native type-ahead should type "p", not arm pivot mode) but NOT for Escape/Ctrl+Z: a
+// <select> has no native undo of its own, so excluding it there keeps undo reachable while a preset
+// picker has focus instead of stranding it behind a dead shortcut.
+const inTextField = (e) => e.target.matches("input, textarea, select");
+const inTypingField = (e) => e.target.matches("input, textarea");
+
+document.addEventListener("keydown", (e) => { if (!inTypingField(e) && e.key === "Escape") deselect(); });
 
 // Ctrl+Z (Cmd+Z on macOS): revert the last mutating op from the undo stack.
 document.addEventListener("keydown", (e) => {
+  if (inTypingField(e)) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
     e.preventDefault();
     if (!undoStack.length) { status("Nothing to undo."); return; }
@@ -588,7 +612,7 @@ function svgPoint(e) {
 }
 
 // place-pivot toggle (added to the hint area)
-document.addEventListener("keydown", (e) => { if (e.key === "p" && selected) { pivotMode = true; status("Pivot mode: click the canvas to place the pivot."); } });
+document.addEventListener("keydown", (e) => { if (!inTextField(e) && e.key === "p" && selected) { pivotMode = true; status("Pivot mode: click the canvas to place the pivot."); } });
 
 // ---------- live preview -----------------------------------------------------------------------
 function regenCss() {
@@ -676,6 +700,8 @@ async function loadPng(f, name) {
   try {
     const maxDim = Math.max(16, parseInt($("maxdim").value, 10) || 256);
     const colors = Math.max(1, parseInt($("colors").value, 10) || 6);
+    status("Vectorising…");
+    await new Promise((r) => setTimeout(r, 0)); // yield one tick so the status paints before the CPU-bound quantize/CCL work below
     const { rgba, w, h } = await decodePng(f, maxDim);
     const flat = vectorizeRaster({ rgba, w, h }, { colors });
     const { svg } = segment(flat.rects, { viewBoxSize: Math.max(w, h) }); // square canvas, padded

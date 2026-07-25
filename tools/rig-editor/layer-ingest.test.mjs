@@ -104,4 +104,19 @@ const LAYERED = `<?xml version="1.0"?>
   assert.equal(m.preset("loading", "part-arm"), "spin", "signal-state preset applied");
 }
 
+// I3a: nested <g> exports silently lose the outer group's own geometry with a non-greedy tokenizer.
+// Reject them with a clear message rather than emit a broken part (the browser DOMParser path handles
+// nesting; the node regex path cannot, so it must fail loudly).
+assert.throws(
+  () => parseLayered('<svg viewBox="0 0 100 100"><g id="arm"><g id="hand"><rect x="1" y="1" width="5" height="5" fill="#a"/></g><rect x="10" y="10" width="20" height="20" fill="#b"/></g></svg>'),
+  /nested/i,
+  "nested <g> layers are rejected (flat exports only)"
+);
+
+// I3b: a state name with a digit/hyphen (e.g. 'phase-2') must still be captured as a preset.
+{
+  const { parts } = parseLayered('<svg viewBox="0 0 10 10" data-states="idle,phase-2"><g id="p" data-role="core" data-preset-phase-2="breathe"><rect x="0" y="0" width="5" height="5" fill="#c"/></g></svg>');
+  assert.equal(parts["part-p"].presets["phase-2"], "breathe", "hyphen/digit state preset captured");
+}
+
 console.log("layer-ingest.test.mjs: all assertions passed.");

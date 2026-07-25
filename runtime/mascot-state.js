@@ -114,12 +114,15 @@ export function createMascot({ root = null, states, rules = {} } = {}) {
 /** Poll a JSON endpoint on an interval and map each response to asserted state(s). */
 export function pollJson(url, mapFn, intervalMs = 1000) {
   return (emit) => {
+    let gen = 0; // a slow response landing after a newer tick already resolved must not overwrite it
     async function tick() {
+      const my = ++gen;
       try {
         const res = await fetch(url);
-        emit(mapFn(await res.json()));
+        const asserted = res.ok ? mapFn(await res.json()) : null; // non-2xx asserts nothing -> resting
+        if (my === gen) emit(asserted);
       } catch {
-        emit(null); // a dead feed asserts nothing -> falls back to resting under hysteresis
+        if (my === gen) emit(null); // a dead feed asserts nothing -> falls back to resting under hysteresis
       }
     }
     tick();
@@ -131,7 +134,10 @@ export function pollJson(url, mapFn, intervalMs = 1000) {
 /** Subscribe to an EventTarget (EventSource, postMessage, custom) and map events to state(s). */
 export function fromEvents(target, mapFn, eventName = "message") {
   return (emit) => {
-    const handler = (event) => emit(mapFn(event));
+    const handler = (event) => {
+      try { emit(mapFn(event)); }
+      catch { emit(null); } // a throwing mapFn asserts nothing, same degrade-gracefully contract as pollJson
+    };
     target.addEventListener(eventName, handler);
     return () => target.removeEventListener(eventName, handler);
   };

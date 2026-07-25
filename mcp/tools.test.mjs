@@ -3,6 +3,7 @@
 // Uses a synthetic 3-block PNG (red/green/blue, with margins) so each region is cleanly enclosable and
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg, planFor, _sessions } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
@@ -218,6 +219,12 @@ function smileyPngBase64() {
   assert.ok(typeof prop.preview === "number" && prop.preview > 0, "propose reports the preview size");
   assert.equal(prop.advisory, null, "multi-colour smiley is not flagged as a silhouette");
 
+  // with an outDir, propose must hand back a clickable URL (like forge_emit/forge_open_editor),
+  // not a raw local filesystem path the human can't open from chat
+  const propUrl = forgePropose({ session: sp.session, outDir: "out/_test_open" });
+  assert.match(propUrl.preview, /^http:\/\/localhost:\d+\/out\/_test_open\/regions-preview\.html$/,
+    `propose with outDir returns a demo URL (got ${propUrl.preview})`);
+
   // a monochrome blob trips the silhouette advisory
   const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
@@ -251,6 +258,13 @@ assert.deepEqual(defaultPresetFor("part-tail", "limb"), ["active", "wag"], "tail
 assert.deepEqual(defaultPresetFor("part-ears", "accent"), ["idle", "twitch"], "ears twitch");
 assert.deepEqual(defaultPresetFor("part-eyes", "accent"), ["idle", "blink"], "eyes blink");
 assert.deepEqual(defaultPresetFor("part-arm", "limb"), ["active", "walk"], "generic limb still walks");
+
+// M1: anatomy heuristics must not fire on substrings — 'detail' is not a tail, 'eyebrow' not an eye.
+assert.notDeepEqual(defaultPresetFor("part-detail", "limb"), ["active", "wag"], "'detail' is not a tail");
+assert.notDeepEqual(defaultPresetFor("part-eyebrow", "accent"), ["idle", "blink"], "'eyebrow' is not an eye");
+// real anatomy still matches
+assert.deepEqual(defaultPresetFor("part-tail", "limb"), ["active", "wag"], "a real tail still wags");
+assert.deepEqual(defaultPresetFor("part-left-eye", "accent"), ["idle", "blink"], "a real eye still blinks");
 
 // kind-aware defaults (Phase 2a): a kind hint outranks id/role (the land-rover wheels-rock fix)
 assert.deepEqual(defaultPresetFor("part-wheel-front", "limb", "wheel"), ["active", "spin"], "wheel kind spins");
@@ -363,10 +377,101 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
 }
 
+// safePath must resolve outDir against the repo root, not process.cwd() — an MCP client rarely
+// launches the server with cwd pinned there, so cwd-relative resolution either wrote one directory
+// too deep or rejected a perfectly valid outDir outright. Simulate a client launched from elsewhere.
+{
+  const savedCwd = process.cwd();
+  process.chdir(fileURLToPath(new URL(".", import.meta.url))); // cwd = mcp/, one level below repo root
+  try {
+    const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+    assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+    const e = forgeEmit({ session: s.session, assetName: "cwdcheck", outDir: "out/_test_open" });
+    assert.match(e.open, /^http:\/\/localhost:\d+\/out\/_test_open\/cwdcheck-mascot-demo\.html$/,
+      `outDir resolves against the repo root regardless of server cwd (got ${e.open})`);
+  } finally {
+    process.chdir(savedCwd);
+  }
+}
+
+// I2: an id with a space would produce '<g id="part-left arm">' and a broken '#part-left arm' CSS
+// selector (a silent no-op animation). It must be sanitized to a single valid token at the boundary.
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4 });
+  const r = assignRegion({ session: s.session, box: { x: 0, y: 0, w: 1, h: 1 }, partId: "Left Arm", role: "limb" });
+  assert.ok(r.parts.some((p) => p.id === "part-left-arm"), "'Left Arm' sanitized to 'part-left-arm'");
+  assert.ok(!r.parts.some((p) => /[ "A-Z]/.test(p.id)), "no id carries a space, quote, or uppercase");
+}
+
+// I1: a self-describing layered SVG (data-role/pivot/preset-*/states) must round-trip through the
+// MCP alt entry, not just the browser. Regression for the dropped parts/states in startFromLayeredSvg.
+{
+  const rig =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-states="idle,active,alert,loading">' +
+    '<g id="part-body" data-role="core" data-pivot="50,50" data-preset-idle="breathe">' +
+    '<rect x="30" y="30" width="40" height="40" fill="#26a69a"/></g></svg>';
+  const s = startFromLayeredSvg({ svg: rig });
+  const m = _sessions.get(s.session).model;
+  assert.deepEqual(m.states(), ["idle", "active", "alert", "loading"], "declared states survive MCP ingest");
+  assert.equal(m.parts()["part-body"].role, "core", "role survives MCP ingest");
+  assert.equal(m.preset("idle", "part-body"), "breathe", "preset survives MCP ingest");
+}
+
+// C1 regression: a Simple-tier rig (idle only) with a limb must EMIT, not crash. The limb has no
+// idle preset, so it simply stays inert; the core still breathes. Auto-fill must not reach for 'active'.
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4, states: ["idle"] });
+  assignRegion({ session: s.session, box: { x: 0.05, y: 0.05, w: 0.9, h: 0.30 }, partId: "body", role: "core" });
+  assignRegion({ session: s.session, box: { x: 0.05, y: 0.62, w: 0.9, h: 0.27 }, partId: "leg", role: "limb" });
+  const out = forgeEmit({ session: s.session, assetName: "simple" });
+  assert.equal(out.ok, true, `Simple-tier emit must not crash: ${JSON.stringify(out.error || out.validation)}`);
+  // planFor must not recommend an undeclared state for the limb
+  const legPlan = planFor(_sessions.get(s.session).model).find((p) => p.id === "part-leg");
+  assert.ok(!legPlan.recommended || legPlan.recommended.state === "idle",
+    `limb recommendation stays within declared states (got ${JSON.stringify(legPlan.recommended)})`);
+}
+
 { // a silhouette is steered to whole-body Simple, not carved into fake parts
   const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
   const sm = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
   const prop = forgePropose({ session: sm.session });
   assert.match(prop.advisory || "", /whole-body|one part|Simple/i, "silhouette advisory recommends whole-body Simple");
+}
+
+// forge_emit target parameter: the React+GSAP Output Target (ADR-0007, opt-in) is reachable from
+// the agent path. Default stays svg-css so existing callers are untouched.
+{
+  const mk = () => {
+    const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+    assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+    assignRegion({ session: s.session, box: { x: 0.04, y: 0.30, w: 0.20, h: 0.28 }, partId: "hand-left", role: "limb" });
+    return s.session;
+  };
+
+  // default is unchanged — SVG+CSS only, no React artifacts (regression guard for existing callers)
+  const dflt = forgeEmit({ session: mk(), assetName: "t1" });
+  assert.equal(dflt.ok, true, "default emit still succeeds");
+  assert.ok(dflt.svgBytes > 0, "default emits the SVG+CSS target");
+  assert.equal(dflt.reactBytes, undefined, "default does NOT emit React+GSAP");
+
+  // react-gsap only
+  const react = forgeEmit({ session: mk(), assetName: "t2", target: "react-gsap" });
+  assert.equal(react.ok, true, `react-gsap emit succeeds: ${JSON.stringify(react.error || react.validation)}`);
+  assert.ok(react.reactBytes > 0, "react-gsap emits the React target");
+
+  // both
+  const both = forgeEmit({ session: mk(), assetName: "t3", target: "both" });
+  assert.equal(both.ok, true, "both-target emit succeeds");
+  assert.ok(both.svgBytes > 0 && both.reactBytes > 0, "both targets are emitted together");
+
+  // an unknown target is rejected loudly rather than silently falling back
+  assert.throws(() => forgeEmit({ session: mk(), assetName: "t4", target: "vue" }), /target/i,
+    "an unknown target is rejected");
+
+  // with outDir, the React files land in a react-gsap/ subdir and are listed
+  const w = forgeEmit({ session: mk(), assetName: "t5", target: "both", outDir: "out/_test_open" });
+  assert.equal(w.ok, true, "both-target emit with outDir succeeds");
+  assert.ok(w.written.some((f) => /react-gsap[\\/]Mascot\.tsx$/.test(f)), `Mascot.tsx is written: ${w.written}`);
+  assert.ok(w.written.some((f) => /t5-mascot\.svg$/.test(f)), "the SVG+CSS artifact is still written");
 }

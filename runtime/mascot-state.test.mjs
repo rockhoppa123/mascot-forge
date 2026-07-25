@@ -3,7 +3,7 @@
 // asserts the resulting state timeline (priority interrupt + downgrade hysteresis), then proves
 // the same sequence yields an identical timeline (determinism).
 import assert from "node:assert/strict";
-import { createMascot } from "./mascot-state.js";
+import { createMascot, pollJson, fromEvents } from "./mascot-state.js";
 
 const states = ["idle", "active", "alert"];
 
@@ -69,6 +69,51 @@ assert.deepEqual(b.timeline, a.timeline, "same signal sequence must yield the sa
   const h = harness();
   h.signal(["idle", "active", "alert"], 0);
   assert.equal(h.m.getState(), "alert", "highest-priority asserted state wins");
+}
+
+// M3: a 500 with a JSON body must assert nothing (not map the error payload to a state). pollJson
+// checks res.ok. A macrotask flush lets the immediate tick() resolve before we assert.
+{
+  const calls = [];
+  const savedFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, status: 500, json: async () => ({ failing: true }) });
+  const source = pollJson("/x", (d) => (d.failing ? "alert" : null), 100000);
+  const stop = source((asserted) => calls.push(asserted));
+  await new Promise((r) => setTimeout(r, 0)); // let the immediate tick settle
+  stop();
+  globalThis.fetch = savedFetch;
+  assert.deepEqual(calls, [null], "a non-ok response asserts nothing (does not map the error body)");
+}
+
+// race guard: an earlier tick's slow response resolving AFTER a later tick's fast one must not
+// overwrite the fresher result (a stale 'alert' landing late shouldn't re-trigger after it cleared).
+{
+  const calls = [];
+  const savedFetch = globalThis.fetch;
+  let n = 0;
+  globalThis.fetch = async () => {
+    const call = ++n;
+    await new Promise((r) => setTimeout(r, call === 1 ? 30 : 0)); // tick 1 is slow, tick 2 is instant
+    return { ok: true, json: async () => ({ v: call }) };
+  };
+  const source = pollJson("/x", (d) => `v${d.v}`, 20); // tick 2 fires ~20ms after tick 1 starts
+  const stop = source((asserted) => calls.push(asserted));
+  await new Promise((r) => setTimeout(r, 35)); // tick 2 settles (~20ms), then tick 1's stale reply (~30ms)
+  stop();
+  globalThis.fetch = savedFetch;
+  assert.deepEqual(calls, ["v2"], `the newer tick wins; the slower stale reply is dropped (got ${JSON.stringify(calls)})`);
+}
+
+// fromEvents: a throwing mapFn asserts nothing (same degrade-gracefully contract as pollJson),
+// instead of becoming an uncaught exception that kills the page.
+{
+  const calls = [];
+  const target = new EventTarget();
+  const source = fromEvents(target, () => { throw new Error("boom"); });
+  const stop = source((asserted) => calls.push(asserted));
+  target.dispatchEvent(new Event("message"));
+  stop();
+  assert.deepEqual(calls, [null], "a throwing mapFn asserts nothing instead of throwing uncaught");
 }
 
 console.log("mascot-state.test.mjs: all assertions passed.");

@@ -11,13 +11,14 @@ import { segment } from "../tools/rig-editor/segment.js";
 import { parseSegmented } from "../tools/rig-editor/loader.js";
 import { vtracerSvg, elementsFromVtracerSvg } from "./vectorize-vtracer.mjs";
 import { createModel, STANDARD_STATES } from "../tools/rig-editor/model.js";
-import { parseLayered, toModel } from "../tools/rig-editor/layer-ingest.js";
+import { parseLayered, toModel, sanitizeId } from "../tools/rig-editor/layer-ingest.js";
 import { rectsInMarquee } from "../tools/rig-editor/select.js";
 import { bboxOf, defaultPivotFor } from "../tools/rig-editor/pivot.js";
 import { recipeFor, presetsFor, kindDefaultPreset } from "../tools/rig-editor/presets.js";
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitShowcaseHtml } from "../tools/rig-editor/emit.js";
+import { emitReactGsap } from "../tools/emit-react-gsap/emit-react.mjs";
 import { emitRegionsPreview } from "./regions-preview.mjs";
 import { gradeInput } from "../tools/rig-editor/grade.js";
 
@@ -40,9 +41,10 @@ export function defaultPresetFor(id, role, kind = null) {
   // a subject kind outranks id/role: a wheel spins, a flag waves, a mouth talks (the land-rover fix).
   const byKind = kind && kindDefaultPreset(kind);
   if (byKind) return byKind;
-  if (role === "limb" && /tail/i.test(id)) return ["active", "wag"];
-  if (role === "accent" && /(ear|antenn)/i.test(id)) return ["idle", "twitch"];
-  if (role === "accent" && /eye/i.test(id)) return ["idle", "blink"];
+  // segment-anchored so 'detail' isn't a tail and 'eyebrow' isn't an eye (ids are kebab-case).
+  if (role === "limb" && /(^|-)tails?(-|$)/i.test(id)) return ["active", "wag"];
+  if (role === "accent" && /(^|-)(ear|antenn)/i.test(id)) return ["idle", "twitch"];
+  if (role === "accent" && /(^|-)eyes?(-|$)/i.test(id)) return ["idle", "blink"];
   return DEFAULT_PRESET[role];
 }
 
@@ -59,6 +61,13 @@ export function planFor(model) {
     const { role, kind } = model.parts()[id];
     const def = defaultPresetFor(id, role, kind);
     let recommended = def ? { state: def[0], preset: def[1] } : null;
+    // C1: only recommend a DECLARED state. If the natural state isn't in the rig's vocabulary
+    // (e.g. a limb's 'active' on a Simple idle-only rig), fall back to the first declared state
+    // that offers this role a preset, else leave the part inert.
+    if (recommended && !states.includes(recommended.state)) {
+      const alt = states.find((st) => presetsFor(role, st).length);
+      recommended = alt ? { state: alt, preset: presetsFor(role, alt)[0] } : null;
+    }
     if (recommended && recommended.preset === "walk") {
       if (walks % 2 === 1) recommended = { state: recommended.state, preset: "walk-mirror" };
       walks++;
@@ -74,9 +83,11 @@ function getSession(id) {
   if (!s) throw new Error(`unknown session '${id}'`);
   return s;
 }
-// enforce a stable part- prefix so agent-chosen ids can't collide (e.g. "body" vs "part-body").
+// sanitize + enforce a stable part- prefix so agent-chosen ids can't collide (e.g. "body" vs
+// "part-body") or break CSS/SVG ids ("Left Arm" -> "part-left-arm"). sanitizeId lowercases,
+// collapses non-alphanumerics to '-', and prefixes 'part-'; idempotent on already-valid ids.
 function normPartId(id) {
-  return typeof id === "string" && id && !id.startsWith("part-") ? `part-${id}` : id;
+  return typeof id === "string" && id ? sanitizeId(id) : id;
 }
 function parseVB(s) { const [x, y, w, h] = s.split(/\s+/).map(Number); return { x, y, w, h }; }
 function partList(model) {
@@ -119,9 +130,11 @@ function explainValidation(v) {
   return null;
 }
 
-// reject paths outside the project (no arbitrary fs)
+// reject paths outside the project (no arbitrary fs). Resolve relative paths against PROJECT_ROOT,
+// not process.cwd() — an MCP client rarely launches the server with cwd pinned to the repo root, so
+// cwd-relative resolution silently wrote outDir one level off (or rejected a valid path outright).
 function safePath(p) {
-  const r = resolve(p);
+  const r = resolve(PROJECT_ROOT, p);
   if (r !== PROJECT_ROOT && !r.startsWith(PROJECT_ROOT + sep)) throw new Error(`path outside project root: ${p}`);
   return r;
 }
@@ -145,7 +158,7 @@ function downscale({ rgba, w, h }, maxDim) {
 
 // --- TOOLS ---------------------------------------------------------------------------------------
 
-export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) {
+export function startFromImage({ base64, path, colors = 6, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) { // colors default matches the editor + docs (6)
   if (!base64 && !path) throw new Error("provide base64 or path (PNG)");
   const buf = base64 ? Buffer.from(base64, "base64") : readFileSync(safePath(path));
 
@@ -181,7 +194,7 @@ export function startFromImage({ base64, path, colors = 8, maxDim = 256, engine 
 export function startFromLayeredSvg({ svg, path } = {}) {
   if (!svg && !path) throw new Error("provide svg (string) or path (.svg)");
   const text = svg ? svg : readFileSync(safePath(path), "utf8");
-  const { viewBox, elements } = parseLayered(text);
+  const { viewBox, elements, parts, states } = parseLayered(text);
   if (!elements.length) throw new Error("no drawable shapes found — need top-level <g> layers containing shapes");
   const noBox = elements.filter((e) => !e.bbox);
   if (noBox.length) {
@@ -190,7 +203,7 @@ export function startFromLayeredSvg({ svg, path } = {}) {
       `which need a node rasterizer (deferred). Rig this in the browser editor, or trace to paths/rects.`
     );
   }
-  const model = toModel({ viewBox, elements });
+  const model = toModel({ viewBox, elements, parts, states });
   if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value); // evict oldest
   const session = "s" + nextId++;
   sessions.set(session, { model, vb: parseVB(model.viewBox()) });
@@ -230,7 +243,8 @@ export function forgePropose({ session, outDir } = {}) {
   let preview;
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
-    const f = join(dir, "regions-preview.html"); writeFileSync(f, html); preview = f;
+    const f = join(dir, "regions-preview.html"); writeFileSync(f, html);
+    preview = servedUrl(f); // a clickable link for the human checkpoint, matching forge_emit/forge_open_editor
   } else preview = html.length;
   return { parts, rigStatus: rigStatus(s.model), preview, advisory, plan: planFor(s.model) };
 }
@@ -279,7 +293,10 @@ export function editorHandoff({ session, outDir } = {}) {
   return { svg, written, editor: "tools/rig-editor/index.html", open };
 }
 
-export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
+export function forgeEmit({ session, assetName = "mascot", outDir, target = "svg-css" } = {}) {
+  if (!["svg-css", "react-gsap", "both"].includes(target)) {
+    throw new Error(`unknown target '${target}' — use "svg-css" (default), "react-gsap", or "both"`);
+  }
   const { model, sourceDataUri } = getSession(session);
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1). Uses the same
   // mirror-aware recommendation as planFor, so two limbs auto-fill walk/walk-mirror, not lockstep (#1).
@@ -293,18 +310,40 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
   // open states: a declared state with no recipe warns (not fails) — surface it on the success path.
   const advisory = v.warnings.length ? { warnings: v.warnings, message: explainValidation(v) } : {};
-  const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
-  const demo = emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri);
+  // ADR-0003: one rig contract, two emitters. React+GSAP is opt-in (ADR-0007) and shares the exact
+  // riggedJson/manualSvg the SVG+CSS path uses, so the two targets cannot diverge.
+  let reactFiles = null;
+  if (target !== "svg-css") {
+    try {
+      reactFiles = emitReactGsap({ riggedJson: out.riggedJson, manualSvg: out.manualSvg, rigLabel: `${assetName} (MCP session)`, svgLabel: `${assetName}-manual-part.svg` });
+    } catch (e) {
+      // the documented v1 ceiling: React+GSAP needs <rect> geometry (ADR-0011 allows path parts)
+      return { ok: false, error: `React+GSAP target: ${e.message}. Re-run with target:"svg-css", which has no geometry restriction.` };
+    }
+  }
+  const reactBytes = reactFiles ? Object.values(reactFiles).reduce((n, s) => n + s.length, 0) : undefined;
+  const wantSvgCss = target !== "react-gsap";
+  const svg = wantSvgCss ? emitAnimatedSvg(out.riggedJson, out.manualSvg) : null;
+  const demo = wantSvgCss ? emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri) : null;
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
-    const files = [
-      [join(dir, `${assetName}-mascot.svg`), svg],
-      [join(dir, `${assetName}-mascot-demo.html`), demo],
-    ];
+    const files = [];
+    if (wantSvgCss) {
+      files.push([join(dir, `${assetName}-mascot.svg`), svg], [join(dir, `${assetName}-mascot-demo.html`), demo]);
+    }
+    if (reactFiles) {
+      const rdir = join(dir, "react-gsap"); mkdirSync(rdir, { recursive: true });
+      for (const [name, contents] of Object.entries(reactFiles)) files.push([join(rdir, name), contents]);
+    }
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f), open: servedUrl(join(dir, `${assetName}-mascot-demo.html`)) };
+    const res = { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
+    if (wantSvgCss) res.open = servedUrl(join(dir, `${assetName}-mascot-demo.html`));
+    return res;
   }
-  return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
+  const res = { ok: true, validation: v, ...advisory };
+  if (wantSvgCss) { res.svgBytes = svg.length; res.demoBytes = demo.length; }
+  if (reactBytes !== undefined) res.reactBytes = reactBytes;
+  return res;
 }
 
 // set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.

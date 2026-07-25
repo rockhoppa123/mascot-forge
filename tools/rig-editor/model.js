@@ -12,7 +12,7 @@ export const BACKGROUND_PART = "part-background";
 // declare at creation (they reuse alert/active motion via presets.js STATE_FAMILY).
 export const SIMPLE_STATES = ["idle"]; // Simple tier: one looping animation, no state machine
 export const STANDARD_STATES = ["idle", "active", "alert"];
-export const SIGNAL_STATES = ["loading", "error", "success"];
+export const SIGNAL_STATES = ["loading", "success", "error"]; // ascending priority; error (highest) last
 const DEFAULT_STATES = STANDARD_STATES;
 
 export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, states = DEFAULT_STATES } = {}) {
@@ -58,6 +58,7 @@ export function createModel({ viewBox = "0 0 192 192", rects = [], parts = {}, s
   function rename(oldId, newId) {
     if (oldId === newId) return;
     if (!partMap[oldId]) throw new Error(`rename: unknown part '${oldId}'.`);
+    if (partMap[newId]) throw new Error(`rename: target id '${newId}' already exists (would clobber it).`);
     const meta = partMap[oldId];
     delete partMap[oldId];
     partMap[newId] = { ...meta, id: newId };

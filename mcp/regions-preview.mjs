@@ -19,7 +19,7 @@ export function emitRegionsPreview(sourceDataUri, viewBox, parts) {
   const boxes = parts.map((p, i) => {
     const c = colourOf(i), b = p.bbox;
     return `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" stroke="${c}" stroke-width="1.5"/>` +
-      `<text x="${b.x + 1}" y="${b.y - 1}" font-size="4" fill="${c}">${p.id}</text>`;
+      `<text x="${b.x + 1}" y="${Math.max(b.y - 1, 4)}" font-size="4" fill="${c}">${p.id}</text>`;
   }).join("\n    ");
   const legend = parts.map((p, i) =>
     `<li><span class="sw" style="background:${colourOf(i)}"></span>` +

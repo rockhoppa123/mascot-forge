@@ -1,8 +1,8 @@
 # Browser e2e (Playwright)
 
 Headless smoke + product-path tests for the in-browser rig editor. Kept **out of the repo root** so
-the project stays dependency-free (the root has no `package.json` — enforced by
-`tools/check-buildable-slice.ps1`). Playwright lives here, in `tests/`, with its own `package.json`.
+the project stays dependency-free — the root `package.json` is only an ESM module-boundary marker
+(`{"type":"module"}`, no `dependencies`). Playwright lives here, in `tests/`, with its own `package.json`.
 
 ## Run it
 

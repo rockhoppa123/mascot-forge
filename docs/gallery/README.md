@@ -21,8 +21,9 @@ are, and how much of the art the single largest region covers.
 | Grade | When | What it means |
 |---|---|---|
 | **good** | ≥4 distinct fills, no single region >80% of the art | Rigs cleanly — colour-distinct parts separate into a head, limbs, eyes, etc. |
-| **borderline** | 3 fills, or a moderately dominant region | Riggable, but parts may be coarse. A more colour-distinct source rigs better. |
-| **silhouette** | ≤2 fills, or one region >80% of the art | Worst case — parts can't be auto-separated; it will animate as one body. |
+| **borderline** | 3 fills, or ≥4 fills with one region >80% of the art | Riggable, but parts may be coarse. A more colour-distinct source rigs better. |
+| **borderline** (fragmented) | ≥50 rects and mean rect height <2px | Colour-separable but anti-aliased/gradient source — smooth shading defeats the vectoriser's vertical rect-merge, so the art comes back as a stack of ~1px strips. Edges look rough and thin features may shatter into slivers; use flat hard-edged pixel art or a layered SVG for a clean rig. |
+| **silhouette** | ≤2 distinct fills | Worst case — parts can't be auto-separated; it will animate as one body. |
 
 ### Good input — colour-distinct, layered
 
@@ -114,7 +115,7 @@ the matching base state offers (a wheel can `spin` while `loading`; an accent ca
 
 ```js
 // 1. declare all six states up front (immutable for this rig). states[0] = idle = resting.
-forge_start_from_image({ base64, states: ["idle", "active", "alert", "loading", "error", "success"] })
+forge_start_from_image({ base64, states: ["idle", "active", "alert", "loading", "success", "error"] })
 
 // 2. assign roles, then a preset per signal state (each reuses active/alert motion).
 set_part({ session, partId: "part-wheel", role: "limb",  presets: { loading: "spin" } })   // loading→active
@@ -131,7 +132,7 @@ import { createMascot, fromEvents } from "../../runtime/mascot-state.js";
 // vocabulary order = PRIORITY (error outranks success outranks loading); states[0] = resting.
 const mascot = createMascot({
   root: document.querySelector("#mascot"),
-  states: ["idle", "active", "alert", "loading", "error", "success"],
+  states: ["idle", "active", "alert", "loading", "success", "error"],
 });
 
 const mapSignal = (e) => ({
