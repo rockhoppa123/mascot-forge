@@ -5,8 +5,9 @@
 ![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)
 ![Gate: P1–P7 green](https://img.shields.io/badge/gate-P1%E2%80%93P7%20green-brightgreen)
 
-**Hand a flat image to your AI agent and get back an animated web component you own.** The agent
-identifies the parts by vision and rigs them through the mascot-forge **MCP**; you get editable
+**Hand a flat image to your AI agent; it rigs the parts by vision and hands you back an animated web
+component you own.** The agent identifies the parts and rigs them through the mascot-forge **MCP**
+(it supplies the semantics — the segmenter only proposes regions); you get editable
 **SVG/CSS or React+GSAP** whose animation **states bind to your app's live data** — no binary runtime,
 no black box. Prefer to drive it yourself? The same engine has a browser rig editor.
 
@@ -70,7 +71,8 @@ Existing tools each solve part of this but leave the gap open:
 
 - **Rive** — excellent interactive state machines and rigging, but ships a binary
   `.riv` file played by a ~200 KB WASM canvas runtime. You don't own the animation as
-  editable code.
+  editable code. (Size is not the argument — our own payload is the emitted SVG geometry and scales
+  with the art; see [ADR-0007](docs/adr/0007-output-target-verdict-both-svg-css-default.md). Ownership is.)
 - **Lottie / dotLottie** — great After-Effects-to-JSON playback (and now state
   machines), but again a JSON asset + a runtime player, not code you author.
 - **AI mascot generators** (svgapp.ai, mascot.bot, …) — generate *their* art from a

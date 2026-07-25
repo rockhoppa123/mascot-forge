@@ -90,6 +90,16 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   dropped it from the tab order); the layout no longer squeezes the canvas to a sliver below 700px width;
   a "Vectorising…" status now appears before the CPU-bound PNG ingest; `--danger` red now meets AA
   contrast against the button background.
+- **Cold-start dead-end + unearned anatomy (2026-07-25 playtest)** — a fresh proposal assigns no
+  roles, so `forge_propose` recommended nothing and `forge_emit` hard-failed with "rig has no
+  animation in any state" (reproduced on 3 of 3 unseen assets) while the checkpoint reported
+  `advisory: (none)`. `forge_propose` and `forge_status` now return an advisory naming the exact next
+  call. The segmenter also stopped asserting anatomy it cannot detect: without a per-asset
+  `parts-spec.json` it names regions by **position** (`part-lower-left`, `part-upper`, `part-island-1`)
+  instead of `part-leg-left`/`part-antenna`/`part-eyes` — it had labelled a ghost's head-top an
+  "antenna" and a T-Rex's head "eyes". Assets shipping a parts-spec (DevBrain) are unaffected: the
+  spec's vocabulary still wins. `forge_propose` additionally reports `tearRisks` where an animated
+  part overlaps an inert one, the defect class that makes a mascot visibly come apart.
 
 ### Changed
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind
