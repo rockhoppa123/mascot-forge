@@ -9,6 +9,14 @@ All notable changes to mascot-forge are documented here. Format follows
 Public-ready state — staged for the `v1.0.0` release (cut at public launch alongside the live demo).
 
 ### Added
+- **React+GSAP reachable from the MCP agent path** — `forge_emit` gains a `target` parameter
+  (`"svg-css"` default | `"react-gsap"` | `"both"`), implementing ADR-0003's "one rig contract,
+  swappable emitter" for the first time on the agent path. The emitter's logic moved into a pure ESM
+  core (`tools/emit-react-gsap/emit-react.mjs`) shared by the CLI and the MCP so they cannot drift; the
+  committed `generated/` files are its byte-for-byte golden. New **P7** gate stage covers the target,
+  which previously had none, and a cross-target pivot-fidelity test proves both Output Targets rotate
+  every part around the identical absolute point — the risk ADR-0007 named as the biggest one for an
+  automated pipeline, now tested rather than assumed. No new dependency: the core imports only `node:*`.
 - **DevBrain mascot ownership migration** — the former DevBrain mascot is now the flagship showoff
   asset for mascot-forge. Source sheets, exported PNG poses, and the old DevBrain runtime baseline live
   under `assets/devbrain/` for before/after comparison and MCP demo material.

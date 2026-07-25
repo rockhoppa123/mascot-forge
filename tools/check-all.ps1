@@ -48,6 +48,15 @@ $checks = @(
       }
     }
   }
+  ,@{
+    Name = "P7 react-gsap"   # second Output Target: pure-core golden + the cross-target pivot proof
+    Run  = {
+      foreach ($t in "emit-react", "cross-target-pivot") {
+        & node (Join-Path $repoRoot "tools/emit-react-gsap/$t.test.mjs")
+        if ($LASTEXITCODE -ne 0) { break }  # leaves the failing exit code for the summary
+      }
+    }
+  }
 )
 
 $results = @()

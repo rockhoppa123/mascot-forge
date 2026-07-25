@@ -19,7 +19,7 @@ node-tested modules the browser editor uses. No model is bundled; the agent is t
 | `forge_apply_tweaks` | Inline checkpoint fixes without leaving chat: rename parts and/or change roles. |
 | `forge_review` | Ask the human to approve / redo / open the editor via MCP elicitation (falls back to a plain question if the client can't elicit). |
 | `forge_status` | Inspect progress: `{ parts, rigStatus:{idle,active,alert,animated,total}, ungroupedRects }`. |
-| `forge_emit` | Validate + emit a self-contained animated SVG (+ demo HTML). Roles alone suffice — a default preset per role is applied. |
+| `forge_emit` | Validate + emit a self-contained animated SVG (+ demo HTML). Roles alone suffice — a default preset per role is applied. `target`: Output Target: `"svg-css"` (default) \| `"react-gsap"` \| `"both"`. |
 | `forge_open_editor` | Deep-fix handoff: emit the rig as a self-describing SVG the browser rig editor loads **animated** via `?rig=`, for manual fixing. |
 
 Plus a `rig_mascot` guided prompt (surfaces as a slash command in the host) that scripts the checkpointed

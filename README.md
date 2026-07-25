@@ -197,6 +197,8 @@ root (Claude Code auto-discovers it); or add this to your host config:
 4. `forge_apply_tweaks` / `forge_review` — inline rename/role fixes and a human approve/redo/editor
    checkpoint (MCP elicitation when the host supports it).
 5. `forge_status` then `forge_emit` — validate and write a self-contained animated SVG (+ demo HTML) you own.
+   Pass `target: "react-gsap"` (or `"both"`) to emit the opt-in React+TS GSAP component instead of/alongside
+   the dependency-free SVG+CSS default.
 
 `forge_start_from_layered_svg` and `forge_open_editor` complete the **ten tools**: an alt entry for a
 **layered** vector SVG (Figma/Inkscape/Illustrator — each top-level `<g>` becomes a part named by its

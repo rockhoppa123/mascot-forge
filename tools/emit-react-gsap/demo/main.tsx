@@ -1,8 +1,9 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import gsap from "gsap";
 import { Mascot } from "../generated/Mascot";
 import { PART_ORIGINS, type MascotState } from "../generated/mascotRig";
+import { MASCOT_SVG, ID_PREFIX } from "../generated/mascotMarkup";
 import { useMascotState, type MascotSource } from "../src/useMascotState";
 
 const STATES: MascotState[] = ["idle", "active", "alert"];
@@ -50,6 +51,36 @@ declare global {
 }
 window.__probe = probe;
 
+// ADR-0003 made visible: ONE rig contract, TWO emitters. The React+GSAP <Mascot> and the raw
+// generated SVG markup render side by side off the same rig, driven by one shared state control —
+// so a pivot or timing divergence between the targets is visible rather than merely asserted.
+function SideBySide({ state }: { state: MascotState }) {
+  const html = useMemo(
+    () => ({ __html: MASCOT_SVG.split(ID_PREFIX).join("sbs-").replace(/data-state="[^"]*"/, `data-state="${state}"`) }),
+    [state],
+  );
+  return (
+    <>
+      <section className="stage" aria-label="React+GSAP target">
+        <Mascot state={state} idPrefix="sbs-react-" />
+      </section>
+      <aside className="panel">
+        <h1>One rig → two targets</h1>
+        <p>Left: <strong>React+GSAP</strong> (GSAP timelines, absolute <code>svgOrigin</code> pivots).</p>
+        <p>Below: the same rig's <strong>SVG</strong> markup. Both animate off one <code>rigged.json</code>.</p>
+        <pre id="probe-sbs">both: {state}</pre>
+      </aside>
+      <section className="stage" aria-label="Shared rig markup">
+        <div className="mascot-stage" dangerouslySetInnerHTML={html} />
+      </section>
+      <aside className="panel">
+        <h1>Shared markup</h1>
+        <p>Identical part groups and canonical pivots — the cross-target fidelity the P7 gate proves.</p>
+      </aside>
+    </>
+  );
+}
+
 function App() {
   const [state, setState] = useState<MascotState>("idle");
   const [reduced, setReduced] = useState(false);
@@ -91,6 +122,8 @@ function App() {
         <p>Driven by <code>useMascotState</code> over a mock telemetry feed — no manual buttons.</p>
         <pre id="probe-live">bound: {liveState}</pre>
       </aside>
+
+      <SideBySide state={state} />
     </main>
   );
 }
