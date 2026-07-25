@@ -8,6 +8,7 @@ import { PNG } from "pngjs";
 import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg, planFor, _sessions } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
 import { createModel } from "../tools/rig-editor/model.js";
+import { bboxOf } from "../tools/rig-editor/pivot.js";
 
 // 3 separated colour blocks on transparent — body / limb / accent candidates.
 function blocksPngBase64() {
@@ -474,4 +475,27 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.equal(w.ok, true, "both-target emit with outDir succeeds");
   assert.ok(w.written.some((f) => /react-gsap[\\/]Mascot\.tsx$/.test(f)), `Mascot.tsx is written: ${w.written}`);
   assert.ok(w.written.some((f) => /t5-mascot\.svg$/.test(f)), "the SVG+CSS artifact is still written");
+}
+
+// D-review: a SEGMENTER-produced part (parseSegmented pre-populates parts[id].pivot for every part it
+// emits, straight from the segmenter's own <g data-pivot>) must still get the role-default pivot when
+// set_part assigns a role — matching the browser editor (tools/rig-editor/app.js role handler), which
+// resnaps unconditionally. Before the fix, set_part only applied the role default when NO pivot existed
+// yet, so a segmenter part silently kept its pre-existing pivot even after being told it's a limb.
+// (This is deliberately NOT an assign_region part — those start with no pivot at all, so the bug hid.)
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4 });
+  const partId = s.parts[0].id;
+  const model = _sessions.get(s.session).model;
+  const before = model.parts()[partId].pivot;
+  assert.ok(before, "segmenter pre-populates a pivot before any role is assigned");
+
+  const out = setPart({ session: s.session, partId, role: "limb" });
+  const bb = bboxOf(model.rectsOf(partId));
+  assert.deepEqual(out.part.pivot, { x: bb.x + bb.w / 2, y: bb.y },
+    `role assignment recomputes the pivot to the limb (top-edge) default, not the segmenter's original ${JSON.stringify(before)}`);
+
+  // an explicitly-passed pivot must still win over the role default.
+  const explicit = setPart({ session: s.session, partId, role: "limb", pivot: { x: 0.5, y: 0.5 } });
+  assert.deepEqual(explicit.part.pivot, { x: 45, y: 45 }, "an explicit pivot still overrides the role default");
 }

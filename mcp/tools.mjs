@@ -373,7 +373,11 @@ export function setPart({ session, partId, role, kind, bone, pivot, presets } = 
   if (pivot !== undefined) {
     for (const k of ["x", "y"]) if (typeof pivot?.[k] !== "number") throw new Error("pivot needs numeric x,y in 0..1");
     model.setPivot(partId, { x: s.vb.x + pivot.x * s.vb.w, y: s.vb.y + pivot.y * s.vb.h });
-  } else if (!model.parts()[partId].pivot) {
+  } else if (role !== undefined || !model.parts()[partId].pivot) {
+    // no explicit pivot: recompute from the (possibly just-assigned) role, matching the editor's
+    // unconditional resnap-on-role-assign (app.js). Without the `role !== undefined` arm, a
+    // segmenter-produced part — which parseSegmented pre-populates with a pivot — would silently
+    // keep that stale pivot forever, since the "no pivot yet" guard alone never re-fires for it.
     model.setPivot(partId, defaultPivotFor(effectiveRole, bb)); // shared role-aware default
   }
 
