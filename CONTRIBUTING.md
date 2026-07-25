@@ -37,7 +37,7 @@ first (`spikes/03-second-asset/prep-source.ps1`, [ADR-0009](docs/adr/0009-vector
 The regression gate must stay green:
 
 ```powershell
-pwsh tools/check-all.ps1   # full P1–P6 gate PASSes, exit 0
+pwsh tools/check-all.ps1   # full P1–P7 gate PASSes, exit 0
 ```
 
 Keep generated artifacts as **build output** — regenerate them via `mf emit`, don't hand-patch.

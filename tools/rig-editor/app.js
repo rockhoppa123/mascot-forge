@@ -583,14 +583,18 @@ $("stage").addEventListener("click", (e) => {
 
 // Global shortcuts must not fire while the user is typing in a field — otherwise 'p' in "pivot_point"
 // arms pivot mode, Escape while editing a bone name collapses the panel, and Ctrl+Z hijacks the
-// browser's native in-field undo instead of restoring what was just typed.
+// browser's native in-field undo instead of restoring what was just typed. `select` is included for
+// the 'p' guard (native type-ahead should type "p", not arm pivot mode) but NOT for Escape/Ctrl+Z: a
+// <select> has no native undo of its own, so excluding it there keeps undo reachable while a preset
+// picker has focus instead of stranding it behind a dead shortcut.
 const inTextField = (e) => e.target.matches("input, textarea, select");
+const inTypingField = (e) => e.target.matches("input, textarea");
 
-document.addEventListener("keydown", (e) => { if (!inTextField(e) && e.key === "Escape") deselect(); });
+document.addEventListener("keydown", (e) => { if (!inTypingField(e) && e.key === "Escape") deselect(); });
 
 // Ctrl+Z (Cmd+Z on macOS): revert the last mutating op from the undo stack.
 document.addEventListener("keydown", (e) => {
-  if (inTextField(e)) return;
+  if (inTypingField(e)) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
     e.preventDefault();
     if (!undoStack.length) { status("Nothing to undo."); return; }

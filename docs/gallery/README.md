@@ -22,6 +22,7 @@ are, and how much of the art the single largest region covers.
 |---|---|---|
 | **good** | ≥4 distinct fills, no single region >80% of the art | Rigs cleanly — colour-distinct parts separate into a head, limbs, eyes, etc. |
 | **borderline** | 3 fills, or ≥4 fills with one region >80% of the art | Riggable, but parts may be coarse. A more colour-distinct source rigs better. |
+| **borderline** (fragmented) | ≥50 rects and mean rect height <2px | Colour-separable but anti-aliased/gradient source — smooth shading defeats the vectoriser's vertical rect-merge, so the art comes back as a stack of ~1px strips. Edges look rough and thin features may shatter into slivers; use flat hard-edged pixel art or a layered SVG for a clean rig. |
 | **silhouette** | ≤2 distinct fills | Worst case — parts can't be auto-separated; it will animate as one body. |
 
 ### Good input — colour-distinct, layered

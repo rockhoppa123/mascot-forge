@@ -24,14 +24,22 @@ for (const name of ["Mascot.tsx", "mascotRig.ts", "mascotMarkup.ts", "README.md"
 assert.deepEqual(Object.keys(files).sort(), ["Mascot.tsx", "README.md", "mascotMarkup.ts", "mascotRig.ts"],
   "the core emits exactly the four generated artifacts");
 
-// Structural purity: the core has NO imports at all. This is what actually guarantees it can't
-// touch the filesystem, read env, or pull a dependency — the determinism check below can't see any
-// of that. Also pins the project's "no new dependency in the core" constraint as a test.
+// Structural purity: the core has NO imports, no `process`/env access, no `require`, no dynamic
+// `import()`. This is what actually guarantees it can't touch the filesystem, read env, or pull a
+// dependency — the determinism check below can't see any of that. Also pins the project's "no new
+// dependency in the core" constraint as a test.
 // (Template literals hold *generated file content*, e.g. an embedded `import ... from "react"`
-// line for the emitted Mascot.tsx — strip those first so the scan only sees the core's own code.)
+// line for the emitted Mascot.tsx — strip those first so the scan only sees the core's own code.
+// Comments are stripped too, so an incidental substring like "in-process" in prose can't false-positive.)
 const coreSrc = readFileSync(join(here, "emit-react.mjs"), "utf8");
-const coreCodeOnly = coreSrc.replace(/`(?:\\.|[^`\\])*`/gs, "");
+const coreCodeOnly = coreSrc
+  .replace(/`(?:\\.|[^`\\])*`/gs, "") // strip template literals (generated file content)
+  .replace(/\/\/.*$/gm, "") // strip line comments
+  .replace(/\/\*[\s\S]*?\*\//g, ""); // strip block comments
 assert.ok(!/^\s*import\s/m.test(coreCodeOnly), "the core imports nothing — no fs, no env, no deps");
+assert.ok(!/\bprocess\b/.test(coreCodeOnly), "the core does not touch process/env");
+assert.ok(!/\brequire\s*\(/.test(coreCodeOnly), "the core has no require()");
+assert.ok(!/\bimport\s*\(/.test(coreCodeOnly), "the core has no dynamic import()");
 
 // callable twice with identical output
 const again = emitReactGsap({ riggedJson, manualSvg });

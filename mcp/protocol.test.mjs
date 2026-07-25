@@ -35,7 +35,7 @@ const client = new Client({ name: "protocol-smoke", version: "0.0.0" }, { capabi
 await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
 
 try {
-  // 1. tools/list returns the five tools with their schemas
+  // 1. tools/list returns the ten tools with their schemas
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names,
