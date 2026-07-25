@@ -24,9 +24,18 @@ for (const name of ["Mascot.tsx", "mascotRig.ts", "mascotMarkup.ts", "README.md"
 assert.deepEqual(Object.keys(files).sort(), ["Mascot.tsx", "README.md", "mascotMarkup.ts", "mascotRig.ts"],
   "the core emits exactly the four generated artifacts");
 
-// the core is pure: no filesystem writes, callable twice with identical output
+// Structural purity: the core has NO imports at all. This is what actually guarantees it can't
+// touch the filesystem, read env, or pull a dependency — the determinism check below can't see any
+// of that. Also pins the project's "no new dependency in the core" constraint as a test.
+// (Template literals hold *generated file content*, e.g. an embedded `import ... from "react"`
+// line for the emitted Mascot.tsx — strip those first so the scan only sees the core's own code.)
+const coreSrc = readFileSync(join(here, "emit-react.mjs"), "utf8");
+const coreCodeOnly = coreSrc.replace(/`(?:\\.|[^`\\])*`/gs, "");
+assert.ok(!/^\s*import\s/m.test(coreCodeOnly), "the core imports nothing — no fs, no env, no deps");
+
+// callable twice with identical output
 const again = emitReactGsap({ riggedJson, manualSvg });
-assert.deepEqual(again, files, "the core is deterministic and side-effect free");
+assert.deepEqual(again, files, "the core is deterministic");
 
 // schema guard: a non-v2 rig is rejected with an actionable message
 assert.throws(() => emitReactGsap({ riggedJson: { ...riggedJson, version: 1 }, manualSvg }),
