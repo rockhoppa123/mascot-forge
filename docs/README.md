@@ -6,6 +6,7 @@ and research as needed.
 ## Start here
 - [`product-discovery.md`](product-discovery.md) — the problem, market gap, personas, scope, success criteria (the *why*).
 - [`technical-proposal.md`](technical-proposal.md) — architecture, phases, stack, open questions (the *how*).
+- [`../DESIGN.md`](../DESIGN.md) — editor/demo visual constraints and agent UI-skill routing (the *product surface*).
 
 ## Reference
 - [`../assets/devbrain/`](../assets/devbrain/) — the former DevBrain mascot, now the flagship showoff
