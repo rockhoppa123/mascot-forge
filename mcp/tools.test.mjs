@@ -219,6 +219,12 @@ function smileyPngBase64() {
   assert.ok(typeof prop.preview === "number" && prop.preview > 0, "propose reports the preview size");
   assert.equal(prop.advisory, null, "multi-colour smiley is not flagged as a silhouette");
 
+  // with an outDir, propose must hand back a clickable URL (like forge_emit/forge_open_editor),
+  // not a raw local filesystem path the human can't open from chat
+  const propUrl = forgePropose({ session: sp.session, outDir: "out/_test_open" });
+  assert.match(propUrl.preview, /^http:\/\/localhost:\d+\/out\/_test_open\/regions-preview\.html$/,
+    `propose with outDir returns a demo URL (got ${propUrl.preview})`);
+
   // a monochrome blob trips the silhouette advisory
   const W = 40, mono = new PNG({ width: W, height: W });
   for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }

@@ -242,7 +242,8 @@ export function forgePropose({ session, outDir } = {}) {
   let preview;
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
-    const f = join(dir, "regions-preview.html"); writeFileSync(f, html); preview = f;
+    const f = join(dir, "regions-preview.html"); writeFileSync(f, html);
+    preview = servedUrl(f); // a clickable link for the human checkpoint, matching forge_emit/forge_open_editor
   } else preview = html.length;
   return { parts, rigStatus: rigStatus(s.model), preview, advisory, plan: planFor(s.model) };
 }

@@ -3,7 +3,7 @@
 // asserts the resulting state timeline (priority interrupt + downgrade hysteresis), then proves
 // the same sequence yields an identical timeline (determinism).
 import assert from "node:assert/strict";
-import { createMascot, pollJson } from "./mascot-state.js";
+import { createMascot, pollJson, fromEvents } from "./mascot-state.js";
 
 const states = ["idle", "active", "alert"];
 
@@ -83,6 +83,37 @@ assert.deepEqual(b.timeline, a.timeline, "same signal sequence must yield the sa
   stop();
   globalThis.fetch = savedFetch;
   assert.deepEqual(calls, [null], "a non-ok response asserts nothing (does not map the error body)");
+}
+
+// race guard: an earlier tick's slow response resolving AFTER a later tick's fast one must not
+// overwrite the fresher result (a stale 'alert' landing late shouldn't re-trigger after it cleared).
+{
+  const calls = [];
+  const savedFetch = globalThis.fetch;
+  let n = 0;
+  globalThis.fetch = async () => {
+    const call = ++n;
+    await new Promise((r) => setTimeout(r, call === 1 ? 30 : 0)); // tick 1 is slow, tick 2 is instant
+    return { ok: true, json: async () => ({ v: call }) };
+  };
+  const source = pollJson("/x", (d) => `v${d.v}`, 20); // tick 2 fires ~20ms after tick 1 starts
+  const stop = source((asserted) => calls.push(asserted));
+  await new Promise((r) => setTimeout(r, 35)); // tick 2 settles (~20ms), then tick 1's stale reply (~30ms)
+  stop();
+  globalThis.fetch = savedFetch;
+  assert.deepEqual(calls, ["v2"], `the newer tick wins; the slower stale reply is dropped (got ${JSON.stringify(calls)})`);
+}
+
+// fromEvents: a throwing mapFn asserts nothing (same degrade-gracefully contract as pollJson),
+// instead of becoming an uncaught exception that kills the page.
+{
+  const calls = [];
+  const target = new EventTarget();
+  const source = fromEvents(target, () => { throw new Error("boom"); });
+  const stop = source((asserted) => calls.push(asserted));
+  target.dispatchEvent(new Event("message"));
+  stop();
+  assert.deepEqual(calls, [null], "a throwing mapFn asserts nothing instead of throwing uncaught");
 }
 
 console.log("mascot-state.test.mjs: all assertions passed.");
