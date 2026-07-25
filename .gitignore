@@ -55,3 +55,12 @@ venv/
 
 # generated mascot output
 output/
+
+# Local test-image scratch. assets/test-images/ commits ONLY synthetic art with a generator script
+# beside it ("Zero art committed; pure pixels" — see make-blip.mjs). Downloaded/third-party sources
+# (emoji sets, stock art) are useful locally for playtesting the segmenter but must not be committed:
+# they'd need attribution and contradict that norm. Ignore by default; un-ignore synthetic additions
+# explicitly, the way blip/pip are below.
+assets/test-images/*.png
+!assets/test-images/blip.png
+!assets/test-images/pip.png
