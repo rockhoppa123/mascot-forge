@@ -24,6 +24,28 @@ test("role change clears stale preset; export never crashes (regression: bug #1)
   expect(errors, "no uncaught page errors").toEqual([]);
 });
 
+test("global shortcuts don't fire while typing in a field (regression: 'p'/Escape/Ctrl+Z hijack)", async ({ page }) => {
+  await page.goto(URL);
+  await page.click("#loadexample");
+  await page.click('#parts li[data-id="part-body"]');
+  await expect(page.locator("#partedit")).toBeVisible();
+  const bone = page.locator("#bone");
+  await bone.fill("pivot_point"); // types a leading 'p' — must not arm pivot-placement mode
+  await expect(page.locator("#status")).not.toContainText("Pivot mode");
+  await bone.press("Escape"); // must not collapse the part-edit panel while typing
+  await expect(page.locator("#partedit")).toBeVisible();
+  await bone.selectText();
+  await bone.press("Control+z"); // must be the browser's native field-undo, not the app's model undo
+  await expect(page.locator("#status")).not.toContainText("Undid last change.");
+});
+
+test("the file input stays keyboard-reachable (regression: hidden attribute dropped it from tab order)", async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator("#file")).toBeAttached();
+  await page.locator("#file").focus();
+  await expect(page.locator("#file")).toBeFocused();
+});
+
 test("a click after a marquee still selects a part (regression: bug #2 suppressClick)", async ({ page }) => {
   await page.goto(URL);
   await page.click("#loadexample");

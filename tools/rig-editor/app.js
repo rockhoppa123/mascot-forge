@@ -581,10 +581,16 @@ $("stage").addEventListener("click", (e) => {
   else deselect();                                            // click empty canvas to deselect
 });
 
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") deselect(); });
+// Global shortcuts must not fire while the user is typing in a field — otherwise 'p' in "pivot_point"
+// arms pivot mode, Escape while editing a bone name collapses the panel, and Ctrl+Z hijacks the
+// browser's native in-field undo instead of restoring what was just typed.
+const inTextField = (e) => e.target.matches("input, textarea, select");
+
+document.addEventListener("keydown", (e) => { if (!inTextField(e) && e.key === "Escape") deselect(); });
 
 // Ctrl+Z (Cmd+Z on macOS): revert the last mutating op from the undo stack.
 document.addEventListener("keydown", (e) => {
+  if (inTextField(e)) return;
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
     e.preventDefault();
     if (!undoStack.length) { status("Nothing to undo."); return; }
@@ -602,7 +608,7 @@ function svgPoint(e) {
 }
 
 // place-pivot toggle (added to the hint area)
-document.addEventListener("keydown", (e) => { if (e.key === "p" && selected) { pivotMode = true; status("Pivot mode: click the canvas to place the pivot."); } });
+document.addEventListener("keydown", (e) => { if (!inTextField(e) && e.key === "p" && selected) { pivotMode = true; status("Pivot mode: click the canvas to place the pivot."); } });
 
 // ---------- live preview -----------------------------------------------------------------------
 function regenCss() {
@@ -690,6 +696,8 @@ async function loadPng(f, name) {
   try {
     const maxDim = Math.max(16, parseInt($("maxdim").value, 10) || 256);
     const colors = Math.max(1, parseInt($("colors").value, 10) || 6);
+    status("Vectorising…");
+    await new Promise((r) => setTimeout(r, 0)); // yield one tick so the status paints before the CPU-bound quantize/CCL work below
     const { rgba, w, h } = await decodePng(f, maxDim);
     const flat = vectorizeRaster({ rgba, w, h }, { colors });
     const { svg } = segment(flat.rects, { viewBoxSize: Math.max(w, h) }); // square canvas, padded
