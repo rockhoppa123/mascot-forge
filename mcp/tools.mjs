@@ -228,17 +228,33 @@ export function assignRegion({ session, box, partId, role } = {}) {
   return res;
 }
 
+// The cold-start dead-end: a fresh proposal is all-passive, so nothing animates and forge_emit fails
+// validation. Say so at the checkpoint that comes BEFORE the failure, and name the exact next call.
+function noRoleAdvisory(model) {
+  const ids = Object.keys(model.parts()).filter((id) => model.rectsOf(id).length > 0);
+  const withRole = ids.filter((id) => (model.parts()[id].role || "passive") !== "passive");
+  if (withRole.length) return null;
+  return `No part has a role yet, so nothing will animate and forge_emit will fail. Roles are yours to ` +
+    `judge from the image — the segmenter only proposes regions. Assign one with set_part ` +
+    `({ partId, role }) or assign_region ({ box, partId, role }): core = the main body (breathes), ` +
+    `limb = an arm/leg (walks, hinges at its joint), accent = a small mover (blinks/pulses), ` +
+    `passive = stays still. At minimum give one part 'core'.`;
+}
+
 // forge_propose: the analyze-first report — current parts + a regions-overlay preview the human can
 // eyeball, plus an input-quality advisory. A truly monochrome source (<=2 distinct fills) can't be
 // auto-separated into animatable parts (the silhouette ceiling) — steer the user to a layered/
-// multi-colour source rather than carving heroically.
+// multi-colour source rather than carving heroically. Composes with the no-role advisory (silhouette
+// first, since it changes the whole approach) so a single-colour, no-role image surfaces both problems.
 export function forgePropose({ session, outDir } = {}) {
   const s = getSession(session);
   const parts = partList(s.model);
   const grade = gradeInput(s.model);
-  const advisory = grade.grade === "silhouette"
+  const silhouette = grade.grade === "silhouette"
     ? `${grade.recommendation} For now, rig it as ONE whole-body part (Simple tier: a single 'idle' with breathe/sway) rather than carving fake limbs from a single-colour shape.`
     : null;
+  const noRole = noRoleAdvisory(s.model);
+  const advisory = [silhouette, noRole].filter(Boolean).join(" ") || null;
   const html = emitRegionsPreview(s.sourceDataUri || "", s.model.viewBox(), parts);
   let preview;
   if (outDir) {
@@ -403,7 +419,7 @@ export function setPart({ session, partId, role, kind, bone, pivot, presets } = 
 // inspect progress (M2): the parts, per-state animation coverage, and any still-ungrouped rects.
 export function forgeStatus({ session } = {}) {
   const { model } = getSession(session);
-  return { parts: partList(model), rigStatus: rigStatus(model), ungroupedRects: model.ungroupedRects().length };
+  return { parts: partList(model), rigStatus: rigStatus(model), ungroupedRects: model.ungroupedRects().length, advisory: noRoleAdvisory(model) };
 }
 
 export const _sessions = sessions; // test introspection

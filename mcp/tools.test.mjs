@@ -499,3 +499,37 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   const explicit = setPart({ session: s.session, partId, role: "limb", pivot: { x: 0.5, y: 0.5 } });
   assert.deepEqual(explicit.part.pivot, { x: 45, y: 45 }, "an explicit pivot still overrides the role default");
 }
+
+// COLD-START GUARD: a freshly-proposed rig has no roles (role is the agent's judgment), so nothing
+// can animate and forge_emit hard-fails. propose/status are the checkpoints BEFORE that failure —
+// they must say so and name the fix, not report "(none)" while every part is inert.
+{
+  const s = startFromImage({ base64: blocksPngBase64(), colors: 4 });
+  const prop = forgePropose({ session: s.session });
+  assert.ok(prop.plan.every((p) => !p.recommended), "precondition: a fresh proposal recommends nothing");
+  assert.ok(prop.advisory, "propose must not be silent when nothing can animate");
+  assert.match(prop.advisory, /role/i, "the advisory names roles as the fix");
+  assert.match(prop.advisory, /set_part|assign_region/, "the advisory names the tool to call");
+
+  const st = forgeStatus({ session: s.session });
+  assert.ok(st.advisory, "status must not be silent either");
+  assert.match(st.advisory, /role/i, "status advisory names roles as the fix");
+
+  // and once a role IS assigned, the advisory clears and emit succeeds
+  setPart({ session: s.session, partId: prop.plan[0].id, role: "core" });
+  const after = forgePropose({ session: s.session });
+  assert.equal(after.advisory, null, "advisory clears once something can animate");
+  assert.equal(forgeEmit({ session: s.session, assetName: "coldstart" }).ok, true, "emit now succeeds");
+}
+
+// the two advisories COMPOSE: a silhouette input with no roles must surface both problems, not just
+// whichever check runs first (regression guard for the compose logic in forgePropose).
+{
+  const W = 40, mono = new PNG({ width: W, height: W });
+  for (let i = 0; i < mono.data.length; i += 4) { mono.data[i] = 60; mono.data[i + 1] = 60; mono.data[i + 2] = 60; mono.data[i + 3] = 255; }
+  const monoS = startFromImage({ base64: PNG.sync.write(mono).toString("base64"), colors: 4 });
+  const a = forgePropose({ session: monoS.session }).advisory;
+  assert.ok(a, "a silhouette with no roles gets an advisory");
+  assert.match(a, /silhouette|single-colour|one region|whole-body/i, "the silhouette problem is stated");
+  assert.match(a, /role/i, "the no-role problem is ALSO stated");
+}
