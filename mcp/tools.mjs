@@ -129,9 +129,11 @@ function explainValidation(v) {
   return null;
 }
 
-// reject paths outside the project (no arbitrary fs)
+// reject paths outside the project (no arbitrary fs). Resolve relative paths against PROJECT_ROOT,
+// not process.cwd() — an MCP client rarely launches the server with cwd pinned to the repo root, so
+// cwd-relative resolution silently wrote outDir one level off (or rejected a valid path outright).
 function safePath(p) {
-  const r = resolve(p);
+  const r = resolve(PROJECT_ROOT, p);
   if (r !== PROJECT_ROOT && !r.startsWith(PROJECT_ROOT + sep)) throw new Error(`path outside project root: ${p}`);
   return r;
 }

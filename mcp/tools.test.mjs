@@ -3,6 +3,7 @@
 // Uses a synthetic 3-block PNG (red/green/blue, with margins) so each region is cleanly enclosable and
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg, planFor, _sessions } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
@@ -368,6 +369,23 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(e.open, /^http:\/\/localhost:\d+\/out\/_test_open\/blip-mascot-demo\.html$/, "emit returns a demo URL");
   const h = editorHandoff({ session: s.session, outDir: "out/_test_open" });
   assert.match(h.open, /^http:\/\/localhost:\d+\/tools\/rig-editor\/index\.html\?rig=out\/_test_open\/rig-handoff\.svg$/, "handoff returns an editor URL with ?rig=");
+}
+
+// safePath must resolve outDir against the repo root, not process.cwd() — an MCP client rarely
+// launches the server with cwd pinned there, so cwd-relative resolution either wrote one directory
+// too deep or rejected a perfectly valid outDir outright. Simulate a client launched from elsewhere.
+{
+  const savedCwd = process.cwd();
+  process.chdir(fileURLToPath(new URL(".", import.meta.url))); // cwd = mcp/, one level below repo root
+  try {
+    const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+    assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+    const e = forgeEmit({ session: s.session, assetName: "cwdcheck", outDir: "out/_test_open" });
+    assert.match(e.open, /^http:\/\/localhost:\d+\/out\/_test_open\/cwdcheck-mascot-demo\.html$/,
+      `outDir resolves against the repo root regardless of server cwd (got ${e.open})`);
+  } finally {
+    process.chdir(savedCwd);
+  }
 }
 
 // I2: an id with a space would produce '<g id="part-left arm">' and a broken '#part-left arm' CSS
