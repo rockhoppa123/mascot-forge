@@ -3,7 +3,7 @@
 [![CI](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
-![Gate: P1–P5 green](https://img.shields.io/badge/gate-P1%E2%80%93P5%20green-brightgreen)
+![Gate: P1–P6 green](https://img.shields.io/badge/gate-P1%E2%80%93P6%20green-brightgreen)
 
 **Hand a flat image to your AI agent and get back an animated web component you own.** The agent
 identifies the parts by vision and rigs them through the mascot-forge **MCP**; you get editable
@@ -221,7 +221,7 @@ No npm install, no build step, no dependencies — the runtime core is dependenc
 # 1. Emit the SVG+CSS Output Target from the rig contract (regenerates docs/buildable-slice/generated/)
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
 
-# 2. Verify the whole pipeline in one command (P1 → P4 + the node determinism test)
+# 2. Verify the whole pipeline in one command (P1 → P6, incl. the MCP/VTracer chain + node determinism test)
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
 ```
 

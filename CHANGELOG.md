@@ -33,10 +33,23 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   `assign_region` with normalized 0..1 boxes → `forge_emit`) lets a vision agent (e.g. Claude) do the
   *semantic* part identification the deterministic segmenter can't, driving the same shared modules. No
   bundled model; the runtime stays dependency-free.
+- **Guided reactivity tiers + full-fidelity editor round-trip** — the `rig_mascot` prompt now walks the
+  agent through picking a tier (Simple `idle`-only / Standard `idle-active-alert` / Signals adds
+  `loading-success-error`) before rigging, and steers silhouette/borderline input to a whole-body Simple
+  rig instead of fake limbs. `forge_propose` returns a per-part motion plan (mirror-aware) and
+  `forge_apply_tweaks` / `forge_review` add inline rename/role fixes and a human approve/redo/editor
+  checkpoint. The editor gained matching add/remove app-signal-state controls (`idle` stays non-removable).
+- **Self-describing handoff, both directions** — `forge_open_editor` and the editor's own "Export animated
+  mascot" now emit `data-role`/`data-kind`/`data-pivot`/`data-preset-*` per part plus root `data-states`,
+  so a rig opened via `?rig=` (or a re-opened export) rebuilds fully animated instead of loading inert —
+  a save-and-resume round-trip.
 - **Automated tests for the product** — a Playwright e2e smoke suite (`tests/`) covering the editor’s
   happy path and regressing two found bugs; plus an MCP agent-simulation test (`mcp/`). Both run in CI.
 - **Project infrastructure** — GitHub Actions CI (full `check-all.ps1` gate + `e2e` + `mcp` workflows),
   community-health files (Code of Conduct, Security, Citation, issue/PR templates), curated README + badges.
+- **AGENTS.md and DESIGN.md** — a contributor/agent guide (repo orientation, boundaries, the gate command)
+  and the visual/product-surface rules separating the utility rig editor and demos from the emitted
+  mascot as product.
 
 ### Fixed
 - **Marquee suppress-flag could eat the next click** — after a drag, a stale `suppressClick` swallowed
@@ -44,6 +57,19 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
 - Changing a part's role no longer orphans an invalid preset selection — previously this made Export
   throw and silently do nothing. Stale presets are cleared on role change, and the Export button now
   surfaces any error instead of failing quietly.
+- **System audit fixes (2026-07-05)** — a Simple-tier (idle-only) rig no longer crashes on `forge_emit`
+  when a limb/accent's natural preset targets an undeclared state; `forge_start_from_layered_svg` now
+  carries roles/pivots/presets/declared states through the MCP alt entry (previously dropped); part ids
+  are sanitized at every input boundary (MCP + editor) so a space/uppercase id can no longer produce a
+  broken `<g id>` or CSS selector; nested `<g>` layers in a layered-SVG import are now rejected with a
+  clear error instead of silently losing the outer group's geometry; the suggested signal-state
+  vocabulary now orders `error` last (highest priority), matching the runtime; silhouette grading
+  requires ≤2 fills — a dominant-but-colourful image now grades borderline instead of unrigable;
+  `pollJson` treats a non-2xx response as nothing-asserted instead of relying on a JSON-parse throw;
+  anatomy-preset heuristics anchor to word boundaries (`detail` no longer matches `tail`, `eyebrow` no
+  longer matches `eye`); renaming a part onto an existing id is rejected instead of silently clobbering
+  it; region-overlay labels no longer clip above the top edge; the MCP's default first-pass colour count
+  now matches the editor (6).
 
 ### Changed
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind

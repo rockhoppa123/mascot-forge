@@ -21,8 +21,8 @@ are, and how much of the art the single largest region covers.
 | Grade | When | What it means |
 |---|---|---|
 | **good** | ≥4 distinct fills, no single region >80% of the art | Rigs cleanly — colour-distinct parts separate into a head, limbs, eyes, etc. |
-| **borderline** | 3 fills, or a moderately dominant region | Riggable, but parts may be coarse. A more colour-distinct source rigs better. |
-| **silhouette** | ≤2 fills, or one region >80% of the art | Worst case — parts can't be auto-separated; it will animate as one body. |
+| **borderline** | 3 fills, or ≥4 fills with one region >80% of the art | Riggable, but parts may be coarse. A more colour-distinct source rigs better. |
+| **silhouette** | ≤2 distinct fills | Worst case — parts can't be auto-separated; it will animate as one body. |
 
 ### Good input — colour-distinct, layered
 

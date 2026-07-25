@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-06-19  
-**Deciders:** Andrew Faure  
+**Deciders:** Andrew Lawson  
 **Tracks:** v1.1 generalisation, research-log Q7
 
 ---
