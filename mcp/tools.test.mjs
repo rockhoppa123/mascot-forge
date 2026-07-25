@@ -438,3 +438,40 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   const prop = forgePropose({ session: sm.session });
   assert.match(prop.advisory || "", /whole-body|one part|Simple/i, "silhouette advisory recommends whole-body Simple");
 }
+
+// forge_emit target parameter: the React+GSAP Output Target (ADR-0007, opt-in) is reachable from
+// the agent path. Default stays svg-css so existing callers are untouched.
+{
+  const mk = () => {
+    const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
+    assignRegion({ session: s.session, box: { x: 0.30, y: 0.18, w: 0.40, h: 0.52 }, partId: "body", role: "core" });
+    assignRegion({ session: s.session, box: { x: 0.04, y: 0.30, w: 0.20, h: 0.28 }, partId: "hand-left", role: "limb" });
+    return s.session;
+  };
+
+  // default is unchanged — SVG+CSS only, no React artifacts (regression guard for existing callers)
+  const dflt = forgeEmit({ session: mk(), assetName: "t1" });
+  assert.equal(dflt.ok, true, "default emit still succeeds");
+  assert.ok(dflt.svgBytes > 0, "default emits the SVG+CSS target");
+  assert.equal(dflt.reactBytes, undefined, "default does NOT emit React+GSAP");
+
+  // react-gsap only
+  const react = forgeEmit({ session: mk(), assetName: "t2", target: "react-gsap" });
+  assert.equal(react.ok, true, `react-gsap emit succeeds: ${JSON.stringify(react.error || react.validation)}`);
+  assert.ok(react.reactBytes > 0, "react-gsap emits the React target");
+
+  // both
+  const both = forgeEmit({ session: mk(), assetName: "t3", target: "both" });
+  assert.equal(both.ok, true, "both-target emit succeeds");
+  assert.ok(both.svgBytes > 0 && both.reactBytes > 0, "both targets are emitted together");
+
+  // an unknown target is rejected loudly rather than silently falling back
+  assert.throws(() => forgeEmit({ session: mk(), assetName: "t4", target: "vue" }), /target/i,
+    "an unknown target is rejected");
+
+  // with outDir, the React files land in a react-gsap/ subdir and are listed
+  const w = forgeEmit({ session: mk(), assetName: "t5", target: "both", outDir: "out/_test_open" });
+  assert.equal(w.ok, true, "both-target emit with outDir succeeds");
+  assert.ok(w.written.some((f) => /react-gsap[\\/]Mascot\.tsx$/.test(f)), `Mascot.tsx is written: ${w.written}`);
+  assert.ok(w.written.some((f) => /t5-mascot\.svg$/.test(f)), "the SVG+CSS artifact is still written");
+}

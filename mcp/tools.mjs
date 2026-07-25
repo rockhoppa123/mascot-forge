@@ -18,6 +18,7 @@ import { recipeFor, presetsFor, kindDefaultPreset } from "../tools/rig-editor/pr
 import { validate } from "../tools/rig-editor/validator.js";
 import { exportRig } from "../tools/rig-editor/exporter.js";
 import { emitAnimatedSvg, emitShowcaseHtml } from "../tools/rig-editor/emit.js";
+import { emitReactGsap } from "../tools/emit-react-gsap/emit-react.mjs";
 import { emitRegionsPreview } from "./regions-preview.mjs";
 import { gradeInput } from "../tools/rig-editor/grade.js";
 
@@ -292,7 +293,10 @@ export function editorHandoff({ session, outDir } = {}) {
   return { svg, written, editor: "tools/rig-editor/index.html", open };
 }
 
-export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
+export function forgeEmit({ session, assetName = "mascot", outDir, target = "svg-css" } = {}) {
+  if (!["svg-css", "react-gsap", "both"].includes(target)) {
+    throw new Error(`unknown target '${target}' — use "svg-css" (default), "react-gsap", or "both"`);
+  }
   const { model, sourceDataUri } = getSession(session);
   // auto-fill a default preset per role so roles alone produce a valid animated rig (M1). Uses the same
   // mirror-aware recommendation as planFor, so two limbs auto-fill walk/walk-mirror, not lockstep (#1).
@@ -306,18 +310,40 @@ export function forgeEmit({ session, assetName = "mascot", outDir } = {}) {
   if (!v.ok) return { ok: false, validation: v, message: explainValidation(v) };
   // open states: a declared state with no recipe warns (not fails) — surface it on the success path.
   const advisory = v.warnings.length ? { warnings: v.warnings, message: explainValidation(v) } : {};
-  const svg = emitAnimatedSvg(out.riggedJson, out.manualSvg);
-  const demo = emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri);
+  // ADR-0003: one rig contract, two emitters. React+GSAP is opt-in (ADR-0007) and shares the exact
+  // riggedJson/manualSvg the SVG+CSS path uses, so the two targets cannot diverge.
+  let reactFiles = null;
+  if (target !== "svg-css") {
+    try {
+      reactFiles = emitReactGsap({ riggedJson: out.riggedJson, manualSvg: out.manualSvg, rigLabel: `${assetName} (MCP session)`, svgLabel: `${assetName}-manual-part.svg` });
+    } catch (e) {
+      // the documented v1 ceiling: React+GSAP needs <rect> geometry (ADR-0011 allows path parts)
+      return { ok: false, error: `React+GSAP target: ${e.message}. Re-run with target:"svg-css", which has no geometry restriction.` };
+    }
+  }
+  const reactBytes = reactFiles ? Object.values(reactFiles).reduce((n, s) => n + s.length, 0) : undefined;
+  const wantSvgCss = target !== "react-gsap";
+  const svg = wantSvgCss ? emitAnimatedSvg(out.riggedJson, out.manualSvg) : null;
+  const demo = wantSvgCss ? emitShowcaseHtml(out.riggedJson, svg, assetName, sourceDataUri) : null;
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
-    const files = [
-      [join(dir, `${assetName}-mascot.svg`), svg],
-      [join(dir, `${assetName}-mascot-demo.html`), demo],
-    ];
+    const files = [];
+    if (wantSvgCss) {
+      files.push([join(dir, `${assetName}-mascot.svg`), svg], [join(dir, `${assetName}-mascot-demo.html`), demo]);
+    }
+    if (reactFiles) {
+      const rdir = join(dir, "react-gsap"); mkdirSync(rdir, { recursive: true });
+      for (const [name, contents] of Object.entries(reactFiles)) files.push([join(rdir, name), contents]);
+    }
     for (const [f, c] of files) writeFileSync(f, c);
-    return { ok: true, validation: v, ...advisory, written: files.map(([f]) => f), open: servedUrl(join(dir, `${assetName}-mascot-demo.html`)) };
+    const res = { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
+    if (wantSvgCss) res.open = servedUrl(join(dir, `${assetName}-mascot-demo.html`));
+    return res;
   }
-  return { ok: true, validation: v, ...advisory, svgBytes: svg.length, demoBytes: demo.length };
+  const res = { ok: true, validation: v, ...advisory };
+  if (wantSvgCss) { res.svgBytes = svg.length; res.demoBytes = demo.length; }
+  if (reactBytes !== undefined) res.reactBytes = reactBytes;
+  return res;
 }
 
 // set a part's motion metadata in one call (M2): role, bone, pivot (0..1), presets per state.

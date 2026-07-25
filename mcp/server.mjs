@@ -128,11 +128,16 @@ export function buildServer() {
         "Validate the rig and emit a self-contained animated mascot (SVG that animates on its own + a " +
         "demo HTML). Roles are enough. Writes to outDir (project-relative) if given, else returns sizes. " +
         "Returns { ok, validation, ..., open } — `open` is a ready demo URL (run tools/serve.ps1, default " +
-        "port 4178, then open it). If ok is false, fix the parts/roles and retry.",
+        "port 4178, then open it). If ok is false, fix the parts/roles and retry. " +
+        "Pass `target` to choose the Output Target: \"svg-css\" (default, dependency-free, portable), " +
+        "\"react-gsap\" (opt-in React+TS component driven by GSAP timelines — use when the mascot lives " +
+        "in a React app needing mid-tween interrupts), or \"both\". React+GSAP needs rect-based geometry; " +
+        "a path-based rig returns a clear error naming the ceiling.",
       inputSchema: {
         session: z.string(),
         assetName: z.string().optional(),
         outDir: z.string().optional(),
+        target: z.enum(["svg-css", "react-gsap", "both"]).optional(),
       },
     },
     async (a) => { try { return ok(forgeEmit(a)); } catch (e) { return fail(e); } }
