@@ -1,4 +1,4 @@
-import { StrictMode, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import gsap from "gsap";
 import { Mascot } from "../generated/Mascot";
@@ -68,14 +68,26 @@ window.__probe = probe;
 // instances on this same page, which also carry `class="part"`. The iframe gives complete style
 // isolation and renders the artifact exactly as a real consumer would embed it.
 function SideBySide({ state }: { state: MascotState }) {
-  const srcDoc = useMemo(() => {
-    const svg = SVG_CSS_MARKUP.replace(/data-state="[^"]*"/, `data-state="${state}"`);
-    return (
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  // Built ONCE, deliberately state-independent. Baking data-state into srcDoc reloads the iframe on
+  // every switch, restarting the CSS animation from zero while the React side transitions smoothly —
+  // which makes the two panels non-comparable, defeating the point of showing them together. Instead
+  // set data-state on the LIVE document, which is exactly how a host app drives this artifact.
+  const srcDoc = useMemo(
+    () =>
       `<!doctype html><html><head><meta charset="utf-8" />` +
       `<style>html,body{margin:0;height:100%;display:flex;align-items:center;justify-content:center;}` +
       `svg{width:100%;height:auto;}${svgCssStyles}</style>` +
-      `</head><body>${svg}</body></html>`
-    );
+      `</head><body>${SVG_CSS_MARKUP}</body></html>`,
+    [],
+  );
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const apply = () => frame.contentDocument?.querySelector("#mascot")?.setAttribute("data-state", state);
+    apply();                              // same-document update (no reload)
+    frame.addEventListener("load", apply); // and once the initial srcDoc has parsed
+    return () => frame.removeEventListener("load", apply);
   }, [state]);
   return (
     <>
@@ -91,6 +103,7 @@ function SideBySide({ state }: { state: MascotState }) {
       </aside>
       <section className="stage" aria-label="SVG+CSS target">
         <iframe
+          ref={frameRef}
           className="mascot-stage"
           style={{ width: "100%", height: "100%", minHeight: 300, border: 0 }}
           srcDoc={srcDoc}
