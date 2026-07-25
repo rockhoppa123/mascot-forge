@@ -35,8 +35,12 @@ function smileyPngBase64() {
   return PNG.sync.write(png).toString("base64");
 }
 
-const outDir = resolve(fileURLToPath(new URL("../docs/buildable-slice/mcp-smiley", import.meta.url)));
+const DEFAULT_OUT_DIR = resolve(fileURLToPath(new URL("../docs/buildable-slice/mcp-smiley", import.meta.url)));
 
+// Exported so smiley-golden.test.mjs can rebuild into a temp dir and prove the COMMITTED artifact
+// still matches this recipe. One recipe, two callers — the same anti-drift rule that makes
+// tools/rig-editor/emit.js shared between the editor's live preview and its export.
+export function buildSmiley({ outDir = DEFAULT_OUT_DIR } = {}) {
 // 1. start from the image (the agent host would pass the user's PNG as base64)
 const s = startFromImage({ base64: smileyPngBase64(), colors: 6 });
 
@@ -63,4 +67,11 @@ if (!(st.rigStatus.idle && st.rigStatus.active && st.rigStatus.alert)) {
 const out = forgeEmit({ session: s.session, assetName: "smiley", outDir });
 if (!out.ok) throw new Error(`smiley emit invalid: ${JSON.stringify(out.validation || out.error)}`);
 
-console.error(`build-smiley-demo: wrote ${out.written.join(", ")} (states ${JSON.stringify(st.rigStatus)})`);
+  return { written: out.written, rigStatus: st.rigStatus };
+}
+
+// CLI entry — only when run directly, so importing this module has no side effects.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const r = buildSmiley();
+  console.error(`build-smiley-demo: wrote ${r.written.join(", ")} (states ${JSON.stringify(r.rigStatus)})`);
+}

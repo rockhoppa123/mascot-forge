@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="mascot" data-state="idle" data-render-method="ccl-color-threshold" data-source-bounds="6,18,84,78" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" role="img" aria-labelledby="title desc">
+<svg id="mascot" data-state="idle" data-states="idle,active,alert" data-render-method="ccl-color-threshold" data-source-bounds="6,18,84,78" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" shape-rendering="crispEdges" role="img" aria-labelledby="title desc">
   <style>
 #mascot .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }
 #mascot #part-body { transform-origin: 50% 50%; }
-#mascot #part-eyes { transform-origin: 50% 240%; }
+#mascot #part-eyes { transform-origin: 50% 50%; }
 #mascot #part-hand-left { transform-origin: 50% 0%; }
 #mascot #part-hand-right { transform-origin: 50% 0%; }
 #mascot #part-tongue { transform-origin: 50% 50%; }
@@ -48,25 +48,25 @@
   <title id="title">smiley Manual Part SVG</title>
   <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>
   <g id="rig-root">
-    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="40">
-      <rect x="28" y="18" width="34" height="10" fill="#c9ced1"/>
-      <rect x="28" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="54" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="28" y="33" width="34" height="29" fill="#c9ced1"/>
+    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="40" data-role="core" data-pivot="45,40" data-preset-idle="breathe">
+      <rect x="28" y="18" width="34" height="10" fill="#ebcd28"/>
+      <rect x="28" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="54" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="28" y="33" width="34" height="29" fill="#ebcd28"/>
     </g>
-    <g id="part-eyes" class="part" data-bone="eyes" data-origin="50% 240%" data-pivot-x="45" data-pivot-y="40">
-      <rect x="41" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="36" y="28" width="5" height="5" fill="#d62728"/>
-      <rect x="49" y="28" width="5" height="5" fill="#d62728"/>
+    <g id="part-eyes" class="part" data-bone="eyes" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="30.5" data-role="accent" data-pivot="45,30.5" data-preset-idle="blink">
+      <rect x="41" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="36" y="28" width="5" height="5" fill="#1e1e1e"/>
+      <rect x="49" y="28" width="5" height="5" fill="#1e1e1e"/>
     </g>
-    <g id="part-hand-left" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="13" data-pivot-y="30">
-      <rect x="6" y="30" width="14" height="22" fill="#d62728"/>
+    <g id="part-hand-left" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="13" data-pivot-y="30" data-role="limb" data-pivot="13,30" data-preset-active="walk">
+      <rect x="6" y="30" width="14" height="22" fill="#eb8c1e"/>
     </g>
-    <g id="part-hand-right" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="77" data-pivot-y="30">
-      <rect x="70" y="30" width="14" height="22" fill="#d62728"/>
+    <g id="part-hand-right" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="77" data-pivot-y="30" data-role="limb" data-pivot="77,30" data-preset-active="walk-mirror">
+      <rect x="70" y="30" width="14" height="22" fill="#eb8c1e"/>
     </g>
-    <g id="part-tongue" class="part" data-bone="tongue" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="72">
-      <rect x="40" y="66" width="10" height="12" fill="#ff7f0e"/>
+    <g id="part-tongue" class="part" data-bone="tongue" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="72" data-role="accent" data-pivot="45,72" data-preset-alert="pulse">
+      <rect x="40" y="66" width="10" height="12" fill="#dc2828"/>
     </g>
   </g>
 </svg>

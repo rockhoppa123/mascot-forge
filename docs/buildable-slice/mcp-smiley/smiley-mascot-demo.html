@@ -1,20 +1,28 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>smiley — animated mascot</title>
+<title>smiley — mascot showcase</title>
 <style>
-  body { font:14px system-ui,sans-serif; margin:0; display:flex; min-height:100vh; }
-  #stage { flex:1; display:grid; place-items:center; background:#eef3f8; }
-  #stage svg { width:min(70vw,460px); height:auto; }
-  #panel { width:200px; padding:16px; background:#fff; border-left:1px solid #d6dce8; }
-  #panel button { display:block; width:100%; margin:6px 0; padding:8px; cursor:pointer; }
+  :root { color-scheme: light; }
+  body { font:14px system-ui,sans-serif; margin:0; color:#1d2533; background:#eef3f8; display:flex; min-height:100vh; }
+  #stage { flex:1; display:grid; place-items:center; padding:24px; }
+  #stage svg { width:min(60vw,420px); height:auto; filter:drop-shadow(0 6px 18px rgba(20,40,80,.15)); }
+  #panel { width:260px; padding:20px; background:#fff; border-left:1px solid #d6dce8; display:flex; flex-direction:column; gap:14px; }
+  #panel h3 { margin:0; font-size:16px; }
+  #panel p { margin:0; color:#5a6678; }
+  .btns { display:flex; flex-wrap:wrap; gap:6px; }
+  .btns button { flex:1 0 auto; padding:8px 10px; cursor:pointer; border:1px solid #c3ccde; border-radius:6px; background:#f6f8fc; }
+  .btns button.active { background:#1d6fe0; color:#fff; border-color:#1d6fe0; }
+  #play { padding:9px; cursor:pointer; border:0; border-radius:6px; background:#16324f; color:#fff; font-weight:600; }
+  #dl { padding:9px; text-align:center; text-decoration:none; border:1px solid #1d6fe0; border-radius:6px; color:#1d6fe0; }
+  #source img { width:100%; image-rendering:auto; border:1px solid #d6dce8; border-radius:6px; background:#eef3f8; }
+  @media (prefers-reduced-motion: reduce) { #play { opacity:.6; } }
 </style></head>
 <body>
-  <div id="stage"><?xml version="1.0" encoding="UTF-8"?>
-<svg id="mascot" data-state="idle" data-render-method="ccl-color-threshold" data-source-bounds="6,18,84,78" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" role="img" aria-labelledby="title desc">
+  <div id="stage"><svg id="mascot" data-state="idle" data-states="idle,active,alert" data-render-method="ccl-color-threshold" data-source-bounds="6,18,84,78" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" shape-rendering="crispEdges" role="img" aria-labelledby="title desc">
   <style>
 #mascot .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }
 #mascot #part-body { transform-origin: 50% 50%; }
-#mascot #part-eyes { transform-origin: 50% 240%; }
+#mascot #part-eyes { transform-origin: 50% 50%; }
 #mascot #part-hand-left { transform-origin: 50% 0%; }
 #mascot #part-hand-right { transform-origin: 50% 0%; }
 #mascot #part-tongue { transform-origin: 50% 50%; }
@@ -59,32 +67,55 @@
   <title id="title">smiley Manual Part SVG</title>
   <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>
   <g id="rig-root">
-    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="40">
-      <rect x="28" y="18" width="34" height="10" fill="#c9ced1"/>
-      <rect x="28" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="54" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="28" y="33" width="34" height="29" fill="#c9ced1"/>
+    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="40" data-role="core" data-pivot="45,40" data-preset-idle="breathe">
+      <rect x="28" y="18" width="34" height="10" fill="#ebcd28"/>
+      <rect x="28" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="54" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="28" y="33" width="34" height="29" fill="#ebcd28"/>
     </g>
-    <g id="part-eyes" class="part" data-bone="eyes" data-origin="50% 240%" data-pivot-x="45" data-pivot-y="40">
-      <rect x="41" y="28" width="8" height="5" fill="#c9ced1"/>
-      <rect x="36" y="28" width="5" height="5" fill="#d62728"/>
-      <rect x="49" y="28" width="5" height="5" fill="#d62728"/>
+    <g id="part-eyes" class="part" data-bone="eyes" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="30.5" data-role="accent" data-pivot="45,30.5" data-preset-idle="blink">
+      <rect x="41" y="28" width="8" height="5" fill="#ebcd28"/>
+      <rect x="36" y="28" width="5" height="5" fill="#1e1e1e"/>
+      <rect x="49" y="28" width="5" height="5" fill="#1e1e1e"/>
     </g>
-    <g id="part-hand-left" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="13" data-pivot-y="30">
-      <rect x="6" y="30" width="14" height="22" fill="#d62728"/>
+    <g id="part-hand-left" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="13" data-pivot-y="30" data-role="limb" data-pivot="13,30" data-preset-active="walk">
+      <rect x="6" y="30" width="14" height="22" fill="#eb8c1e"/>
     </g>
-    <g id="part-hand-right" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="77" data-pivot-y="30">
-      <rect x="70" y="30" width="14" height="22" fill="#d62728"/>
+    <g id="part-hand-right" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="77" data-pivot-y="30" data-role="limb" data-pivot="77,30" data-preset-active="walk-mirror">
+      <rect x="70" y="30" width="14" height="22" fill="#eb8c1e"/>
     </g>
-    <g id="part-tongue" class="part" data-bone="tongue" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="72">
-      <rect x="40" y="66" width="10" height="12" fill="#ff7f0e"/>
+    <g id="part-tongue" class="part" data-bone="tongue" data-origin="50% 50%" data-pivot-x="45" data-pivot-y="72" data-role="accent" data-pivot="45,72" data-preset-alert="pulse">
+      <rect x="40" y="66" width="10" height="12" fill="#dc2828"/>
     </g>
   </g>
 </svg>
 </div>
-  <div id="panel"><h3>smiley</h3><p>preview state:</p><button data-s="idle">idle</button><button data-s="active">active</button><button data-s="alert">alert</button></div>
+  <div id="panel">
+    <h3>smiley</h3>
+    <p>state</p>
+    <div class="btns"><button data-s="idle">idle</button><button data-s="active">active</button><button data-s="alert">alert</button></div>
+    <button id="play" aria-pressed="false">▶ Play feed</button>
+    <a id="dl" download="smiley.svg" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0ibWFzY290IiBkYXRhLXN0YXRlPSJpZGxlIiBkYXRhLXN0YXRlcz0iaWRsZSxhY3RpdmUsYWxlcnQiIGRhdGEtcmVuZGVyLW1ldGhvZD0iY2NsLWNvbG9yLXRocmVzaG9sZCIgZGF0YS1zb3VyY2UtYm91bmRzPSI2LDE4LDg0LDc4IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MCA5MCIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIiByb2xlPSJpbWciIGFyaWEtbGFiZWxsZWRieT0idGl0bGUgZGVzYyI+CiAgPHN0eWxlPgojbWFzY290IC5wYXJ0IHsgdHJhbnNmb3JtLWJveDogZmlsbC1ib3g7IHRyYW5zaXRpb246IHRyYW5zZm9ybSAxNjBtcyBlYXNlLCBvcGFjaXR5IDEyMG1zIGVhc2U7IH0KI21hc2NvdCAjcGFydC1ib2R5IHsgdHJhbnNmb3JtLW9yaWdpbjogNTAlIDUwJTsgfQojbWFzY290ICNwYXJ0LWV5ZXMgeyB0cmFuc2Zvcm0tb3JpZ2luOiA1MCUgNTAlOyB9CiNtYXNjb3QgI3BhcnQtaGFuZC1sZWZ0IHsgdHJhbnNmb3JtLW9yaWdpbjogNTAlIDAlOyB9CiNtYXNjb3QgI3BhcnQtaGFuZC1yaWdodCB7IHRyYW5zZm9ybS1vcmlnaW46IDUwJSAwJTsgfQojbWFzY290ICNwYXJ0LXRvbmd1ZSB7IHRyYW5zZm9ybS1vcmlnaW46IDUwJSA1MCU7IH0KI21hc2NvdFtkYXRhLXN0YXRlPSJpZGxlIl0gI3BhcnQtYm9keSB7IGFuaW1hdGlvbjogcGFydC1ib2R5X19icmVhdGhlIDE4MDBtcyBlYXNlLWluLW91dCBpbmZpbml0ZTsgfQojbWFzY290W2RhdGEtc3RhdGU9ImlkbGUiXSAjcGFydC1leWVzIHsgYW5pbWF0aW9uOiBwYXJ0LWV5ZXNfX2JsaW5rIDQyMDBtcyBzdGVwLWVuZCBpbmZpbml0ZTsgfQojbWFzY290W2RhdGEtc3RhdGU9ImFjdGl2ZSJdICNwYXJ0LWhhbmQtbGVmdCB7IGFuaW1hdGlvbjogcGFydC1oYW5kLWxlZnRfX3dhbGsgNTIwbXMgZWFzZS1pbi1vdXQgaW5maW5pdGU7IH0KI21hc2NvdFtkYXRhLXN0YXRlPSJhY3RpdmUiXSAjcGFydC1oYW5kLXJpZ2h0IHsgYW5pbWF0aW9uOiBwYXJ0LWhhbmQtcmlnaHRfX3dhbGstbWlycm9yIDUyMG1zIGVhc2UtaW4tb3V0IGluZmluaXRlOyB9CiNtYXNjb3RbZGF0YS1zdGF0ZT0iYWxlcnQiXSAjcGFydC10b25ndWUgeyBhbmltYXRpb246IHBhcnQtdG9uZ3VlX19wdWxzZSA0MjBtcyBlYXNlLWluLW91dCBpbmZpbml0ZTsgfQpAa2V5ZnJhbWVzIHBhcnQtYm9keV9fYnJlYXRoZSB7CiAgMCUsIDEwMCUgeyB0cmFuc2Zvcm06IHNjYWxlKDEpOyB9CiAgNTAlIHsgdHJhbnNmb3JtOiBzY2FsZSguOTg1LCAxLjAzNSk7IH0KfQpAa2V5ZnJhbWVzIHBhcnQtZXllc19fYmxpbmsgewogIDAlLCA5MiUsIDEwMCUgeyB0cmFuc2Zvcm06IHNjYWxlWSgxKTsgfQogIDk0JSwgOTYlIHsgdHJhbnNmb3JtOiBzY2FsZVkoLjEyKTsgfQp9CkBrZXlmcmFtZXMgcGFydC1oYW5kLWxlZnRfX3dhbGsgewogIDAlLCAxMDAlIHsgdHJhbnNmb3JtOiByb3RhdGUoMTRkZWcpOyB9CiAgNTAlIHsgdHJhbnNmb3JtOiByb3RhdGUoLTE4ZGVnKTsgfQp9CkBrZXlmcmFtZXMgcGFydC1oYW5kLXJpZ2h0X193YWxrLW1pcnJvciB7CiAgMCUsIDEwMCUgeyB0cmFuc2Zvcm06IHJvdGF0ZSgtMTRkZWcpOyB9CiAgNTAlIHsgdHJhbnNmb3JtOiByb3RhdGUoMThkZWcpOyB9Cn0KQGtleWZyYW1lcyBwYXJ0LXRvbmd1ZV9fcHVsc2UgewogIDAlLCAxMDAlIHsgdHJhbnNmb3JtOiBzY2FsZSgxKTsgfQogIDUwJSB7IHRyYW5zZm9ybTogc2NhbGUoMS4xNik7IH0KfQpAbWVkaWEgKHByZWZlcnMtcmVkdWNlZC1tb3Rpb246IHJlZHVjZSkgewogICNtYXNjb3QgLnBhcnQgeyBhbmltYXRpb246IG5vbmUgIWltcG9ydGFudDsgdHJhbnNpdGlvbjogbm9uZSAhaW1wb3J0YW50OyB9CiAgI21hc2NvdFtkYXRhLXN0YXRlPSJpZGxlIl0gI3BhcnQtYm9keSB7IHRyYW5zZm9ybTogc2NhbGUoMSk7IH0KICAjbWFzY290W2RhdGEtc3RhdGU9ImFjdGl2ZSJdICNwYXJ0LWhhbmQtbGVmdCB7IHRyYW5zZm9ybTogcm90YXRlKDEwZGVnKTsgfQogICNtYXNjb3RbZGF0YS1zdGF0ZT0iYWN0aXZlIl0gI3BhcnQtaGFuZC1yaWdodCB7IHRyYW5zZm9ybTogcm90YXRlKC0xMGRlZyk7IH0KICAjbWFzY290W2RhdGEtc3RhdGU9ImFsZXJ0Il0gI3BhcnQtdG9uZ3VlIHsgdHJhbnNmb3JtOiBzY2FsZSgxLjA4KTsgfQp9CiNtYXNjb3QuZm9yY2UtcmVkdWNlZC1tb3Rpb24gLnBhcnQgeyBhbmltYXRpb246IG5vbmUgIWltcG9ydGFudDsgdHJhbnNpdGlvbjogbm9uZSAhaW1wb3J0YW50OyB9CiNtYXNjb3QuZm9yY2UtcmVkdWNlZC1tb3Rpb25bZGF0YS1zdGF0ZT0iaWRsZSJdICNwYXJ0LWJvZHkgeyB0cmFuc2Zvcm06IHNjYWxlKDEpOyB9CiNtYXNjb3QuZm9yY2UtcmVkdWNlZC1tb3Rpb25bZGF0YS1zdGF0ZT0iYWN0aXZlIl0gI3BhcnQtaGFuZC1sZWZ0IHsgdHJhbnNmb3JtOiByb3RhdGUoMTBkZWcpOyB9CiNtYXNjb3QuZm9yY2UtcmVkdWNlZC1tb3Rpb25bZGF0YS1zdGF0ZT0iYWN0aXZlIl0gI3BhcnQtaGFuZC1yaWdodCB7IHRyYW5zZm9ybTogcm90YXRlKC0xMGRlZyk7IH0KI21hc2NvdC5mb3JjZS1yZWR1Y2VkLW1vdGlvbltkYXRhLXN0YXRlPSJhbGVydCJdICNwYXJ0LXRvbmd1ZSB7IHRyYW5zZm9ybTogc2NhbGUoMS4wOCk7IH0KICA8L3N0eWxlPgogIDx0aXRsZSBpZD0idGl0bGUiPnNtaWxleSBNYW51YWwgUGFydCBTVkc8L3RpdGxlPgogIDxkZXNjIGlkPSJkZXNjIj5SaWctZWRpdG9yIGV4cG9ydDogc2VtYW50aWMgcmlnIHBhcnRzIGZvciBTVkcgYW5kIENTUyBhbmltYXRpb24uPC9kZXNjPgogIDxnIGlkPSJyaWctcm9vdCI+CiAgICA8ZyBpZD0icGFydC1ib2R5IiBjbGFzcz0icGFydCIgZGF0YS1ib25lPSJib2R5IiBkYXRhLW9yaWdpbj0iNTAlIDUwJSIgZGF0YS1waXZvdC14PSI0NSIgZGF0YS1waXZvdC15PSI0MCIgZGF0YS1yb2xlPSJjb3JlIiBkYXRhLXBpdm90PSI0NSw0MCIgZGF0YS1wcmVzZXQtaWRsZT0iYnJlYXRoZSI+CiAgICAgIDxyZWN0IHg9IjI4IiB5PSIxOCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjEwIiBmaWxsPSIjZWJjZDI4Ii8+CiAgICAgIDxyZWN0IHg9IjI4IiB5PSIyOCIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ViY2QyOCIvPgogICAgICA8cmVjdCB4PSI1NCIgeT0iMjgiIHdpZHRoPSI4IiBoZWlnaHQ9IjUiIGZpbGw9IiNlYmNkMjgiLz4KICAgICAgPHJlY3QgeD0iMjgiIHk9IjMzIiB3aWR0aD0iMzQiIGhlaWdodD0iMjkiIGZpbGw9IiNlYmNkMjgiLz4KICAgIDwvZz4KICAgIDxnIGlkPSJwYXJ0LWV5ZXMiIGNsYXNzPSJwYXJ0IiBkYXRhLWJvbmU9ImV5ZXMiIGRhdGEtb3JpZ2luPSI1MCUgNTAlIiBkYXRhLXBpdm90LXg9IjQ1IiBkYXRhLXBpdm90LXk9IjMwLjUiIGRhdGEtcm9sZT0iYWNjZW50IiBkYXRhLXBpdm90PSI0NSwzMC41IiBkYXRhLXByZXNldC1pZGxlPSJibGluayI+CiAgICAgIDxyZWN0IHg9IjQxIiB5PSIyOCIgd2lkdGg9IjgiIGhlaWdodD0iNSIgZmlsbD0iI2ViY2QyOCIvPgogICAgICA8cmVjdCB4PSIzNiIgeT0iMjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjUiIGZpbGw9IiMxZTFlMWUiLz4KICAgICAgPHJlY3QgeD0iNDkiIHk9IjI4IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjMWUxZTFlIi8+CiAgICA8L2c+CiAgICA8ZyBpZD0icGFydC1oYW5kLWxlZnQiIGNsYXNzPSJwYXJ0IiBkYXRhLWJvbmU9ImFybS1sZWZ0IiBkYXRhLW9yaWdpbj0iNTAlIDAlIiBkYXRhLXBpdm90LXg9IjEzIiBkYXRhLXBpdm90LXk9IjMwIiBkYXRhLXJvbGU9ImxpbWIiIGRhdGEtcGl2b3Q9IjEzLDMwIiBkYXRhLXByZXNldC1hY3RpdmU9IndhbGsiPgogICAgICA8cmVjdCB4PSI2IiB5PSIzMCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjIyIiBmaWxsPSIjZWI4YzFlIi8+CiAgICA8L2c+CiAgICA8ZyBpZD0icGFydC1oYW5kLXJpZ2h0IiBjbGFzcz0icGFydCIgZGF0YS1ib25lPSJhcm0tcmlnaHQiIGRhdGEtb3JpZ2luPSI1MCUgMCUiIGRhdGEtcGl2b3QteD0iNzciIGRhdGEtcGl2b3QteT0iMzAiIGRhdGEtcm9sZT0ibGltYiIgZGF0YS1waXZvdD0iNzcsMzAiIGRhdGEtcHJlc2V0LWFjdGl2ZT0id2Fsay1taXJyb3IiPgogICAgICA8cmVjdCB4PSI3MCIgeT0iMzAiIHdpZHRoPSIxNCIgaGVpZ2h0PSIyMiIgZmlsbD0iI2ViOGMxZSIvPgogICAgPC9nPgogICAgPGcgaWQ9InBhcnQtdG9uZ3VlIiBjbGFzcz0icGFydCIgZGF0YS1ib25lPSJ0b25ndWUiIGRhdGEtb3JpZ2luPSI1MCUgNTAlIiBkYXRhLXBpdm90LXg9IjQ1IiBkYXRhLXBpdm90LXk9IjcyIiBkYXRhLXJvbGU9ImFjY2VudCIgZGF0YS1waXZvdD0iNDUsNzIiIGRhdGEtcHJlc2V0LWFsZXJ0PSJwdWxzZSI+CiAgICAgIDxyZWN0IHg9IjQwIiB5PSI2NiIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEyIiBmaWxsPSIjZGMyODI4Ii8+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K">⬇ Download SVG</a>
+    <div id="source"><p>original input</p><img alt="source image" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFoAAABaCAYAAAA4qEECAAABAUlEQVR4Ae3BIW4CAQBE0b+TVfi1qAo8J+EuHIO7cJL1iCosHks9KU0hzWRT/ntIkiRJkiRJkiTpSQNll3lzYwGm7WmgKKgiqCKoIqgiqCKoIqgiqCKoYmRhtrsr9+bjip9sd1fuzccVSxJUMfLA5bC+8YJpfx74By6H9Y0XTPvzwDeCKoIqRhZmPq541nxcsXRBFUEVQRVBFUEVQRVBFUEVQRVBFUEVQRVBFUEVQRVBFUEVQRUjD0z788Abm/bngT8UVBFUEVQRVBFUEVQRVBFUESRJenMDC/e52dz4hY/TaWDBgiqCKoIqgiqCKoIqgiqCKoIqgiqCJEmSJEmS9KQvU3EcWzJOLIsAAAAASUVORK5CYII="></div>
+  </div>
   <script>
     var svg = document.querySelector('#stage svg');
-    document.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { svg.setAttribute('data-state', b.dataset.s); }; });
+    var states = ["idle","active","alert"];
+    var btns = Array.prototype.slice.call(document.querySelectorAll('[data-s]'));
+    function show(s) {
+      svg.setAttribute('data-state', s);
+      btns.forEach(function (b) { b.classList.toggle('active', b.dataset.s === s); });
+    }
+    btns.forEach(function (b) { b.onclick = function () { stop(); show(b.dataset.s); }; });
+    show(states[0]);
+    var timer = null, i = 0;
+    var play = document.getElementById('play');
+    function stop() { if (timer) { clearInterval(timer); timer = null; play.textContent = '▶ Play feed'; play.setAttribute('aria-pressed', 'false'); } }
+    function start() {
+      timer = setInterval(function () { i = (i + 1) % states.length; show(states[i]); }, 1400);
+      play.textContent = '⏸ Pause'; play.setAttribute('aria-pressed', 'true');
+    }
+    play.onclick = function () { timer ? stop() : start(); };
+    if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
   </script>
 </body></html>
