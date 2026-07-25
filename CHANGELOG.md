@@ -70,6 +70,18 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   longer matches `eye`); renaming a part onto an existing id is rejected instead of silently clobbering
   it; region-overlay labels no longer clip above the top edge; the MCP's default first-pass colour count
   now matches the editor (6).
+- **Post-audit follow-up pass (2026-07-25)** — `safePath` resolved `outDir` against `process.cwd()`
+  instead of the repo root, so `forge_emit`/`forge_open_editor`/`forge_propose` wrote one directory too
+  deep or threw "path outside project root" for any MCP client not launched with cwd pinned to the repo
+  root (the common case); `forge_propose`'s `outDir` branch now returns a clickable URL like the other
+  two, instead of a raw local path; `pollJson` no longer lets a slow tick's stale response overwrite a
+  faster later tick's, and `fromEvents` degrades to nothing-asserted on a throwing `mapFn` instead of
+  raising an uncaught exception, matching `pollJson`'s contract. In the rig editor: the `Escape`/`Ctrl+Z`/
+  `p` global shortcuts no longer fire while a text field has focus (previously hijacked in-field typing,
+  including the browser's native field-undo); the file input is keyboard-reachable again (`hidden` had
+  dropped it from the tab order); the layout no longer squeezes the canvas to a sliver below 700px width;
+  a "Vectorising…" status now appears before the CPU-bound PNG ingest; `--danger` red now meets AA
+  contrast against the button background.
 
 ### Changed
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind

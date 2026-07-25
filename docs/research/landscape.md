@@ -50,6 +50,19 @@ would make this trivial — is unsolved research, which is why the gap persists.
   take *your* existing asset (e.g. the DevBrain moustache) and rig it into *your*
   codebase as a data-bound component. Different job: art generation, not rigging+codegen.
 
+### 2a. MCP-driven agent-rigging tools (watch-item, added 2026-07-25)
+- **Allyson MCP** (`github.com/isaiahbjork/allyson-mcp`) — an MCP server, one tool
+  (`generate_svg_animation`), that takes a source PNG/JPG/SVG plus a natural-language prompt and
+  emits an animated `.tsx` React component. This is the closest thing found to mascot-forge's
+  "agent drives an MCP to rig your existing art into owned code" wedge — not a generator like §2.
+- **Why it doesn't close the gap (yet):** confirmed via its README — decorative effects only (glow,
+  pulse, spin, bounce), no semantic anatomy (limb/core/accent), no pivot-based articulation, and no
+  live-data state binding (a static animated component, not a state machine wired to telemetry).
+  mascot-forge's two headline differentiators (semantic-parts rigging + live-data binding) hold.
+- **Why it's still worth recording:** it proves the "MCP-driven agent rigs your art" idea is no
+  longer unique to mascot-forge — a second, independent implementation exists in the wild. Re-check
+  this entry if Allyson (or a similar tool) adds bone/pivot rigging or state-machine binding.
+
 ---
 
 ## 3. Raster → vector (Phase 1 building blocks)
