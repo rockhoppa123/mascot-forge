@@ -1,4 +1,4 @@
-// segment-quality.test.mjs — a 10-case rigging-quality battery for the segmenter + region assignment.
+// segment-quality.test.mjs — an 11-case rigging-quality battery for the segmenter + region assignment.
 // Locks the quality bar that regressions slip past: never collapse a multi-part image to one blob,
 // never lose geometry (D6), always emit valid pivots, and surface a mis-aimed region instead of
 // silently dropping a part. Pure where it can be; case 10 drives the MCP tools over a synthetic PNG.
@@ -10,7 +10,7 @@ import { parseSegmented } from "./loader.js";
 import { startFromImage, assignRegion } from "../../mcp/tools.mjs";
 
 let pass = 0;
-const ok = (label, fn) => { fn(); pass++; console.log(`  [${pass}/10] ${label}`); };
+const ok = (label, fn) => { fn(); pass++; console.log(`  [${pass}/11] ${label}`); };
 
 // helpers
 const partsOf = (rects, vb) => segment(rects, { viewBoxSize: vb }).parts;
@@ -52,27 +52,45 @@ ok("6-colour row -> >=2 parts", () => {
   assert.ok(partsOf(rects, 60).length >= 2);
 });
 
-// 5. a mascot silhouette gets SEMANTIC names (body/leg/antenna/eyes), not generic part-N
-ok("mascot silhouette -> semantic part names", () => {
+// 5. a mascot silhouette gets POSITIONAL names (no unearned anatomy), not generic part-N
+ok("mascot silhouette -> POSITIONAL part names (no unearned anatomy)", () => {
   const parts = partsOf([
     { x: 10, y: 10, w: 20, h: 20, fill: "#ccc" }, // body
-    { x: 12, y: 30, w: 4, h: 10, fill: "#333" },  // leg below
-    { x: 18, y: 2, w: 4, h: 8, fill: "#3c3" },    // antenna above
-    { x: 14, y: 14, w: 2, h: 2, fill: "#000" },   // eye island
+    { x: 12, y: 30, w: 4, h: 10, fill: "#333" },  // blob below
+    { x: 18, y: 2, w: 4, h: 8, fill: "#3c3" },    // blob above
+    { x: 14, y: 14, w: 2, h: 2, fill: "#000" },   // colour island
   ], 48);
-  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-leg-left", "part-antenna", "part-eyes"]);
+  // geometry is a real signal; "leg"/"antenna"/"eyes" is not. Without a parts-spec the segmenter
+  // must describe WHERE a blob is, never WHAT it is — an agent renames it by vision.
+  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-lower-left", "part-upper", "part-island-1"]);
+});
+
+// 11. no unspec'd proposal (default vocab, no parts-spec) asserts anatomy the segmenter cannot see
+ok("no unspec'd proposal asserts anatomy", () => {
+  const parts = partsOf([
+    { x: 10, y: 10, w: 20, h: 20, fill: "#ccc" },
+    { x: 12, y: 30, w: 4, h: 10, fill: "#333" },
+    { x: 24, y: 30, w: 4, h: 10, fill: "#334" },
+    { x: 18, y: 2, w: 4, h: 8, fill: "#3c3" },
+    { x: 14, y: 14, w: 2, h: 2, fill: "#000" },
+    { x: 20, y: 14, w: 2, h: 2, fill: "#001" },
+  ], 48);
+  const anatomy = /leg|antenn|eye|arm|tail|mouth|ear|head|wing/i;
+  for (const p of parts) {
+    assert.ok(!anatomy.test(p.id), `proposed id '${p.id}' asserts anatomy the segmenter cannot know`);
+  }
 });
 
 // 6. KNOWN CEILING: a single-colour silhouette (ears/tail fused to body by 8-adjacency) cannot be
-// auto-split by a colour segmenter — body + its one colour-island (eyes) is all we get. Documents the
+// auto-split by a colour segmenter — body + its one colour-island is all we get. Documents the
 // cat case. ponytail: spatial subdivision of the dominant blob is the upgrade path if this bites.
 ok("single-colour silhouette -> body + island only (documented ceiling)", () => {
   const parts = partsOf([
     { x: 10, y: 8, w: 40, h: 44, fill: "#3a2f3e" },  // body+ears+tail, all one colour = one blob
-    { x: 22, y: 18, w: 16, h: 6, fill: "#fbd778" },  // eye island (distinct colour, inside upper body)
+    { x: 22, y: 18, w: 16, h: 6, fill: "#fbd778" },  // colour island (distinct colour, inside upper body)
   ], 64);
   const ids = parts.map((p) => p.id).sort();
-  assert.deepEqual(ids, ["part-body", "part-eyes"], "fused silhouette yields body + eyes, nothing more");
+  assert.deepEqual(ids, ["part-body", "part-island-1"], "fused silhouette yields body + island, nothing more");
 });
 
 // 7. geometry conservation (D6): every input rect lands in some part, none duplicated or dropped
@@ -131,4 +149,4 @@ ok("assign_region warns when it grabs 0 rects", () => {
   assert.ok(miss.warning && /0 rects/.test(miss.warning), "a 0-rect region is surfaced as a warning");
 });
 
-console.log(`segment-quality.test.mjs: all ${pass}/10 cases passed.`);
+console.log(`segment-quality.test.mjs: all ${pass}/11 cases passed.`);

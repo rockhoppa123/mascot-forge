@@ -9,10 +9,14 @@
 // union is O(n^2), guarded by maxRects.
 import { defaultPivotFor } from "./pivot.js";
 
-const DEFAULT_VOCAB = ["part-body", "part-leg-left", "part-leg-right", "part-antenna", "part-eyes", "part-moustache"];
+// Positional, not anatomical: without a parts-spec the segmenter knows WHERE a blob sits, never WHAT
+// it is. Naming a ghost's head-top "part-antenna" invents anatomy and misleads the rigging agent.
+const DEFAULT_VOCAB = ["part-body", "part-lower-left", "part-lower-right", "part-upper", "part-island-1", "part-island-2"];
 const DEFAULT_TINT = {
-  "part-body": "#c9ced1", "part-leg-left": "#ff7f0e", "part-leg-right": "#1f77b4",
-  "part-antenna": "#2ca02c", "part-eyes": "#d62728", "part-moustache": "#9467bd",
+  "part-body": "#c9ced1", "part-lower-left": "#ff7f0e", "part-lower-right": "#1f77b4",
+  "part-upper": "#2ca02c", "part-island-1": "#d62728", "part-island-2": "#9467bd",
+  "part-moustache": "#9467bd", "part-leg-left": "#ff7f0e", "part-leg-right": "#1f77b4",
+  "part-antenna": "#2ca02c", "part-eyes": "#d62728",
 };
 const EXTRA_TINTS = ["#e377c2", "#7f7f7f", "#bcbd22", "#17becf", "#aec7e8", "#ffbb78"];
 
@@ -84,18 +88,18 @@ export function segment(rectsIn, { viewBoxSize, spec = null, maxRects = 8000 } =
   const rest = blobs.filter((b) => b !== body);
 
   const legBlobs = rest.filter((b) => b.maxY > body.maxY).sort((a, b) => a.cenX - b.cenX);
-  if (legBlobs.length >= 1) legBlobs[0].part = partId("below-body-left", "part-leg-left");
-  if (legBlobs.length >= 2) legBlobs[legBlobs.length - 1].part = partId("below-body-right", "part-leg-right");
+  if (legBlobs.length >= 1) legBlobs[0].part = partId("below-body-left", "part-lower-left");
+  if (legBlobs.length >= 2) legBlobs[legBlobs.length - 1].part = partId("below-body-right", "part-lower-right");
 
   for (const a of rest.filter((b) => b.part === null && b.minY < body.minY))
-    a.part = partId("above-body", "part-antenna");
+    a.part = partId("above-body", "part-upper");
 
   const bodyMidY = (body.minY + body.maxY) / 2;
   const eyeCandidates = rest.filter((b) =>
     b.part === null && b.cenY < bodyMidY &&
     b.minX >= body.minX && b.maxX <= body.maxX && b.minY >= body.minY && b.maxY <= body.maxY
   ).sort((a, b) => b.area - a.area || a.minY - b.minY || a.minX - b.minX);
-  for (const e of eyeCandidates.slice(0, 2)) e.part = partId("colour-island-upper", "part-eyes");
+  eyeCandidates.slice(0, 2).forEach((e, i) => { e.part = partId("colour-island-upper", `part-island-${i + 1}`); });
 
   // --- generic blob fallback (P-seg) ---
   // The geometry heuristic is overfit to one mascot silhouette: on arbitrary art every non-matching

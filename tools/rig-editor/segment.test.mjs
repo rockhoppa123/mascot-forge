@@ -37,15 +37,19 @@ function mascotRects() {
 }
 
 // --- naming + joint pivots -----------------------------------------------------------------------
+// Positional fallback ids get NO anatomy-specific pivot treatment (bbox centre for all): the hip-line
+// and base-centre rules are keyed to literal "part-leg-*"/"part-antenna" strings, which only exist
+// when a parts-spec asserts them. Not assuming a joint shape for a blob of unknown anatomy is correct.
 {
   const { parts } = segment(mascotRects(), { viewBoxSize: 48 });
-  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-leg-left", "part-antenna", "part-eyes"]);
+  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-lower-left", "part-upper", "part-island-1", "part-island-2"]);
   const byId = Object.fromEntries(parts.map((p) => [p.id, p]));
   assert.deepEqual(byId["part-body"].pivot, { x: 20, y: 20 }, "body pivot = bbox centre");
-  assert.deepEqual(byId["part-leg-left"].pivot, { x: 14, y: 30 }, "leg pivot = hip line (top-edge centre)");
-  assert.deepEqual(byId["part-antenna"].pivot, { x: 20, y: 10 }, "antenna pivot = base centre (bottom row)");
-  assert.deepEqual(byId["part-eyes"].pivot, { x: 20, y: 15 }, "eyes pivot = bbox centre of both islands");
-  assert.equal(byId["part-eyes"].rects.length, 2, "both eye islands merge into one part");
+  assert.deepEqual(byId["part-lower-left"].pivot, { x: 14, y: 35 }, "lower blob pivot = bbox centre (no leg assumed)");
+  assert.deepEqual(byId["part-upper"].pivot, { x: 20, y: 6 }, "upper blob pivot = bbox centre (no antenna assumed)");
+  assert.deepEqual(byId["part-island-1"].pivot, { x: 15, y: 15 }, "island 1 pivot = bbox centre");
+  assert.deepEqual(byId["part-island-2"].pivot, { x: 25, y: 15 }, "island 2 pivot = bbox centre");
+  assert.equal(parts.length, 5, "the two colour islands are distinct parts, not merged (D6: no anatomy-based merge)");
 }
 
 // --- emitted SVG carries real per-rect colors and data-tint on groups ----------------------------
@@ -58,9 +62,9 @@ function mascotRects() {
   assert.ok(svg.includes('fill="#000000"'), "eye rect carries its real color #000000");
   // groups carry data-tint for the editor
   assert.ok(svg.includes('data-tint="#c9ced1"'), "body group carries data-tint");
-  assert.ok(svg.includes('data-tint="#ff7f0e"'), "leg group carries data-tint");
-  assert.ok(svg.includes('data-tint="#2ca02c"'), "antenna group carries data-tint");
-  assert.ok(svg.includes('data-tint="#d62728"'), "eyes group carries data-tint");
+  assert.ok(svg.includes('data-tint="#ff7f0e"'), "lower-left group carries data-tint");
+  assert.ok(svg.includes('data-tint="#2ca02c"'), "upper group carries data-tint");
+  assert.ok(svg.includes('data-tint="#d62728"'), "island-1 group carries data-tint");
   // groups do NOT have a fill= attribute (tint no longer baked into group fill)
   assert.ok(!/<g[^>]*\bfill="/.test(svg.replace(/data-role="pivot-markers"[^>]*fill="none"/, "")),
     "part groups do not carry a fill= attribute");
@@ -73,10 +77,10 @@ function mascotRects() {
   assert.equal(model.rects().length, 5, "all 5 flat rects survive into the model");
   assert.ok(model.everyRectGrouped(), "every rect lands in exactly one part");
   assert.equal(model.viewBox(), "0 0 48 48");
-  assert.deepEqual(model.parts()["part-leg-left"].pivot, { x: 14, y: 30 }, "loader reads the joint pivot");
+  assert.deepEqual(model.parts()["part-lower-left"].pivot, { x: 14, y: 35 }, "loader reads the joint pivot");
   // loader captures the diagnostic tint from data-tint
   assert.equal(model.parts()["part-body"].tint, "#c9ced1", "loader reads data-tint into part meta");
-  assert.equal(model.parts()["part-leg-left"].tint, "#ff7f0e", "loader reads leg tint");
+  assert.equal(model.parts()["part-lower-left"].tint, "#ff7f0e", "loader reads lower-left tint");
   // real colors survive into the model rects
   const bodyRects = model.rectsOf("part-body");
   assert.ok(bodyRects.some((r) => r.fill === "#cccccc"), "body rect fill is the real color, not the tint");
@@ -117,11 +121,11 @@ function mascotRects() {
   const { rects } = vectorizeRaster({ rgba, w: W, h: H }, { colors: 3 });
   const { svg } = segment(rects, { viewBoxSize: W });
   const model = parseSegmented(svg);
-  assert.ok(model.parts()["part-body"] && model.parts()["part-leg-left"] && model.parts()["part-antenna"],
-    "the PNG path proposed body + leg + antenna");
+  assert.ok(model.parts()["part-body"] && model.parts()["part-lower-left"] && model.parts()["part-upper"],
+    "the PNG path proposed body + lower-left + upper (positional, no spec)");
   model.setRole("part-body", "core"); model.setBone("part-body", "body"); model.setPreset("idle", "part-body", "breathe");
-  model.setRole("part-leg-left", "limb"); model.setBone("part-leg-left", "leg"); model.setPreset("active", "part-leg-left", "walk");
-  model.setRole("part-antenna", "accent"); model.setBone("part-antenna", "antenna"); model.setPreset("alert", "part-antenna", "pulse");
+  model.setRole("part-lower-left", "limb"); model.setBone("part-lower-left", "leg"); model.setPreset("active", "part-lower-left", "walk");
+  model.setRole("part-upper", "accent"); model.setBone("part-upper", "antenna"); model.setPreset("alert", "part-upper", "pulse");
   const out = exportRig(model, { assetName: "synthetic", recipeFor });
   const v = validate(out.riggedJson);
   assert.equal(v.ok, true, `full PNG-path export must validate: ${v.errors.join("; ")}`);
@@ -170,10 +174,10 @@ function mascotRects() {
   assert.equal(parts[0].id, "part-1", "largest block is part-1");
 }
 
-// fallback must NOT trigger when the heuristic already names >1 part (mascot has leg+antenna+eyes).
+// fallback must NOT trigger when the heuristic already names >1 part (mascot has multiple named blobs).
 {
   const { parts } = segment(mascotRects(), { viewBoxSize: 48 });
-  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-leg-left", "part-antenna", "part-eyes"],
+  assert.deepEqual(parts.map((p) => p.id), ["part-body", "part-lower-left", "part-upper", "part-island-1", "part-island-2"],
     "named-multi case is unchanged — fallback does not fire");
 }
 
@@ -196,16 +200,19 @@ function mascotRects() {
   assert.equal(Object.keys(model.parts()).length, parts.length, "loader sees the same part count");
 }
 
-// golden protection: the DevBrain flat input (true pixel art) still segments into its 5 NAMED parts —
-// the fallback must never fire here.
+// P-seg fallback guard: the DevBrain flat input (true pixel art), segmented WITHOUT a parts-spec,
+// still yields distinct positionally-named blobs — the generic part-N fallback must never fire here.
+// (The shipped DevBrain asset carries a parts-spec — see tools/check-segmented.ps1 — so in the real
+// pipeline these ids resolve to the spec's anatomical names; this test drives the bare geometry
+// heuristic, which is why the two colour islands land as separate island-1/island-2 here.)
 {
   const flatPath = fileURLToPath(new URL("../../docs/buildable-slice/generated/devbrain-flat.svg", import.meta.url));
   const flat = flatRectsFromSvg(readFileSync(flatPath, "utf8"));
   const { parts } = segment(flat, { viewBoxSize: 192 });
   const ids = parts.map((p) => p.id).sort();
-  assert.deepEqual(ids, ["part-antenna", "part-body", "part-eyes", "part-leg-left", "part-leg-right"],
-    "DevBrain golden still yields its 5 named parts (fallback did not fire)");
-  assert.ok(!parts.some((p) => /^part-\d+$/.test(p.id)), "no generic part-N ids in the DevBrain golden");
+  assert.deepEqual(ids, ["part-body", "part-island-1", "part-island-2", "part-lower-left", "part-lower-right", "part-upper"],
+    "DevBrain geometry still yields distinct positional parts (fallback did not fire)");
+  assert.ok(!parts.some((p) => /^part-\d+$/.test(p.id)), "no generic part-N ids in the DevBrain geometry");
 }
 
 console.log("segment.test.mjs: all assertions passed.");
