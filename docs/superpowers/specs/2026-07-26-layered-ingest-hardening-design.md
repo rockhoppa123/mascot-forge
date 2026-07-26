@@ -189,16 +189,26 @@ nested `<g>` *throws* ("I3a"). That test encodes the rule this design reverses. 
 assertions 1–3, and the comment above it (explaining the non-greedy tokenizer) is rewritten to
 describe the scanner. Flagged here so the implementer does not treat its failure as a regression.
 
-**One new Playwright e2e:** load an SVG with a transformed layer via `window.__rigEditor` and assert
-the status text names the layer. The browser's *flattening* gets no new e2e — that code path is
-unchanged and already shipping; a test written now would be testing yesterday's behaviour under a new
-name.
+**Playwright e2e:** load an SVG with a transformed layer via `window.__rigEditor` and assert the status
+text names the layer.
+
+> **Amended during planning (2026-07-26):** this section originally specified *one* e2e, reasoning that
+> browser flattening was unchanged code. That reasoning was wrong, and the same review found a second
+> silent-wrong case the sections above miss: **flattening newly exposes non-rendered subtrees as art.**
+> Figma emits `<g clip-path="url(#c0)">` and can place the `<clipPath>` inside the group; once a layer
+> owns its whole subtree, a clip shape becomes a phantom element — invisible in the source, exported as
+> real geometry. Both paths are affected (`EL_RE` over the subtree in node; `querySelectorAll` in the
+> browser, where `getBBox` on an unrendered clip shape returns zeros rather than throwing, so the
+> phantom is silent). Both therefore skip `defs`/`clipPath`/`mask`/`symbol`/`pattern`/`marker` subtrees,
+> and the transform check runs on the stripped body so a clip's internal transform cannot trigger a
+> spurious refusal. A second e2e covers this. **The e2e count below is superseded: 22, not 21.**
 
 **Gate expectations after this stage:**
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-all.ps1` → `RESULT: PASS` (P1–P7)
-- `pwsh -NoProfile -File tools/check-e2e.ps1` → **21 passed** (up from 20; one test added)
+- `pwsh -NoProfile -File tools/check-e2e.ps1` → **22 passed** (up from 20; two tests added — see the
+  amendment above, which supersedes the original figure of 21)
 
-The e2e count moving 20 → 21 is expected and is not a regression. Any *other* movement is.
+The e2e count moving 20 → 22 is expected and is not a regression. Any *other* movement is.
 
 ## Deferred
 
