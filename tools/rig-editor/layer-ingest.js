@@ -62,13 +62,29 @@ export function transformErrorMessage(layerNames) {
 // survives. Rotate/scale/matrix would still refuse. Not built without evidence it's needed.
 const HAS_TRANSFORM = /(^|\s)transform\s*=/;   // anchored on a boundary so gradientTransform is not a match
 
-// Subtrees that define rather than draw. Stripped before scanning a layer, so a clip shape or a
-// gradient stop can never be mistaken for art now that nesting flattens. A self-closing instance
-// (<clipPath id="empty"/>) is consumed on its own — otherwise a lazy `<tag>…</tag>` match would pair
-// it with a LATER same-name close tag and swallow every real drawable in between (the self-closer
-// has no partner of its own, so the regex would keep looking until it found one). A same-tag NEST
-// (a <mask> inside a <mask>) would still end early — a remaining limit SVG exporters do not hit.
+// Subtrees that define rather than draw. Stripped once at the DOCUMENT level, before topLevelGroups
+// picks layers — not per-layer — so a clip shape or a gradient stop can never be mistaken for art now
+// that nesting flattens, AND a <g> sitting inside a ROOT-level <defs>/<clipPath> can never be chosen as
+// a layer in the first place (in the browser it is never a child of <svg>, so it was never a layer
+// there either — a per-layer strip ran after topLevelGroups had already picked it, too late). A
+// self-closing instance (<clipPath id="empty"/>) is consumed on its own — otherwise a lazy
+// `<tag>…</tag>` match would pair it with a LATER same-name close tag and swallow every real drawable
+// in between (the self-closer has no partner of its own, so the regex would keep looking until it
+// found one). A same-tag NEST (a <mask> inside a <mask>) ends the OUTER tag's match at the INNER tag's
+// close — so the outer tag's own trailing content (after the inner </mask>, before the outer </mask>)
+// is left unstripped and leaks into the node scan as real, phantom art; the browser (which never
+// renders mask/clipPath/etc. content at all, nesting or not) does not see it — the two paths disagree
+// on that input. No known exporter emits same-tag nesting, so this stays an honest, disclosed ceiling
+// rather than a depth-aware scanner built against a defect nobody has reproduced from a real export.
 const NON_RENDERED = /<(defs|clipPath|mask|symbol|pattern|marker)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/gi;
+
+// SVG comments must be gone before NON_RENDERED runs, and before topLevelGroups sees the text at all —
+// a comment can contain a `<g>`-shaped fragment (design notes, disabled markup) that the browser never
+// renders (DOMParser drops comments before layer selection) but this text scanner would otherwise read
+// as a real layer or non-rendered subtree. An unbalanced comment (e.g. `<!-- <g id="old"> -->`, whose
+// `<g` never got its matching close before ` -->`) must not be allowed to leave a depth counter open
+// either — stripping the whole comment span up front removes the stray `<g` before anything counts it.
+const COMMENT_RE = /<!--[\s\S]*?-->/g;
 
 // A layer name -> a valid, unique part id ("Left Arm" -> "part-left-arm"). Dedupes with -2, -3 …
 export function sanitizeId(name, used = new Set()) {
@@ -97,10 +113,19 @@ export function parseLayered(svgText) {
   const statesAttr = svgOpen && attr(svgOpen[0], "data-states");
   const states = statesAttr ? statesAttr.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
 
+  // Strip comments, then non-rendered (<defs>/<clipPath>/<mask>/…) subtrees ONCE, at the DOCUMENT
+  // level — before topLevelGroups chooses which <g> elements are layers. Order matters: a comment can
+  // contain what looks like a <defs> fragment, so it must go first. Doing this once, up front, replaces
+  // the old per-layer strip entirely — a document-level strip already removes any non-rendered content
+  // from INSIDE a chosen layer's inner text too, so a second, per-layer pass would just repeat work
+  // already done. It also means a root-level <defs>/<clipPath> can never be selected as a layer, since
+  // topLevelGroups never sees it.
+  const scanText = svgText.replace(COMMENT_RE, "").replace(NON_RENDERED, "");
+
   // U1: exporter output wraps the part groups in a single #rig-root group — descend one level so each
   // part <g> is a layer again (the editor's own export round-trips like any layered SVG). Same rule
   // the browser applies in app.js loadLayeredSvg.
-  const top = topLevelGroups(svgText);
+  const top = topLevelGroups(scanText);
   const layers = (top.length === 1 && /\bid="rig-root"/.test(top[0].attrs)) ? topLevelGroups(top[0].inner) : top;
 
   // Names resolved up front so the transform refusal can report ALL offending layers in one pass.
@@ -108,11 +133,10 @@ export function parseLayered(svgText) {
   let layerN = 0;
   const names = layers.map((l) => inkLabel(l.attrs) || attr(l.attrs, "id") || attr(l.attrs, "data-name") || `layer-${++layerN}`);
 
-  // Strip non-rendered subtrees ONCE, then use the result for both the transform check and the element
-  // scan — so a transform living inside a <clipPath> cannot trigger a refusal for art it never places.
-  const bodies = layers.map((l) => l.inner.replace(NON_RENDERED, ""));
-
-  const offending = layers.map((l, i) => (HAS_TRANSFORM.test(l.attrs) || HAS_TRANSFORM.test(bodies[i])) ? names[i] : null).filter(Boolean);
+  // `l.inner` is already free of comments and non-rendered subtrees (scanText was stripped before
+  // topLevelGroups ran), so a transform living inside a <clipPath> — or in a root-level <defs> that
+  // never became a layer at all — cannot trigger a refusal for art it never places.
+  const offending = layers.map((l, i) => (HAS_TRANSFORM.test(l.attrs) || HAS_TRANSFORM.test(l.inner)) ? names[i] : null).filter(Boolean);
   if (offending.length) throw new Error(transformErrorMessage(offending));
 
   const partsMeta = {};
@@ -120,7 +144,7 @@ export function parseLayered(svgText) {
   const elements = [];
   let eid = 0;
   for (let i = 0; i < layers.length; i++) {
-    const gAttrs = layers[i].attrs, inner = bodies[i];
+    const gAttrs = layers[i].attrs, inner = layers[i].inner;
     const part = sanitizeId(names[i], used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
     const role = attr(gAttrs, "data-role"); if (role) meta.role = role;

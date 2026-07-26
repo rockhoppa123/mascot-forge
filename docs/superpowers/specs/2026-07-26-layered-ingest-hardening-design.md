@@ -240,7 +240,12 @@ push.
 - A nested, untransformed layered SVG **that has at least one top-level `<g>`** ingests identically
   through the node and browser paths: same parts, same element count, clip/def contents excluded from
   both. Verified by a cross-path test, not by two suites separately agreeing. (No-top-level-`<g>`
-  inputs diverge by design — see the amendment above.)
+  inputs diverge by design — see the amendment above.) **[Post-review note]:** this bullet's "excluded
+  from both" was violated for ROOT-level clip/def subtrees until a post-review fix — the node path
+  applied its strip per-layer, after layers were already chosen from the unstripped document, so a
+  root-level `<defs>`/`<clipPath>` could still leak in as a phantom node-only layer. Now fixed by
+  stripping once at the document level before layer selection; see
+  `.superpowers/sdd/final-review-fixes-report.md`.
 - A transformed layered SVG fails in both paths with a message naming the offending layers and a
   concrete corrective action.
 - Flat inputs are bit-identical in behaviour; all goldens unchanged.

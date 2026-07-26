@@ -159,8 +159,9 @@ const LAYERED = `<?xml version="1.0"?>
 
 // NON-RENDERED subtrees are not art. Figma wraps clipped layers as <g clip-path="url(#c0)"> and can
 // emit the <clipPath> INSIDE the group. Flattening would otherwise turn a clip shape into a phantom
-// element — invisible in the source, exported as real geometry. Root-level <defs> was never at risk
-// (it sits outside every top-level <g>); an in-group one is.
+// element — invisible in the source, exported as real geometry. NON_RENDERED is stripped once at the
+// document level (see layer-ingest.js), before topLevelGroups picks layers, so this holds for an
+// in-group subtree here AND for a root-level one (root-level cases are covered separately below).
 {
   const CLIPPED = '<svg viewBox="0 0 100 100">'
     + '<g id="Head">'
@@ -206,6 +207,64 @@ const LAYERED = `<?xml version="1.0"?>
   );
   assert.equal(elements.length, 1, "only the real drawable survives ingest");
   assert.ok(elements[0].markup.includes('fill="#0b0"'), "the surviving element is the real, untransformed drawable");
+}
+
+// ROOT-LEVEL non-rendered subtrees must not leak into the node path either. `topLevelGroups` chooses
+// layers by scanning raw text — a <g> sitting inside a root-level <defs>/<clipPath> is not a child of
+// <svg> in the DOM (so the browser never treats it as a layer), but the old per-layer strip ran too
+// late to stop it from being picked up as a top-level layer here. Stripping NON_RENDERED once at the
+// document level, before topLevelGroups runs, closes that gap.
+{
+  const ROOT_DEFS = '<svg viewBox="0 0 100 100">'
+    + '<defs><clipPath id="c0"><g id="clipgroup"><rect x="0" y="0" width="9" height="9" fill="#000"/></g></clipPath></defs>'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(ROOT_DEFS);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head"],
+    "a <g> inside a root-level <defs>/<clipPath> must not become a layer of its own");
+  assert.equal(elements.length, 1, "only the real Head rect is art");
+}
+
+// A transform confined to a root-level <defs>/<pattern> must not refuse ingest. Before the document-
+// level strip, this was the worst outcome on the branch: the MCP tool refused the whole file, naming a
+// phantom "layer-1" the user cannot find or flatten because it does not exist as a layer in their file.
+{
+  const ROOT_DEFS_TRANSFORM = '<svg viewBox="0 0 100 100">'
+    + '<defs><pattern id="p"><g transform="translate(3,3)"><rect x="0" y="0" width="9" height="9" fill="#000"/></g></pattern></defs>'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  let elements;
+  assert.doesNotThrow(
+    () => { ({ elements } = parseLayered(ROOT_DEFS_TRANSFORM)); },
+    'a transform confined to a root-level <defs>/<pattern> must not trigger the transform refusal, nor name a phantom "layer-1"'
+  );
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head"]);
+  assert.equal(elements.length, 1, "only the real Head rect is art");
+}
+
+// SVG comments must not corrupt the scan. A commented-out `<g>` reads as real markup to a text scanner
+// — the browser ignores comments entirely (they never enter the DOM), so this must too.
+{
+  const COMMENTED = '<svg viewBox="0 0 100 100">'
+    + '<!-- <g id="old"><rect x="0" y="0" width="9" height="9" fill="#000"/></g> -->'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(COMMENTED);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head"], "a commented-out <g> must not become a phantom part");
+  assert.equal(elements.length, 1, "only the real Head rect is art");
+}
+
+// An UNBALANCED comment (an opening `<!--` whose `<g` never got a matching close before ` -->`) must
+// not leave the depth counter open — that starved every real layer after it, reported as "no drawable
+// shapes found" for a file that plainly has them.
+{
+  const UNBALANCED_COMMENT = '<svg viewBox="0 0 100 100">'
+    + '<!-- <g id="old"> -->'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(UNBALANCED_COMMENT);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head"], "an unbalanced comment must not swallow the real layers that follow");
+  assert.equal(elements.length, 1, "only the real Head rect is art");
 }
 
 // A transform cannot be resolved by either ingest path (bbox arithmetic here, getBBox in the browser,

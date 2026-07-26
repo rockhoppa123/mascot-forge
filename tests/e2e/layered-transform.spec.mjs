@@ -48,12 +48,19 @@ test("a nested but untransformed layer loads as one part", async ({ page }) => {
 
 // THE POINT OF THE WHOLE STAGE: the two ingest paths must agree. `parseLayered` is pure ESM served
 // over HTTP, so both can be run against ONE fixture inside ONE page — a real cross-check, not two
-// separate suites asserting numbers that happen to match today and silently drift tomorrow.
+// separate suites asserting numbers that happen to match today and silently drift tomorrow. The
+// root-level <defs><g>…</g></defs> below is the exact shape this test should have caught pre-review:
+// a <g> that sits OUTSIDE every top-level layer, inside a root-level non-rendered subtree. The browser
+// never sees it (it is not a child of <svg> once <defs> is skipped); the node path used to pick it up
+// anyway because its NON_RENDERED strip ran per-layer, after topLevelGroups had already chosen layers
+// from the unstripped document. Now stripped once at the document level before layer selection, so it
+// must not appear as a phantom "part-rootclip" nor change the element count on either side.
 test("node and browser ingest paths agree on the same nested fixture", async ({ page }) => {
   await page.goto(URL);
   const { node, browser } = await page.evaluate(async () => {
     const svg = [
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+      '  <defs><clipPath id="root-clip"><g id="rootclip"><rect x="0" y="0" width="9" height="9" fill="#111"/></g></clipPath></defs>',
       '  <g id="Arm"><defs><clipPath id="c0"><rect x="0" y="0" width="99" height="99"/></clipPath></defs>',
       '    <g id="hand"><rect x="1" y="1" width="9" height="9" fill="#0b0"/></g>',
       '    <rect x="20" y="20" width="30" height="30" fill="#00b"/></g>',
@@ -69,9 +76,9 @@ test("node and browser ingest paths agree on the same nested fixture", async ({ 
       browser: { parts: Object.keys(m.parts()), elements: m.rects().length },
     };
   });
-  expect(node.parts).toEqual(["part-arm", "part-leg"]);
+  expect(node.parts).toEqual(["part-arm", "part-leg"]);   // no phantom "part-rootclip" from the root-level <defs>
   expect(browser.parts).toEqual(node.parts);       // same parts, same order
-  expect(node.elements).toBe(3);                   // 2 in Arm (clip rect excluded) + 1 path in Leg
+  expect(node.elements).toBe(3);                   // 2 in Arm (clip rect excluded) + 1 path in Leg (root-level clip rect excluded too)
   expect(browser.elements).toBe(node.elements);
 });
 
