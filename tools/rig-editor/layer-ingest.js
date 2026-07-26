@@ -63,9 +63,12 @@ export function transformErrorMessage(layerNames) {
 const HAS_TRANSFORM = /(^|\s)transform\s*=/;   // anchored on a boundary so gradientTransform is not a match
 
 // Subtrees that define rather than draw. Stripped before scanning a layer, so a clip shape or a
-// gradient stop can never be mistaken for art now that nesting flattens. Non-greedy, so a same-tag
-// nest (a <mask> inside a <mask>) would end early — SVG exporters do not emit that.
-const NON_RENDERED = /<(defs|clipPath|mask|symbol|pattern|marker)\b[\s\S]*?<\/\1>/gi;
+// gradient stop can never be mistaken for art now that nesting flattens. A self-closing instance
+// (<clipPath id="empty"/>) is consumed on its own — otherwise a lazy `<tag>…</tag>` match would pair
+// it with a LATER same-name close tag and swallow every real drawable in between (the self-closer
+// has no partner of its own, so the regex would keep looking until it found one). A same-tag NEST
+// (a <mask> inside a <mask>) would still end early — a remaining limit SVG exporters do not hit.
+const NON_RENDERED = /<(defs|clipPath|mask|symbol|pattern|marker)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/gi;
 
 // A layer name -> a valid, unique part id ("Left Arm" -> "part-left-arm"). Dedupes with -2, -3 …
 export function sanitizeId(name, used = new Set()) {

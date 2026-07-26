@@ -172,6 +172,42 @@ const LAYERED = `<?xml version="1.0"?>
   assert.ok(elements[0].markup.includes('fill="#0b0"'), "the real drawable is the one kept");
 }
 
+// A self-closing NON_RENDERED tag (<clipPath id="empty"/>) must be consumed on its own. A lazy
+// `<tag>...</tag>` regex has no way to know a same-named tag later in the layer is a SEPARATE,
+// paired instance — it pairs the self-closer with that later close tag and swallows every real
+// drawable in between. This is the inverse of the CLIPPED defect above: instead of clip geometry
+// leaking in as phantom art, real art silently disappears.
+{
+  const SELFCLOSING_THEN_PAIRED = '<svg viewBox="0 0 100 100">'
+    + '<g id="Head">'
+    +   '<clipPath id="empty"/>'
+    +   '<rect x="1" y="1" width="5" height="5" fill="#a00"/>'
+    +   '<clipPath id="c0"><rect x="0" y="0" width="9" height="9"/></clipPath>'
+    +   '<rect x="2" y="2" width="5" height="5" fill="#0b0"/>'
+    + '</g></svg>';
+  const { elements } = parseLayered(SELFCLOSING_THEN_PAIRED);
+  const fills = elements.map((e) => e.markup.match(/fill="([^"]*)"/)[1]).sort();
+  assert.deepEqual(fills, ["#0b0", "#a00"], "both real drawables survive; only the two clipPaths' own geometry is stripped");
+}
+
+// A transform living inside a stripped <clipPath>/<defs> must not trigger the transform refusal —
+// the guard tests the STRIPPED body, so a transform used only to warp a clip shape is invisible to
+// it. Only a transform in the surviving (real-art) subtree should refuse ingest.
+{
+  const CLIP_TRANSFORM = '<svg viewBox="0 0 100 100">'
+    + '<g id="Head">'
+    +   '<clipPath id="c1" transform="translate(5,5)"><rect x="0" y="0" width="9" height="9"/></clipPath>'
+    +   '<rect x="10" y="10" width="20" height="20" fill="#0b0"/>'
+    + '</g></svg>';
+  let elements;
+  assert.doesNotThrow(
+    () => { ({ elements } = parseLayered(CLIP_TRANSFORM)); },
+    "a transform confined to a stripped clipPath must not trigger the transform refusal"
+  );
+  assert.equal(elements.length, 1, "only the real drawable survives ingest");
+  assert.ok(elements[0].markup.includes('fill="#0b0"'), "the surviving element is the real, untransformed drawable");
+}
+
 // A transform cannot be resolved by either ingest path (bbox arithmetic here, getBBox in the browser,
 // and `markup` is re-parented away from its ancestors on export). Refuse it, naming the layers, rather
 // than place the art silently wrong.
