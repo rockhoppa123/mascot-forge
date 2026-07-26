@@ -102,6 +102,13 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   part overlaps an inert one, the defect class that makes a mascot visibly come apart.
 
 ### Changed
+- **Layered ingest accepts nested layers.** A top-level `<g>` now owns every drawable in its subtree at
+  any depth, so ordinary Figma/Illustrator exports ingest without being flattened by hand first. This
+  reverses the nested-`<g>` rejection listed under Fixed above, which worked around a non-greedy
+  tokenizer rather than repairing it; a depth-aware scan repairs it, and `<defs>`/`<clipPath>` subtrees
+  are excluded so a clip shape cannot become phantom art. Transforms are still not *resolved*, but are
+  now refused **by layer name** with a corrective action rather than silently dropped — a dropped
+  transform placed the art in the wrong position with no error at all.
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind
   to live app data), not "auto-rig any image."
 - Auto-segmentation demoted to a best-effort flat-art fallback (see

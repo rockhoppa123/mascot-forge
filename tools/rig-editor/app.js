@@ -14,7 +14,7 @@ import { exportRig } from "./exporter.js";
 import { rectsInMarquee } from "./select.js";
 import { vectorizeRaster } from "./vectorize.js";
 import { segment } from "./segment.js";
-import { sanitizeId, toModel } from "./layer-ingest.js";
+import { sanitizeId, toModel, transformErrorMessage } from "./layer-ingest.js";
 import { emitCss, emitAnimatedSvg, emitDemoHtml } from "./emit.js";
 
 const $ = (id) => document.getElementById(id);
@@ -213,7 +213,7 @@ function loadLayeredSvg(svgText, name) {
   const partsMeta = {};
   const used = new Set();
   const elements = [];
-  let eid = 0, layerN = 0;
+  let eid = 0;
   let groups = [...svgEl.children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
   // U1: an exporter re-import wraps parts in a single #rig-root group — descend into it so each
   // part group is a layer (matches parseLayered's unwrap).
@@ -221,9 +221,28 @@ function loadLayeredSvg(svgText, name) {
     groups = [...groups[0].children].filter((n) => n.tagName && n.tagName.toLowerCase() === "g");
   }
   const layers = groups.length ? groups : [svgEl]; // no groups → one implicit layer
-  for (const g of layers) {
-    const label = g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++layerN}`;
-    const part = sanitizeId(label, used);
+  // Resolve the layer names first so every offending layer is reported in one pass — same rule and
+  // same wording as parseLayered (the message has one home in layer-ingest.js).
+  let nameN = 0;
+  const names = layers.map((g) => g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++nameN}`);
+  // NON_RENDERED: a <clipPath>/<defs> subtree defines, it does not draw. Now that a layer owns its
+  // whole subtree, its clip shapes must not count as art — nor as transformed art.
+  // NOTE: `clipPath` MUST keep its camelCase. Selector type-matching is case-insensitive only for HTML
+  // elements; these nodes stay in the SVG namespace after being adopted into the page, so `clippath`
+  // would silently match nothing. Do not "normalise" this string — the cross-path e2e catches it, but
+  // only if you leave the assertion alone too.
+  const NON_RENDERED = "defs,clipPath,mask,symbol,pattern,marker";
+  const isArt = (el) => !el.closest(NON_RENDERED);
+  const offending = layers.map((g, i) =>
+    (g.hasAttribute("transform") || [...g.querySelectorAll("[transform]")].some(isArt)) ? names[i] : null).filter(Boolean);
+  if (offending.length) {
+    document.body.removeChild(wrap);   // the offscreen measuring wrapper must not leak on an aborted load
+    status(transformErrorMessage(offending));
+    return;
+  }
+  for (let i = 0; i < layers.length; i++) {
+    const g = layers[i];
+    const part = sanitizeId(names[i], used);
     const meta = partsMeta[part] || (partsMeta[part] = {});
     const role = g.getAttribute("data-role"); if (role) meta.role = role;
     const kind = g.getAttribute("data-kind"); if (kind) meta.kind = kind;
@@ -231,6 +250,7 @@ function loadLayeredSvg(svgText, name) {
     const piv = g.getAttribute("data-pivot"); if (piv) { const [x, y] = piv.split(",").map(Number); meta.pivot = { x, y }; }
     for (const a of g.getAttributeNames()) if (a.startsWith("data-preset-")) (meta.presets || (meta.presets = {}))[a.slice("data-preset-".length)] = g.getAttribute(a);
     for (const el of g.querySelectorAll(DRAW)) {
+      if (!isArt(el)) continue;   // a clip shape is not art — it would export as a phantom element
       let bb; try { bb = el.getBBox(); } catch { bb = { x: 0, y: 0, width: 0, height: 0 }; }
       elements.push({ id: `e${eid++}`, part, markup: el.outerHTML, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
     }

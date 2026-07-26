@@ -204,8 +204,9 @@ root (Claude Code auto-discovers it); or add this to your host config:
 
 `forge_start_from_layered_svg` and `forge_open_editor` complete the **ten tools**: an alt entry for a
 **layered** vector SVG (Figma/Inkscape/Illustrator — each top-level `<g>` becomes a part named by its
-layer, flat exports only), and a self-describing handoff into the browser rig editor (returns a ready
-`?rig=` URL that loads the rig animated).
+layer, nested groups included; layers carrying a `transform` are refused by name, since transforms are
+not resolved — flatten or expand those first), and a self-describing handoff into the browser rig
+editor (returns a ready `?rig=` URL that loads the rig animated).
 
 A runnable, no-live-agent reproduction of the whole loop is `mcp/build-smiley-demo.mjs` (it emits the
 agent-rigged mascot behind the [live-data hero demo](docs/buildable-slice/mcp-live-demo.html)). The tool
