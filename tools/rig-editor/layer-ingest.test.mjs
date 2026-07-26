@@ -104,14 +104,110 @@ const LAYERED = `<?xml version="1.0"?>
   assert.equal(m.preset("loading", "part-arm"), "spin", "signal-state preset applied");
 }
 
-// I3a: nested <g> exports silently lose the outer group's own geometry with a non-greedy tokenizer.
-// Reject them with a clear message rather than emit a broken part (the browser DOMParser path handles
-// nesting; the node regex path cannot, so it must fail loudly).
-assert.throws(
-  () => parseLayered('<svg viewBox="0 0 100 100"><g id="arm"><g id="hand"><rect x="1" y="1" width="5" height="5" fill="#a"/></g><rect x="10" y="10" width="20" height="20" fill="#b"/></g></svg>'),
-  /nested/i,
-  "nested <g> layers are rejected (flat exports only)"
-);
+// Nesting FLATTENS: a depth-aware scan hands each top-level layer its full subtree, so drawables at
+// any depth join that layer's part. This replaces the old "reject nested <g>" rule — that rejection
+// was a workaround for a non-greedy tokenizer that ended the outer group at the first </g> and so
+// dropped the outer group's own geometry (audit I3). The scanner fixes the cause.
+{
+  const NESTED = '<svg viewBox="0 0 100 100">'
+    + '<g id="arm">'
+    +   '<g id="hand"><rect x="1" y="1" width="5" height="5" fill="#a00"/></g>'
+    +   '<rect x="10" y="10" width="20" height="20" fill="#0b0"/>'
+    + '</g>'
+    + '</svg>';
+  const { elements } = parseLayered(NESTED);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-arm"], "the nested <g> is not a part of its own");
+  assert.equal(elements.length, 2, "both the nested rect AND the outer group's own rect survive");
+  const outer = elements.find((e) => e.markup.includes('fill="#0b0"'));
+  assert.ok(outer, "the outer group's own geometry is not dropped (the exact I3 defect)");
+  assert.deepEqual(outer.bbox, { x: 10, y: 10, w: 20, h: 20 }, "outer rect bbox intact");
+}
+
+// depth is unbounded, not just one level
+{
+  const DEEP = '<svg viewBox="0 0 100 100"><g id="torso"><g><g><rect x="2" y="2" width="4" height="4" fill="#111"/></g>'
+    + '<rect x="8" y="8" width="4" height="4" fill="#222"/></g><rect x="20" y="20" width="4" height="4" fill="#333"/></g></svg>';
+  const { elements } = parseLayered(DEEP);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-torso"], "3 levels deep -> still one part");
+  assert.equal(elements.length, 3, "a drawable at every depth is collected");
+}
+
+// depth must reset between sibling layers — a nested first layer must not swallow the second
+{
+  const SIBLINGS = '<svg viewBox="0 0 100 100">'
+    + '<g id="arm"><g id="hand"><rect x="1" y="1" width="5" height="5" fill="#a00"/></g></g>'
+    + '<g id="leg"><rect x="50" y="50" width="9" height="9" fill="#00b"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(SIBLINGS);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-arm", "part-leg"], "two sibling layers, one nested");
+  assert.equal(elements.filter((e) => e.part === "part-leg").length, 1, "the second layer keeps its own element");
+}
+
+// METADATA RULE: data-* is read from the TOP-LEVEL <g> only. A nested group contributes geometry,
+// never metadata and never a part of its own.
+{
+  const META = '<svg viewBox="0 0 100 100">'
+    + '<g id="arm" data-role="limb">'
+    +   '<g id="inner" data-role="core" data-pivot="9,9"><rect x="1" y="1" width="5" height="5" fill="#a00"/></g>'
+    + '</g></svg>';
+  const { elements, parts } = parseLayered(META);
+  assert.deepEqual(Object.keys(parts), ["part-arm"], "no phantom part from the nested group");
+  assert.equal(parts["part-arm"].role, "limb", "the top-level layer's role is used");
+  assert.equal(parts["part-arm"].pivot, undefined, "the nested group's data-pivot is ignored");
+  assert.equal(elements.length, 1, "its geometry still joins the parent part");
+}
+
+// NON-RENDERED subtrees are not art. Figma wraps clipped layers as <g clip-path="url(#c0)"> and can
+// emit the <clipPath> INSIDE the group. Flattening would otherwise turn a clip shape into a phantom
+// element — invisible in the source, exported as real geometry. Root-level <defs> was never at risk
+// (it sits outside every top-level <g>); an in-group one is.
+{
+  const CLIPPED = '<svg viewBox="0 0 100 100">'
+    + '<g id="Head">'
+    +   '<defs><clipPath id="c0"><rect x="0" y="0" width="99" height="99"/></clipPath></defs>'
+    +   '<rect x="10" y="10" width="20" height="20" fill="#0b0"/>'
+    + '</g></svg>';
+  const { elements } = parseLayered(CLIPPED);
+  assert.equal(elements.length, 1, "the clipPath's rect is not art and must not become an element");
+  assert.ok(elements[0].markup.includes('fill="#0b0"'), "the real drawable is the one kept");
+}
+
+// A transform cannot be resolved by either ingest path (bbox arithmetic here, getBBox in the browser,
+// and `markup` is re-parented away from its ancestors on export). Refuse it, naming the layers, rather
+// than place the art silently wrong.
+{
+  assert.throws(
+    () => parseLayered('<svg viewBox="0 0 100 100"><g id="Head"><g transform="translate(10,10)"><rect x="0" y="0" width="5" height="5" fill="#a00"/></g></g></svg>'),
+    /transform/i,
+    "a transform on a NESTED group is refused"
+  );
+  assert.throws(
+    () => parseLayered('<svg viewBox="0 0 100 100"><g id="Head"><g transform="translate(10,10)"><rect x="0" y="0" width="5" height="5" fill="#a00"/></g></g></svg>'),
+    /"Head"/,
+    "the refusal names the TOP-LEVEL layer — the thing a user can find and flatten in Figma"
+  );
+  assert.throws(
+    () => parseLayered('<svg viewBox="0 0 100 100"><g inkscape:label="Left Arm" transform="rotate(4)"><rect x="0" y="0" width="5" height="5" fill="#a00"/></g></svg>'),
+    /"Left Arm"/,
+    "a transform on the layer root is refused too, named by its authored label not its part id"
+  );
+  // every offending layer is reported in ONE pass, not one error per fix-and-retry cycle
+  try {
+    parseLayered('<svg viewBox="0 0 100 100">'
+      + '<g id="Head" transform="translate(1,1)"><rect x="0" y="0" width="5" height="5" fill="#a00"/></g>'
+      + '<g id="Tail" transform="translate(2,2)"><rect x="0" y="0" width="5" height="5" fill="#0b0"/></g>'
+      + '</svg>');
+    assert.fail("expected a throw");
+  } catch (e) {
+    assert.match(e.message, /"Head"/, "first offending layer named");
+    assert.match(e.message, /"Tail"/, "second offending layer named in the SAME error");
+  }
+  // negative control: `gradientTransform` is not a transform and must not trip the guard
+  assert.doesNotThrow(
+    () => parseLayered('<svg viewBox="0 0 100 100"><g id="ok"><rect x="0" y="0" width="5" height="5" gradientTransform="x" fill="#a00"/></g></svg>'),
+    "gradientTransform / patternTransform must not be mistaken for transform"
+  );
+}
 
 // I3b: a state name with a digit/hyphen (e.g. 'phase-2') must still be captured as a preset.
 {
