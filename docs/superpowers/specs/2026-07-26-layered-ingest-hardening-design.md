@@ -201,14 +201,27 @@ text names the layer.
 > browser, where `getBBox` on an unrendered clip shape returns zeros rather than throwing, so the
 > phantom is silent). Both therefore skip `defs`/`clipPath`/`mask`/`symbol`/`pattern`/`marker` subtrees,
 > and the transform check runs on the stripped body so a clip's internal transform cannot trigger a
-> spurious refusal. A second e2e covers this. **The e2e count below is superseded: 22, not 21.**
+> spurious refusal. A second e2e covers this.
+>
+> A third gap surfaced in the same pass: **nothing asserted the two paths actually agree**, which is
+> this stage's whole claim. The node test checked node, the e2e checked the browser, and the acceptance
+> criterion was unverifiable. Because `parseLayered` is pure ESM served over HTTP, the e2e can import it
+> *into the page* and run both paths over one fixture — a real cross-check. Two more tests do that: one
+> comparing parts and element counts, one asserting both paths refuse the same input with the *identical
+> string*, which is what makes the shared message builder enforceable rather than aspirational.
+>
+> The same pass also found the agreement claim was **overstated**: with no top-level `<g>`, the browser
+> falls back to one implicit layer while node yields nothing. That divergence is pre-existing and
+> deliberate (drop target vs. API) and is now scoped out of the claim rather than silently contradicted.
+>
+> **The e2e count below is superseded: 24, not 21.**
 
 **Gate expectations after this stage:**
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-all.ps1` → `RESULT: PASS` (P1–P7)
-- `pwsh -NoProfile -File tools/check-e2e.ps1` → **22 passed** (up from 20; two tests added — see the
+- `pwsh -NoProfile -File tools/check-e2e.ps1` → **24 passed** (up from 20; four tests added — see the
   amendment above, which supersedes the original figure of 21)
 
-The e2e count moving 20 → 22 is expected and is not a regression. Any *other* movement is.
+The e2e count moving 20 → 24 is expected and is not a regression. Any *other* movement is.
 
 ## Deferred
 
@@ -224,8 +237,10 @@ push.
 
 ## Acceptance
 
-- A nested, untransformed layered SVG ingests identically through the node and browser paths: same
-  parts, same element count.
+- A nested, untransformed layered SVG **that has at least one top-level `<g>`** ingests identically
+  through the node and browser paths: same parts, same element count, clip/def contents excluded from
+  both. Verified by a cross-path test, not by two suites separately agreeing. (No-top-level-`<g>`
+  inputs diverge by design — see the amendment above.)
 - A transformed layered SVG fails in both paths with a message naming the offending layers and a
   concrete corrective action.
 - Flat inputs are bit-identical in behaviour; all goldens unchanged.

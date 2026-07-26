@@ -20,7 +20,7 @@ These apply to every task. Each has broken this repo before.
 - **`docs/buildable-slice/generated/*` and `tools/emit-react-gsap/generated/*` are byte-for-byte goldens.** If one moves, STOP and report. Do not regenerate to make a test pass.
 - **Tests use `node:assert/strict`, no framework**, mirroring the existing `*.test.mjs` files.
 - **Gate after every task:** `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-all.ps1` must print `RESULT: PASS`.
-- **E2E after Task 2:** `pwsh -NoProfile -File tools/check-e2e.ps1` must report **22 passed** (20 today, this plan adds two). Any other number is a regression. This supersedes the spec's figure of 21 — see Task 2 Step 6.
+- **E2E after Task 2:** `pwsh -NoProfile -File tools/check-e2e.ps1` must report **24 passed** (20 today, this plan adds four). Any other number is a regression. This supersedes the spec's figure of 21 — see Task 2 Step 6.
 - **Only make the changes the task calls for.** No extra features, abstractions, or files.
 - **Commit bodies end with:** `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
 - **Do not push.** Do not delete any tracked file. Both require asking the user first.
@@ -254,7 +254,7 @@ const NON_RENDERED = /<(defs|clipPath|mask|symbol|pattern|marker)\b[\s\S]*?<\/\1
 
 - [ ] **Step 5: Rewrite `parseLayered`'s group loop**
 
-Replace the body of `parseLayered` from the `// U1:` comment (line 43) down to and including the `while ((g = GROUP_RE.exec(svgText)) !== null) {` line and its nested-guard block (through line 60), so the function reads:
+**Replace the entire `parseLayered` function** — from `export function parseLayered(svgText) {` (line 41) through its closing `}` (line 82) — with the code below. This is the whole function, not a fragment: delete what is there and paste this. The `let g;` declaration and the `GROUP_RE`-based `while` loop disappear entirely.
 
 ```js
 export function parseLayered(svgText) {
@@ -385,6 +385,16 @@ git commit -m "feat(layer-ingest): flatten nested <g>; refuse unresolvable trans
 
 Body must explain that the nested-rejection test was replaced deliberately, and end with the `Co-Authored-By:` trailer.
 
+- [ ] **Step 12: Report back**
+
+Your reviewer sees only what you write here. Include, verbatim:
+
+1. The commit SHA.
+2. The **two failure messages you observed in Step 8** when you mutated the guards. If you skipped Step 8, say so — do not imply you ran it.
+3. The final line of `check-all.ps1` output.
+4. Confirmation that `docs/buildable-slice/generated/*` and `tools/emit-react-gsap/generated/*` are unmodified (`git status --short` showing neither).
+5. Anything you changed that this plan did not specify, and why. "Nothing" is a valid and expected answer.
+
 ---
 
 ### Task 2: Same refusal in the browser path + e2e + doc correction
@@ -397,6 +407,8 @@ Body must explain that the nested-rejection test was replaced deliberately, and 
 **Interfaces:**
 - Consumes: `transformErrorMessage(layerNames: string[]): string` from `tools/rig-editor/layer-ingest.js` (Task 1).
 - Produces: nothing later tasks depend on.
+
+**Harness facts:** Playwright's `baseURL` is the **repo root**, which is why the sibling specs use `"/tools/rig-editor/index.html"` — the same reason the cross-path test can `import("/tools/rig-editor/layer-ingest.js")` and get the real, pure node module running in the page. `check-e2e.ps1` runs `npm install` in `tests/` automatically on first use, so a slow first run is expected, not a fault. Passing a name (`check-e2e.ps1 layered-transform`) filters to that spec.
 
 **Context you need:** `loadLayeredSvg` parses into a **hidden offscreen `<div>` appended to `document.body`** (lines 202-205) because `getBBox` only works on rendered nodes. It removes that wrapper at line 238. Any early return you add **after** line 205 must remove the wrapper first or the DOM leaks — the e2e below asserts it does not. The browser reports failure through `status(msg)` + `return`, never a throw: this runs in a drop handler, and a throw would leave the editor in an undefined state, whereas a status message leaves the previous model intact and the user free to try another file.
 
@@ -454,6 +466,49 @@ test("a nested but untransformed layer loads as one part", async ({ page }) => {
   // 2, not 3: the <clipPath>'s rect defines a clip, it is not art
   expect(parts.elements).toBe(2);
 });
+
+// THE POINT OF THE WHOLE STAGE: the two ingest paths must agree. `parseLayered` is pure ESM served
+// over HTTP, so both can be run against ONE fixture inside ONE page — a real cross-check, not two
+// separate suites asserting numbers that happen to match today and silently drift tomorrow.
+test("node and browser ingest paths agree on the same nested fixture", async ({ page }) => {
+  await page.goto(URL);
+  const { node, browser } = await page.evaluate(async () => {
+    const svg = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+      '  <g id="Arm"><defs><clipPath id="c0"><rect x="0" y="0" width="99" height="99"/></clipPath></defs>',
+      '    <g id="hand"><rect x="1" y="1" width="9" height="9" fill="#0b0"/></g>',
+      '    <rect x="20" y="20" width="30" height="30" fill="#00b"/></g>',
+      '  <g id="Leg"><path d="M50 50 L60 50 L60 70 Z" fill="#c00"/></g>',
+      '</svg>',
+    ].join("\n");
+    const { parseLayered } = await import("/tools/rig-editor/layer-ingest.js");
+    const p = parseLayered(svg);
+    window.__rigEditor.loadLayeredSvg(svg, "agree");
+    const m = window.__rigEditor.model;
+    return {
+      node: { parts: [...new Set(p.elements.map((e) => e.part))], elements: p.elements.length },
+      browser: { parts: Object.keys(m.parts()), elements: m.rects().length },
+    };
+  });
+  expect(node.parts).toEqual(["part-arm", "part-leg"]);
+  expect(browser.parts).toEqual(node.parts);       // same parts, same order
+  expect(node.elements).toBe(3);                   // 2 in Arm (clip rect excluded) + 1 path in Leg
+  expect(browser.elements).toBe(node.elements);
+});
+
+// Both paths must also REFUSE the same input. The browser reports via status(); node throws.
+test("both paths refuse the same transformed fixture", async ({ page }) => {
+  await page.goto(URL);
+  const { threw, message, status } = await page.evaluate(async (svg) => {
+    const { parseLayered } = await import("/tools/rig-editor/layer-ingest.js");
+    let threw = false, message = "";
+    try { parseLayered(svg); } catch (e) { threw = true; message = e.message; }
+    window.__rigEditor.loadLayeredSvg(svg, "transformed");
+    return { threw, message, status: document.getElementById("status").textContent };
+  }, TRANSFORMED);
+  expect(threw).toBe(true);
+  expect(status).toBe(message);   // ONE wording, from transformErrorMessage — the paths cannot drift
+});
 ```
 
 - [ ] **Step 2: Run it to verify the first test fails**
@@ -462,7 +517,14 @@ test("a nested but untransformed layer loads as one part", async ({ page }) => {
 pwsh -NoProfile -File tools/check-e2e.ps1 layered-transform
 ```
 
-Expected: **both** FAIL, for different reasons. The refusal test fails because the status text is currently the success message — the transform is ignored today. The nested test fails on its element count: the browser has always flattened nesting (that part passes), but `querySelectorAll` also reaches into the `<clipPath>`, so it reports 3 elements where 2 is correct. Report both observed failures.
+Expected: **all four FAIL**, for three distinct reasons. Report each observed failure — if any test passes at this point, the fixture is not exercising what you think it is.
+
+| Test | Why it fails before the change |
+|---|---|
+| transformed layer refused | status text is the success message — the transform is ignored today |
+| nested untransformed | element count 3, not 2: `querySelectorAll` reaches into the `<clipPath>` |
+| paths agree | browser over-counts by the clip rect, so the two sides disagree |
+| both paths refuse | node throws (Task 1 landed) but the browser does not, so `status !== message` |
 
 - [ ] **Step 3: Import the shared message**
 
@@ -489,6 +551,10 @@ In `loadLayeredSvg`, immediately after the `const layers = groups.length ? group
   const names = layers.map((g) => g.getAttribute("inkscape:label") || g.getAttribute("id") || g.getAttribute("data-name") || `layer-${++nameN}`);
   // NON_RENDERED: a <clipPath>/<defs> subtree defines, it does not draw. Now that a layer owns its
   // whole subtree, its clip shapes must not count as art — nor as transformed art.
+  // NOTE: `clipPath` MUST keep its camelCase. Selector type-matching is case-insensitive only for HTML
+  // elements; these nodes stay in the SVG namespace after being adopted into the page, so `clippath`
+  // would silently match nothing. Do not "normalise" this string — the cross-path e2e catches it, but
+  // only if you leave the assertion alone too.
   const NON_RENDERED = "defs,clipPath,mask,symbol,pattern,marker";
   const isArt = (el) => !el.closest(NON_RENDERED);
   const offending = layers.map((g, i) =>
@@ -538,7 +604,7 @@ to:
 pwsh -NoProfile -File tools/check-e2e.ps1 layered-transform
 ```
 
-Expected: 2 passed.
+Expected: 4 passed.
 
 - [ ] **Step 6: Run the whole e2e suite**
 
@@ -546,9 +612,9 @@ Expected: 2 passed.
 pwsh -NoProfile -File tools/check-e2e.ps1
 ```
 
-Expected: **22 passed** (20 before, this file adds two). If you see fewer, something regressed — report it, do not adjust the number.
+Expected: **24 passed** (20 before, this file adds four). If you see fewer, something regressed — report it, do not adjust the number.
 
-> **Deviation from the spec, recorded deliberately:** the spec pinned "one new e2e", reasoning that browser flattening was unchanged code not worth a test. Planning found that wrong — flattening newly exposes `<clipPath>` contents as phantom art, so the second test covers a real behaviour change in this task, not yesterday's behaviour. The spec's e2e count of 21 is superseded by 22.
+> **Deviation from the spec, recorded deliberately:** the spec pinned "one new e2e", reasoning that browser flattening was unchanged code not worth a test. Two findings overrode that. Flattening newly exposes `<clipPath>` contents as phantom art, so test 2 covers a real behaviour change in this task rather than yesterday's behaviour. And the stage's central claim — that the two ingest paths agree — was asserted nowhere: tests 3 and 4 verify it directly, importing the pure `parseLayered` into the page and running both paths over one fixture. The spec's count of 21 is superseded by **24**.
 
 - [ ] **Step 7: Correct the two stale documentation claims**
 
@@ -585,10 +651,10 @@ Expected: `RESULT: PASS (all pipeline checks green)`.
 - [ ] **Step 9: Confirm the locked contracts are still intact**
 
 ```bash
-node mcp/protocol.test.mjs && ls package.json 2>/dev/null && echo "FAIL: root package.json exists" || echo "ok: no root package.json"
+pwsh -NoProfile -Command "node mcp/protocol.test.mjs; if (Test-Path package.json) { 'FAIL: root package.json exists' } else { 'ok: no root package.json' }"
 ```
 
-Expected: protocol test passes (10 tools), and `ok: no root package.json`.
+Expected: protocol test passes (10 tools), then `ok: no root package.json`. Use pwsh here, as everywhere else in this plan — this is a Windows repo and the gate scripts are PowerShell.
 
 - [ ] **Step 10: Commit**
 
@@ -599,13 +665,24 @@ git commit -m "feat(rig-editor): refuse transformed layers in the browser path; 
 
 Body ends with the `Co-Authored-By:` trailer.
 
+- [ ] **Step 11: Report back**
+
+Your reviewer sees only what you write here. Include, verbatim:
+
+1. The commit SHA.
+2. The **four failure messages you observed in Step 2**, before any implementation. A test that passed at Step 2 is a test with no teeth — flag it rather than quietly proceeding.
+3. The exact e2e total (`N passed`) and the final line of `check-all.ps1`.
+4. The result of the Step 9 contract check.
+5. Anything you changed that this plan did not specify, and why.
+
 ---
 
 ## Acceptance (verify before reporting the stage complete)
 
-- A nested, untransformed layered SVG produces the same parts and the same element count through both `parseLayered` and `loadLayeredSvg` — including excluding `<clipPath>`/`<defs>` contents from that count.
+- For any input **that has at least one top-level `<g>`**, a nested untransformed layered SVG produces the same parts and the same element count through both `parseLayered` and `loadLayeredSvg` — `<clipPath>`/`<defs>` contents excluded from that count in both. Proven by the cross-path e2e, not by two suites agreeing on paper.
+  - **Known, deliberate, out-of-scope divergence:** with *no* top-level `<g>` at all, the browser falls back to treating the whole `<svg>` as one implicit layer (`app.js:223`) while node yields zero elements and `startFromLayeredSvg` throws "no drawable shapes found". That asymmetry is intentional and predates this work — the browser is a drop target for arbitrary files and degrades gracefully; the node function is an API that should reject an input it cannot name parts from. Do not "fix" it here.
 - A transformed layered SVG fails in both paths, naming the offending **authored layer names**, with a corrective action.
 - Flat inputs behave identically to before; every golden is byte-unchanged.
 - MCP tool count is 10; no root `package.json`; no new dependency; `tools/rig-editor/` imports nothing outside `node:` and its siblings.
 - `tools/check-all.ps1` → `RESULT: PASS` (P1–P7).
-- `tools/check-e2e.ps1` → **22 passed**.
+- `tools/check-e2e.ps1` → **24 passed**.
