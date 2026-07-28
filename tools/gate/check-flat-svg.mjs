@@ -4,10 +4,10 @@
 //
 // Port of tools/check-flat-svg.ps1 — keep assertions and messages recognisable so a contributor who
 // hits a failure can find the old message in git history.
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { rootTag, attrOf, elements, countElements, topLevelGroups } from "./svg-scan.mjs";
+import { rootTag, attrOf, elements, countElements, allGroups, directChildren, readSvg } from "./svg-scan.mjs";
 
 function fail(message) {
   throw new Error(`flat.svg check failed: ${message}`);
@@ -24,7 +24,7 @@ const resolved = isAbsolute(flatPathArg) ? flatPathArg : join(REPO_ROOT, flatPat
 
 assertTrue(existsSync(resolved), `Missing flat.svg: ${resolved}`);
 
-const svgText = readFileSync(resolved, "utf8");
+const svgText = readSvg(resolved);
 
 // --- Root contract -----------------------------------------------------------------------
 let root;
@@ -53,7 +53,10 @@ assertTrue(
 );
 
 // --- Colour clusters: one <g data-color> per colour, rects nested + matching fill --------
-const groups = topLevelGroups(svgText);
+// allGroups (not topLevelGroups): PowerShell selects every <g> at any depth
+// (//*[local-name()='g']), so a nested <g> — e.g. one missing data-color — must be visible here too,
+// not silently folded into its parent.
+const groups = allGroups(svgText);
 assertTrue(groups.length >= 1, "flat.svg must include at least one <g data-color> colour cluster.");
 
 const seenColors = new Set();
@@ -61,11 +64,18 @@ let rectTotal = 0;
 let gMinX = Infinity, gMinY = Infinity, gMaxX = -1, gMaxY = -1;
 for (const g of groups) {
   const color = attrOf(g.attrs, "data-color");
+  // Case-SENSITIVE on purpose: PowerShell's `-match` is case-insensitive by default, so the original
+  // never actually enforced "(lowercase)" despite its own message. This port's RegExp.test enforces
+  // it for real. Kept deliberately stricter — it matches the message's stated intent, and the
+  // generator only ever emits lowercase hex — so do not loosen this back to match the original's
+  // accidental laxity.
   assertTrue(/^#[0-9a-f]{6}$/.test(color || ""), `Each <g> must carry data-color='#rrggbb' (lowercase). Got '${color}'.`);
   assertTrue(!seenColors.has(color), `Duplicate colour group '${color}' — there must be exactly one <g> per colour.`);
   seenColors.add(color);
 
-  const rects = elements(g.inner, "rect");
+  // Direct children only (matches PowerShell's ./*[local-name()='rect']) — a nested <g>'s rects are
+  // NOT this group's own rects, they belong to that nested group's own entry in `groups`.
+  const rects = directChildren(g.inner, "rect");
   assertTrue(rects.length >= 1, `Colour group '${color}' must contain at least one <rect>.`);
   for (const rect of rects) {
     const fill = attrOf(rect, "fill");

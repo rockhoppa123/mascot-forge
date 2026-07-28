@@ -4,14 +4,61 @@
 // (check-buildable-slice guards the absence of a root package.json), so an assertor that itself needed
 // `npm install` would undermine the claim it exists to defend.
 //
-// Group structure reuses topLevelGroups() from the product's own layer-ingest — pure ESM, node-tested,
-// and hardened in the 2026-07-26 stage against comments and non-rendered subtrees. The checkers need
-// only a few element-level reads on top of that.
+// Group structure reuses topLevelGroups() from the product's own layer-ingest — pure ESM, node-tested
+// — but ONLY for its group tokenization (the <g>/</g> token walk). It does NOT do this module's own
+// comment-stripping or non-rendered-subtree handling: that hardening lives in layer-ingest's own
+// parseLayered() pre-strip step, upstream of topLevelGroups, and a caller here that skips readSvg()
+// below would see the comments and non-rendered subtrees topLevelGroups was never asked to hide.
+import { readFileSync } from "node:fs";
 import { topLevelGroups } from "../rig-editor/layer-ingest.js";
 
+// Every checker's single entry point for SVG text. Strips XML comments up front so a commented-out
+// `<g data-color="...">…</g>` (a disabled fixture, a design note) can never be counted as a real
+// element by the regex-based scans below — none of which know what a comment is. This is deliberately
+// the one place text enters the gate, rather than a `normalize()` a checker could forget to call.
+export function readSvg(path) {
+  return readFileSync(path, "utf8").replace(/<!--[\s\S]*?-->/g, "");
+}
+
+// The document ROOT element's opening tag — not just the first `<svg ...>` found anywhere. Skips a
+// leading XML prolog (`<?xml ... ?>`), any DOCTYPE, comments, and whitespace (in any order, repeated),
+// then requires the next thing to be `<svg`. A document whose real root is something else (e.g. a
+// stray `<wrapper>` around otherwise-valid content) must throw here, exactly as PowerShell's
+// `$root.LocalName -eq "svg"` would reject it after `[xml]` parsed the whole document.
 export function rootTag(svgText) {
-  const m = svgText.match(/<svg\b[^>]*>/);
-  if (!m) throw new Error("no <svg> root element found");
+  let i = 0;
+  for (;;) {
+    const ws = /^\s+/.exec(svgText.slice(i));
+    if (ws) { i += ws[0].length; continue; }
+    if (svgText.startsWith("<?", i)) {
+      const end = svgText.indexOf("?>", i);
+      if (end === -1) throw new Error("unterminated XML declaration/processing instruction before root element");
+      i = end + 2;
+      continue;
+    }
+    if (svgText.startsWith("<!--", i)) {
+      const end = svgText.indexOf("-->", i);
+      if (end === -1) throw new Error("unterminated comment before root element");
+      i = end + 3;
+      continue;
+    }
+    if (/^<!DOCTYPE/i.test(svgText.slice(i))) {
+      // A DOCTYPE's internal subset can contain '[...]' with its own '>' characters (entity decls) —
+      // track bracket depth so we don't stop at one of those.
+      let j = i, depth = 0, closed = false;
+      for (; j < svgText.length; j++) {
+        if (svgText[j] === "[") depth++;
+        else if (svgText[j] === "]") depth--;
+        else if (svgText[j] === ">" && depth <= 0) { closed = true; break; }
+      }
+      if (!closed) throw new Error("unterminated DOCTYPE before root element");
+      i = j + 1;
+      continue;
+    }
+    break;
+  }
+  const m = /^<svg\b[^>]*>/.exec(svgText.slice(i));
+  if (!m) throw new Error("document root element is not <svg>");
   return m[0];
 }
 
@@ -29,6 +76,55 @@ export function elements(svgText, tag) {
 
 export function countElements(svgText, tags) {
   return tags.reduce((n, t) => n + elements(svgText, t).length, 0);
+}
+
+// Every <tag …> that is a DIRECT child of a group's `inner` text — i.e. not itself nested inside a
+// child <g>…</g>. Matches PowerShell's `./*[local-name()='rect']` (direct children only, per group),
+// as opposed to `elements()` above which matches at any depth. A group's `inner` text (from
+// allGroups/topLevelGroups) includes its full subtree, so counting with `elements()` would double-count
+// a nested group's rects once for the nested group and again for the parent.
+export function directChildren(innerText, tag) {
+  const TOKEN_RE = new RegExp(`(<g\\b[^>]*?)(\\/?)>|(<\\/g\\s*>)|(<${tag}\\b[^>]*?\\/?>)`, "g");
+  const out = [];
+  let depth = 0;
+  let m;
+  while ((m = TOKEN_RE.exec(innerText)) !== null) {
+    if (m[3]) {                       // </g> — clamp a stray close, don't go negative
+      if (depth > 0) depth--;
+      continue;
+    }
+    if (m[1] !== undefined) {         // <g ...> or <g .../>
+      if (m[2] !== "/") depth++;      // self-closing <g/> carries no geometry, doesn't nest
+      continue;
+    }
+    if (depth === 0) out.push(m[4]);  // <tag ...> at this group's own level
+  }
+  return out;
+}
+
+// Every <g> at ANY depth, each as { attrs, inner } — same shape as topLevelGroups, but not folding a
+// nested <g> into its parent. PowerShell's `//*[local-name()='g']` selects every <g> in the document
+// regardless of depth, so a nested colour-cluster candidate (or a nested group missing data-color)
+// must be visible to the checker too. Implemented as a depth-tracking stack: push {attrs, start} on
+// each open tag, pop and emit on each matching close. `inner` for a nested group also appears inside
+// its parent's `inner` (same as the PowerShell, whose per-group rect scan is direct-children-only —
+// see directChildren() above — which is what keeps totals from double-counting).
+export function allGroups(svgText) {
+  const G_TOKEN = /<g\b([^>]*?)(\/?)>|<\/g\s*>/g;
+  const stack = [];
+  const out = [];
+  let m;
+  while ((m = G_TOKEN.exec(svgText)) !== null) {
+    if (m[0][1] === "/") {                        // </g>
+      if (stack.length === 0) continue;           // stray close — clamp, don't throw
+      const top = stack.pop();
+      out.push({ attrs: top.attrs, inner: svgText.slice(top.start, m.index) });
+      continue;
+    }
+    if (m[2] === "/") continue;                   // <g/> — self-closing, carries no geometry
+    stack.push({ attrs: m[1], start: G_TOKEN.lastIndex });
+  }
+  return out;
 }
 
 export { topLevelGroups };
