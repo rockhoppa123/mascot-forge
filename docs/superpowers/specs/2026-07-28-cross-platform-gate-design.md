@@ -44,11 +44,25 @@ Both taken by the owner on 2026-07-28.
    `mf emit` and gains the same self-marked `LEGACY / batch-only` header that `vectorize-pixel.ps1` and
    `segment-parts.ps1` already carry. The gate then proves the emitter that actually ships, and the
    PowerShell one becomes explicitly unmaintained rather than silently ungated.
-2. **`@xmldom/xmldom` + `xpath` under `tools/gate/`.** A real DOM with real XPath, so ported assertions
-   map close to 1:1 from the PowerShell and are less likely to change meaning in translation. The
-   package.json lives in `tools/gate/`, never at the root — `check-buildable-slice`'s own no-root-
-   `package.json` guard must keep passing. Accepted cost: the gate needs an install step; mitigated
-   below.
+2. **Zero-dependency. No XML library, no `package.json` anywhere under `tools/gate/`.**
+   *(Initially decided the other way — `@xmldom/xmldom` + `xpath` — and reversed the same day.)*
+
+   The reversal reason is not cost, it is coherence: **the gate is the thing that asserts the
+   zero-dependency property.** `check-buildable-slice` exists partly to prove no root `package.json`
+   crept in. An assertor that itself requires `npm install` undermines the claim it exists to defend,
+   and the dependency boundary — deps permitted in `mcp/`, `tests/`, `tools/emit-react-gsap/`; forbidden
+   in `runtime/`, `tools/rig-editor/`, and now the gate — is load-bearing in the README badge and the
+   ADRs.
+
+   The XML surface is also smaller than "620 lines" suggests: `rigged.json` assertions are `JSON.parse`,
+   CSS and demo-HTML assertions are string matching. Only flat-svg, segmented, and part of
+   buildable-slice need element scanning, and **stage 1 already built a zero-dep scanner for exactly
+   this shape of work** — `topLevelGroups()` in `tools/rig-editor/layer-ingest.js`, which is pure ESM,
+   node-tested, and now hardened against comments and non-rendered subtrees. `tools/rig-editor/` is
+   itself zero-dependency, so importing from it keeps the gate zero-dependency.
+
+   Consequence worth stating plainly: CONTRIBUTING.md's *"No `npm install` and no build step are needed
+   to run the core pipeline or the gate"* **stays true**, and no auto-install machinery is needed.
 3. **The four `.ps1` checkers are deleted** once ported. They have no product role — nothing but the
    gate calls them — and four unmaintained duplicates of 620 lines of assertions is drift bait.
 
@@ -69,8 +83,9 @@ Both taken by the owner on 2026-07-28.
 ## Architecture
 
 ```
-tools/gate/
-  package.json               deps: @xmldom/xmldom, xpath. NOT at repo root.
+tools/gate/                  NO package.json. Imports node: builtins + tools/rig-editor siblings only.
+  svg-scan.mjs               small shared element/attr scanner (~40 lines) over the existing
+                             topLevelGroups(); the only "XML" facility the checkers get
   check-all.mjs              canonical gate. Same ordered-array shape as check-all.ps1.
   check-flat-svg.mjs         ported
   check-segmented.mjs        ported
@@ -94,11 +109,29 @@ gate becomes `node tools/gate/check-all.mjs`.
 
 Both entry points must print byte-identical summary output.
 
-### The install step, mitigated
+### CI is where "cross-platform" actually gets proven
 
-`check-all.mjs` checks for `tools/gate/node_modules` and runs `npm install` there if absent — the same
-pattern `check-e2e.ps1` already uses for `tests/`. A fresh clone therefore still runs one command. This
-is the accepted cost of decision 2 and should be stated plainly in CONTRIBUTING.md, not hidden.
+Without this section the stage is unfalsifiable: a Node gate that only ever runs on the author's Windows
+box is not demonstrably cross-platform.
+
+`.github/workflows/ci.yml` currently pins the gate to `windows-latest`, with this justification in a
+comment:
+
+> The full pipeline gate includes vectorize-pixel.ps1, which uses System.Drawing (Windows-only), so the
+> gate runs on windows-latest
+
+**That is false.** `tools/check-all.ps1` contains zero references to `vectorize-pixel.ps1` — that script
+is reachable only through `mf forge`, never through the gate. CI has been pinned to Windows for a reason
+that does not hold, and the comment has been carrying the belief forward.
+
+So: **the gate job moves to `ubuntu-latest`.** That is the acceptance test for this entire stage, and it
+is binary. Two smaller corrections in the same file: the step is named "Full pipeline gate (P1–P5)" when
+it has been P1–P7 since the react-gsap work landed, and the invocation becomes
+`node tools/gate/check-all.mjs`.
+
+A Windows matrix entry stays, because `mf.ps1` and the legacy batch path remain Windows-only and a
+regression there should still surface. The point is that Linux becomes the *default* proof, not that
+Windows stops being checked.
 
 ### Reference cleanup: live instructions vs. historical record
 
@@ -127,18 +160,15 @@ annotate or leave, never silently rewrite.
 
 `mf.ps1` needs no change: its `check` verb calls `tools/check-all.ps1`, which survives as the shim.
 
-### CONTRIBUTING.md: one claim becomes false
+### CONTRIBUTING.md
 
-Line 12 currently reads *"No `npm install` and no build step are needed to run the core pipeline or the
-gate."* Decision 2 falsifies the gate half of that sentence — `tools/gate/` has dependencies. The
-auto-install removes the *friction* but not the *fact*.
+Line 12 — *"No `npm install` and no build step are needed to run the core pipeline or the gate"* —
+**stays true** under the zero-dependency decision, and is worth keeping true.
 
-The sentence must be corrected, not quietly left standing: the core pipeline still needs no install; the
-gate now installs its own dev dependencies on first run. Line 7 ("the pipeline tools are PowerShell")
-also needs softening, since the gate no longer is.
-
-Getting this wrong is precisely the failure mode this repo keeps hitting — a doc asserting something the
-code stopped doing.
+Line 7 — *"**PowerShell 7+** (`pwsh`) — the pipeline tools are PowerShell"* — needs softening: after this
+stage the *gate* is Node and needs no `pwsh` at all. PowerShell drops from a prerequisite to an optional
+one, needed only for the `mf.ps1` batch path. That distinction is the entire contributor-facing point of
+this stage and should be the first thing a reader learns.
 
 ### The land-rover cross-asset proof
 
@@ -214,14 +244,35 @@ what a checker with no teeth also produces.
    must preserve the behaviour and the plan must flag it as a follow-up — porting it silently would
    bake a machine-specific path into the new gate as though it were intended.
 
-## Also in scope, small
+## Also in scope, small: MCP packaging hygiene
 
-`mcp/package.json`'s `test` script chains four test files while the gate's P6 row runs six — it is
-missing `regions-preview` and `smiley-golden`, so `npm test` inside `mcp/` is weaker than the gate and
-anyone trusting it is under-testing. Corrected in passing.
+`mcp/package.json`'s `test` script chains four test files while the gate's P6 row runs six, omitting
+`regions-preview` and `smiley-golden`.
 
-Research into MCP server conventions is running separately; any further recommendations from it are
-reported for a decision rather than folded in silently, so this stage stays a gate port.
+Research into MCP server conventions found this is worse than a local inconvenience: **`.github/workflows/e2e.yml`
+has its own `mcp` job that runs `cd mcp && npm ci && npm test`** — so CI itself runs the weak four-test
+chain. And the omitted `smiley-golden.test.mjs` is precisely the test `mcp/README.md` cites as its proof
+that the guided loop works end-to-end. Someone reading the README, running `npm test`, and seeing green
+would be citing a test that did not execute.
+
+Corrected in passing, which fixes the CI job for free since it just calls `npm test`:
+
+```json
+"test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs && node vectorize-vtracer.test.mjs && node regions-preview.test.mjs && node smiley-golden.test.mjs"
+```
+
+Two more one-line additions from the same research, both conventions every published server follows and
+neither carrying risk:
+
+- `"engines": { "node": ">=20" }` — matches what CI already pins; nothing currently tells a fresh cloner.
+- `"version": "0.1.0"` — absent entirely, while `server.mjs:17` hardcodes a version string for the
+  protocol identity. Two sources of truth, one of them missing.
+
+**Deliberately NOT in this stage** — reported for a separate decision, because each needs judgment rather
+than transcription: per-tool `annotations` (`readOnlyHint`/`destructiveHint`, which influence host
+auto-approval and so can be actively wrong), `outputSchema`/`structuredContent` adoption across all ten
+tools, and a README note that `mcp/` imports from `../tools/*` and therefore cannot be copied out of the
+repo standalone — the research's top fresh-clone trap.
 
 ## Acceptance
 
@@ -232,9 +283,15 @@ reported for a decision rather than folded in silently, so this stage stays a ga
 - Fail-fast on the first non-zero row is preserved.
 - The four `.ps1` checkers are gone, and every **live** reference to them is updated per the policy
   above — verified by a repo-wide grep whose only remaining hits are dated records.
-- CONTRIBUTING.md no longer claims the gate needs no `npm install`.
+- CONTRIBUTING.md no longer lists PowerShell as a prerequisite for the gate; its no-`npm install` claim
+  is still accurate and still stated.
+- **`.github/workflows/ci.yml`'s gate job runs green on `ubuntu-latest`.** This is the stage's binary
+  acceptance test — everything else is means.
+- `tools/gate/` contains no `package.json` and imports nothing outside `node:` builtins and
+  `tools/rig-editor/` siblings.
+- `cd mcp && npm test` runs all six MCP tests.
 - `tools/emit-svg-css.ps1` carries a LEGACY header and still runs under `mf emit`.
 - No root `package.json`. MCP tool count 10. Goldens byte-unchanged. `runtime/` and
   `tools/rig-editor/` still import nothing outside `node:` and siblings.
 - `check-e2e.ps1` → 24 passed, unchanged.
-- A fresh clone with no `tools/gate/node_modules` runs the gate successfully in one command.
+- A fresh clone runs the gate in one command, with no install step of any kind.
