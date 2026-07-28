@@ -63,6 +63,13 @@ const order = [];
 let partRectTotal = 0;
 for (const g of partGroups) {
   const part = attrOf(g.attrs, "data-part");
+  // Case-SENSITIVE on purpose, and the same deliberate divergence as check-flat-svg.mjs's data-color
+  // check: PowerShell's `-contains`, `-eq` and hashtable keys are all case-insensitive by default, so
+  // the original would accept `data-part="PART-BODY"` as vocabulary-valid (measured — it passes there
+  // and fails here). This port uses case-sensitive comparison throughout: vocabulary membership below,
+  // duplicate detection, and the ordering compare further down all inherit it. Kept stricter because
+  // the vocabulary is a fixed set of exact lowercase ids the generator emits verbatim — do not loosen
+  // any of the three back to match the original's accidental laxity.
   assertTrue(vocab.includes(part), `Unknown part id '${part}' — must be one of the accepted vocabulary.`);
   assertTrue(!seen.has(part), `Duplicate part group '${part}' — each part appears once.`);
   seen.add(part);
