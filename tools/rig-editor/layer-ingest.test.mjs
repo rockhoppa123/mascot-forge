@@ -209,6 +209,20 @@ const LAYERED = `<?xml version="1.0"?>
   assert.ok(elements[0].markup.includes('fill="#0b0"'), "the surviving element is the real, untransformed drawable");
 }
 
+// The document's OWN attrs must be read from the stripped text too. A comment before the root element
+// can contain an `<svg …>` fragment (a commented-out wrapper); matching raw source would take viewBox
+// and data-states from the comment, while the browser's DOMParser never sees comments at all — the two
+// paths would then disagree about the document's coordinate system, silently placing every part wrong.
+{
+  const COMMENTED_ROOT = '<!-- <svg viewBox="9 9 9 9" data-states="ghost"> -->'
+    + '<svg viewBox="0 0 100 100" data-states="idle,active">'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  const { viewBox, states } = parseLayered(COMMENTED_ROOT);
+  assert.equal(viewBox, "0 0 100 100", "viewBox comes from the real root, not a commented-out one");
+  assert.deepEqual(states, ["idle", "active"], "data-states likewise ignores the commented fragment");
+}
+
 // ROOT-LEVEL non-rendered subtrees must not leak into the node path either. `topLevelGroups` chooses
 // layers by scanning raw text — a <g> sitting inside a root-level <defs>/<clipPath> is not a child of
 // <svg> in the DOM (so the browser never treats it as a layer), but the old per-layer strip ran too

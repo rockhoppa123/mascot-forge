@@ -108,11 +108,6 @@ function rectBBox(attrsStr) {
 // Pure parser for flat layered SVGs. Rect + path bbox are computed here (path via pathBBox); other
 // non-rect shapes (circle/ellipse/…) leave bbox `null` for the browser to fill via getBBox.
 export function parseLayered(svgText) {
-  const svgOpen = svgText.match(/<svg\b[^>]*>/);
-  const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
-  const statesAttr = svgOpen && attr(svgOpen[0], "data-states");
-  const states = statesAttr ? statesAttr.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
-
   // Strip comments, then non-rendered (<defs>/<clipPath>/<mask>/…) subtrees ONCE, at the DOCUMENT
   // level — before topLevelGroups chooses which <g> elements are layers. Order matters: a comment can
   // contain what looks like a <defs> fragment, so it must go first. Doing this once, up front, replaces
@@ -121,6 +116,16 @@ export function parseLayered(svgText) {
   // already done. It also means a root-level <defs>/<clipPath> can never be selected as a layer, since
   // topLevelGroups never sees it.
   const scanText = svgText.replace(COMMENT_RE, "").replace(NON_RENDERED, "");
+
+  // Read the root attrs from the STRIPPED text, not the raw source: a comment preceding the root
+  // element may itself contain an `<svg …>` fragment (a commented-out wrapper, a banner quoting one),
+  // and matching the raw text would take viewBox/data-states from the comment. DOMParser drops
+  // comments before the browser path ever looks, so raw-text matching is exactly where the two paths
+  // would silently disagree about the document's own coordinate system.
+  const svgOpen = scanText.match(/<svg\b[^>]*>/);
+  const viewBox = (svgOpen && attr(svgOpen[0], "viewBox")) || "0 0 192 192";
+  const statesAttr = svgOpen && attr(svgOpen[0], "data-states");
+  const states = statesAttr ? statesAttr.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
 
   // U1: exporter output wraps the part groups in a single #rig-root group — descend one level so each
   // part <g> is a layer again (the editor's own export round-trips like any layered SVG). Same rule
