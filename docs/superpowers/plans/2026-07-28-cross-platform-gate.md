@@ -169,45 +169,92 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-flat-svg.ps1
 
 Compare the three numbers explicitly and record both outputs. Differing numbers mean the port counts something different.
 
-- [ ] **Step 5: Mutation matrix — the actual proof**
+- [ ] **Step 5: POSIX-safety audit (cheap, and catches the Task 6 failure early)**
+
+Every path this gate builds must work on Linux, but nothing runs on Linux until Task 6. Catch it now:
+
+```bash
+grep -n '\\\\' tools/gate/*.mjs
+```
+
+Expected: **no output**. Any backslash in a path literal is a bug — Node treats `"docs\\buildable-slice"` as a single filename on Linux. Build paths as separate `path.join(root, "docs", "buildable-slice")` segments.
+
+Run this same audit at the end of every subsequent port task.
+
+- [ ] **Step 6: Mutation matrix — the actual proof**
 
 Copy the artifact to a temp dir, mutate the copy, aim the checker at it. **Never mutate the committed file.**
 
-```bash
-node -e "
-const fs=require('node:fs'),os=require('node:os'),p=require('node:path'),{execFileSync}=require('node:child_process');
-const src='docs/buildable-slice/generated/devbrain-flat.svg';
-const orig=fs.readFileSync(src,'utf8');
-const dir=fs.mkdtempSync(p.join(os.tmpdir(),'mf-mut-'));
-const muts={
-  viewBox:      (t)=>t.replace('viewBox=\"0 0 192 192\"','viewBox=\"0 0 191 192\"'),
-  renderMethod: (t)=>t.replace('quantized-color-rle','something-else'),
-  addPath:      (t)=>t.replace('</svg>','<path d=\"M0 0 L1 1\"/></svg>'),
-  dupColour:    (t)=>{const m=t.match(/<g data-color=\"[^\"]*\">/); return t.replace('</svg>', m[0]+'<rect x=\"0\" y=\"0\" width=\"1\" height=\"1\" fill=\"'+m[0].match(/\"(#[0-9a-f]{6})\"/)[1]+'\"/></g></svg>');},
-  badFill:      (t)=>t.replace(/fill=\"#[0-9a-f]{6}\"/,'fill=\"#ffffff\"'),
-  badBounds:    (t)=>t.replace(/data-source-bounds=\"[^\"]*\"/,'data-source-bounds=\"0,0,1,1\"'),
+Write the driver to a **file** — not an inline `node -e`. The nested quoting in a one-liner does not survive Git Bash on Windows, and this is the step that must not fail for mechanical reasons.
+
+Save as `<scratchpad>/mutate-flat-svg.mjs` (use the session scratchpad directory, not the repo — this is a verification tool, not gate surface, and must not be committed):
+
+```js
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+
+const REPO = "C:/Users/student1/Dev/mascot-forge";
+const SRC = join(REPO, "docs/buildable-slice/generated/devbrain-flat.svg");
+const CHECKER = join(REPO, "tools/gate/check-flat-svg.mjs");
+const orig = readFileSync(SRC, "utf8");
+
+// Each mutation must break exactly one assertion. If a row reports NO-TEETH, that assertion did not
+// survive the port — the checker is weaker than the PowerShell it replaced.
+const mutations = {
+  viewBox:      (t) => t.replace('viewBox="0 0 192 192"', 'viewBox="0 0 191 192"'),
+  renderMethod: (t) => t.replace("quantized-color-rle", "something-else"),
+  addPath:      (t) => t.replace("</svg>", '<path d="M0 0 L1 1"/></svg>'),
+  badFill:      (t) => t.replace(/fill="#[0-9a-f]{6}"/, 'fill="#ffffff"'),
+  badBounds:    (t) => t.replace(/data-source-bounds="[^"]*"/, 'data-source-bounds="0,0,1,1"'),
+  emptyBounds:  (t) => t.replace(/data-source-bounds="[^"]*"/, 'data-source-bounds="5,5,5,5"'),
+  dupColour:    (t) => {
+    const g = t.match(/<g data-color="(#[0-9a-f]{6})"[^>]*>/);
+    return t.replace("</svg>", `${g[0]}<rect x="${0}" y="0" width="1" height="1" fill="${g[1]}"/></g></svg>`);
+  },
 };
-for(const [name,fn] of Object.entries(muts)){
-  const f=p.join(dir,name+'.svg'); fs.writeFileSync(f,fn(orig));
-  try{ execFileSync('node',['tools/gate/check-flat-svg.mjs',f],{stdio:'pipe'}); console.log('NO-TEETH  '+name); }
-  catch(e){ console.log('caught    '+name+'  ::  '+String(e.stderr).split('\n').find(l=>l.includes('failed')||l.includes('Error')).slice(0,90)); }
+
+const dir = mkdtempSync(join(tmpdir(), "mf-mut-"));
+let noTeeth = 0;
+for (const [name, fn] of Object.entries(mutations)) {
+  const f = join(dir, `${name}.svg`);
+  writeFileSync(f, fn(orig));
+  try {
+    execFileSync("node", [CHECKER, f], { stdio: "pipe" });
+    console.log(`NO-TEETH  ${name}`);
+    noTeeth++;
+  } catch (e) {
+    const msg = String(e.stderr || e.stdout).split("\n").find((l) => /failed|Error/.test(l)) || "";
+    console.log(`caught    ${name}  ::  ${msg.trim().slice(0, 90)}`);
+  }
 }
-fs.rmSync(dir,{recursive:true,force:true});
-"
+rmSync(dir, { recursive: true, force: true });
+console.log(noTeeth === 0 ? "ALL MUTATIONS CAUGHT" : `FAILED: ${noTeeth} assertion(s) did not survive the port`);
 ```
 
-Expected: **every** row prints `caught`. Any `NO-TEETH` row means that assertion did not survive the port — fix it before committing. Record the full output in your report.
+Run it:
 
-- [ ] **Step 6: Commit**
+```bash
+node "<scratchpad>/mutate-flat-svg.mjs"
+```
+
+Expected final line: `ALL MUTATIONS CAUGHT`. Anything else means fix the checker before committing. **This file is the template Tasks 2, 3 and 4 reuse** — they copy it and swap `SRC`, `CHECKER`, and the `mutations` table. Keep it.
+
+Record the complete output in your report.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add tools/gate/svg-scan.mjs tools/gate/check-flat-svg.mjs
 git commit -m "feat(gate): zero-dep svg-scan helper + port P1 flat-svg to Node"
 ```
 
-- [ ] **Step 7: Report back**
+Confirm `git status --short` shows only your two new files — no golden, no stray mutation artifact.
 
-Your reviewer sees only what you write. Include: the Step 2 probe output; both Step 4 outputs side by side; the **complete** Step 5 mutation output; and anything you changed that this plan did not specify.
+- [ ] **Step 8: Report back**
+
+Your reviewer sees only what you write. Include: the Step 2 probe output; both Step 4 outputs side by side; the Step 5 audit result; the **complete** Step 6 mutation output ending in `ALL MUTATIONS CAUGHT`; `git status --short`; and the path where you saved the mutation driver, since later tasks reuse it.
 
 ---
 
@@ -253,9 +300,20 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-segmented.ps1
 
 Expected: both pass; the part list, its **order**, and the rect count match exactly. Record both.
 
-- [ ] **Step 3: Mutation matrix**
+- [ ] **Step 3: POSIX-safety audit**
 
-Same temp-copy technique as Task 1 Step 5 — write your own driver following that shape. Both files must be copied, since the checker reads two. Required mutations, each of which MUST fail:
+```bash
+grep -n '\\' tools/gate/*.mjs
+```
+
+Expected: no output.
+
+- [ ] **Step 4: Mutation matrix**
+
+Copy Task 1's driver (its path is in the Task 1 report) to `<scratchpad>/mutate-segmented.mjs`, then change `SRC`, `CHECKER`, and the `mutations` table. This checker reads **two** files, so the driver must write both into the temp dir and pass both paths:
+`execFileSync("node", [CHECKER, mutatedSegmented, flatCopy])`.
+
+Required mutations, each of which MUST fail:
 
 | Mutation | Guards assertion |
 |---|---|
@@ -272,16 +330,20 @@ Same temp-copy technique as Task 1 Step 5 — write your own driver following th
 
 The order swap is the one most likely to be lost in translation, because a naive port that collects parts into an object and compares sets will pass it. Verify that one deliberately.
 
-- [ ] **Step 4: Commit**
+Expected final line: `ALL MUTATIONS CAUGHT`.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add tools/gate/check-segmented.mjs
 git commit -m "feat(gate): port P2 segmented to Node"
 ```
 
-- [ ] **Step 5: Report back**
+Confirm `git status --short` shows only your new file.
 
-Both Step 2 outputs, the complete mutation output, and confirmation the order-swap mutation was caught.
+- [ ] **Step 6: Report back**
+
+Both Step 2 outputs, the Step 3 audit, the complete mutation output ending in `ALL MUTATIONS CAUGHT`, explicit confirmation the order-swap mutation was caught, and `git status --short`.
 
 ---
 
@@ -312,7 +374,16 @@ Do not port linearly. First list the check groups in your report:
 9. **The same suite again against `generated/`** — this is what proves the emitter reproduces the fixture.
 10. `showcase.html` reference integrity: every `generated*/….svg|css` path it fetches exists on disk.
 
-- [ ] **Step 2: Port, honouring the two known traps**
+**Port the ten groups in four sub-steps, running `node tools/gate/check-buildable-slice.mjs` after each.** Do not write all 376 lines and then debug the whole thing — a failure in group 9 is unfindable in a 400-line first run.
+
+- [ ] **Step 2a: Groups 1-3** — file/dir existence, the exact-6 `generated/` set, no root `package.json`. Run it; the checker should now pass on those three and do nothing else.
+- [ ] **Step 2b: Groups 4-5** — Manual Part SVG structure and per-part attributes. Run it.
+- [ ] **Step 2c: Group 6** — the whole `rigged.json` schema-v2 block. This is the largest single group; do it alone. Run it.
+- [ ] **Step 2d: Groups 7-10** — CSS content, demo HTML content, the repeat suite against `generated/`, showcase reference integrity. Run it.
+
+Group 9 deserves care: it re-runs the same assertions against a second directory. Factor it as a function taking a directory rather than copy-pasting the block, or the two copies will drift exactly as the two emitters did.
+
+- [ ] **Step 3: Honour the two known traps**
 
 **Trap 1 — Windows path literals.** The source contains `Join-Path $repoRoot "docs\buildable-slice"` (line 74), `"tools\emit-svg-css.ps1"` (line 85), and an inverse `$ref -replace "/", "\"` (line 373). These work only because PowerShell accepts `\` as a separator on Windows. Build **every** path as separate segments — `path.join(root, "docs", "buildable-slice")` — never with an embedded separator. A string like `"docs\\buildable-slice"` in Node is a single filename containing a backslash on Linux, and this task's whole point is that it runs on Linux.
 
@@ -321,7 +392,7 @@ Do not port linearly. First list the check groups in your report:
 
 Note also that line 85 references `tools/emit-svg-css.ps1`; check whether that is an existence assertion. If it is, it must survive — the script still exists after this plan (it is marked legacy in Task 5, not deleted).
 
-- [ ] **Step 3: Run and compare**
+- [ ] **Step 4: Run and compare**
 
 ```bash
 node tools/gate/check-buildable-slice.mjs
@@ -332,9 +403,19 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-buildable-slice.ps1
 
 Expected: both pass, with matching summary output. Record both.
 
-- [ ] **Step 4: Mutation matrix against a copied tree**
+- [ ] **Step 5: POSIX-safety audit**
 
-Copy the repo's relevant subtree to a temp dir (`docs/buildable-slice/**`, plus whatever else `--root` resolution needs), mutate, and run with `--root`. Required mutations, each MUST fail:
+```bash
+grep -n '\\' tools/gate/*.mjs
+```
+
+Expected: no output. This checker is where Trap 1 lives, so this audit matters most here.
+
+- [ ] **Step 6: Mutation matrix against a copied tree**
+
+Copy Task 1's driver to `<scratchpad>/mutate-slice.mjs`. Instead of mutating a single file, it copies the subtree the checker reads (`fs.cpSync(src, dest, { recursive: true })`), applies one mutation inside the copy, and runs `execFileSync("node", [CHECKER, "--root", copyRoot])`.
+
+Every row below MUST fail. **There is no escape hatch here** — this checker guards more contracts than the other three combined, and an unproven row is an unguarded contract. If the copy is awkward to assemble, solve it; if you genuinely cannot, report BLOCKED rather than skipping rows.
 
 | Mutation | Guards |
 |---|---|
@@ -352,9 +433,9 @@ Copy the repo's relevant subtree to a temp dir (`docs/buildable-slice/**`, plus 
 | remove the reduced-motion media query | (7) |
 | point a `showcase.html` reference at a missing file | (10) |
 
-If the copied tree is awkward to assemble, say so and adjust — but every row above must still be demonstrated. This checker guards the most, so it needs the most proof.
+Expected final line: `ALL MUTATIONS CAUGHT`.
 
-- [ ] **Step 5: Verify no committed file moved**
+- [ ] **Step 7: Verify no committed file moved**
 
 ```bash
 git status --short
@@ -362,16 +443,16 @@ git status --short
 
 Expected: only your new file. If any golden appears, **STOP and report** — a mutation escaped the temp dir.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add tools/gate/check-buildable-slice.mjs
 git commit -m "feat(gate): port P3 buildable-slice to Node"
 ```
 
-- [ ] **Step 7: Report back**
+- [ ] **Step 9: Report back**
 
-The Step 1 structure list, both Step 3 outputs, the complete mutation output, `git status --short`, and the Trap 2 follow-up flagged explicitly.
+The Step 1 structure list, both Step 4 outputs, the Step 5 audit, the complete Step 6 mutation output ending in `ALL MUTATIONS CAUGHT`, `git status --short`, and the Trap 2 follow-up flagged explicitly. Also state how you factored group 9 — the repeated suite — since that is where drift would hide.
 
 ---
 
@@ -418,6 +499,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/check-orchestrator.ps1
 Both pass, same summary. Record both.
 
 - [ ] **Step 3: Mutation matrix** (temp copy + `--root`)
+
+Copy Task 1's driver to `<scratchpad>/mutate-orchestrator.mjs`; it copies the files the checker reads into a temp root and runs `execFileSync("node", [CHECKER, "--root", copyRoot])`. Expected final line: `ALL MUTATIONS CAUGHT`.
 
 | Mutation | Guards |
 |---|---|
@@ -493,7 +576,13 @@ Adjust the `rig.parts` access if Step 4 showed a different shape. Do not invent 
 
 Temporarily make `emitCss` return `""` (edit, run, revert), and confirm the script fails. Record the message. A cross-asset proof that cannot fail is decoration.
 
-- [ ] **Step 7: Run both, commit**
+- [ ] **Step 7: POSIX-safety audit, then run both**
+
+```bash
+grep -n '\\' tools/gate/*.mjs
+```
+
+Expected: no output.
 
 ```bash
 node tools/gate/check-orchestrator.mjs && node tools/gate/emit-land-rover.mjs
@@ -505,7 +594,7 @@ git commit -m "feat(gate): port P4 orchestrator; cross-asset emit proof via the 
 
 - [ ] **Step 8: Report back**
 
-Step 4's probe output, both Step 2 outputs, the orchestrator mutation matrix, and the Step 6 teeth evidence with its message.
+Step 4's probe output, both Step 2 outputs, the orchestrator mutation matrix ending in `ALL MUTATIONS CAUGHT`, the Step 6 teeth evidence with its actual message, the Step 7 audit, and `git status --short` showing only your two new files.
 
 ---
 
@@ -609,7 +698,7 @@ git commit -m "feat(gate): Node check-all becomes canonical; ps1 reduced to a sh
 
 - [ ] **Step 7: Report back**
 
-Both gate summaries side by side, the Step 5 grep result, and the legacy header you wrote.
+Both gate summaries side by side (this is the equivalence evidence — the reviewer cannot reconstruct it later, because Task 6 deletes one of the two gates), the Step 5 grep result, the legacy header you wrote, and `git status --short` confirming no stray `_old-check-all.ps1` survived.
 
 ---
 
@@ -672,7 +761,34 @@ Per the spec's policy — update instructions, leave dated records alone.
 
 **Leave untouched** (dated records of what was true when written): everything under `docs/plans/`, `docs/research/`, `docs/superpowers/plans/`, `.superpowers/`, and `docs/adr/0008-*.md`.
 
-- [ ] **Step 5: Delete the four ported checkers**
+- [ ] **Step 5: RUN THE GATE ON LINUX — the stage's acceptance test**
+
+This is the one step that actually proves the stage did what it set out to do. Everything else is means.
+CI cannot verify it here (we are not pushing), but **WSL Ubuntu-24.04 is available on this machine**, so
+it can be proven locally before anything is deleted.
+
+```bash
+wsl -d Ubuntu-24.04 -- bash -lc "cd /mnt/c/Users/student1/Dev/mascot-forge && node --version && node tools/gate/check-all.mjs"
+```
+
+Expected: `RESULT: PASS (all pipeline checks green)`.
+
+Three things to watch, each a real possibility rather than a formality:
+
+- **`node` may not be installed in WSL.** If `node --version` fails, say so in your report and state
+  plainly that the Linux proof did not run — do not substitute the Windows result and call it Linux.
+  Installing Node inside WSL is acceptable if straightforward; report that you did.
+- **Path-separator bugs surface here and nowhere else.** A `"docsuildable-slice"` literal that the
+  POSIX audits missed fails here with a confusing ENOENT. That is the audit working late, not a new bug.
+- **Line endings.** The repo is checked out with CRLF on Windows. If a checker does exact string
+  matching against file content, CRLF-vs-LF can produce a Linux-only failure. If that happens, report it
+  — it is a genuine port defect and a genuine cross-platform defect, and it is exactly the class of thing
+  this stage exists to find.
+
+If this step fails, **stop and fix before proceeding to deletion.** Do not delete the reference
+implementation while the replacement is unproven on the platform it was written for.
+
+- [ ] **Step 6: Delete the four ported checkers**
 
 ```bash
 git rm tools/check-flat-svg.ps1 tools/check-segmented.ps1 tools/check-buildable-slice.ps1 tools/check-orchestrator.ps1
@@ -680,7 +796,7 @@ git rm tools/check-flat-svg.ps1 tools/check-segmented.ps1 tools/check-buildable-
 
 These four only. `emit-svg-css.ps1`, `vectorize-pixel.ps1`, `segment-parts.ps1`, `mf.ps1`, `serve.ps1` and `check-e2e.ps1` all stay.
 
-- [ ] **Step 6: Confirm no live reference survives**
+- [ ] **Step 7: Confirm no live reference survives**
 
 ```bash
 grep -rn "check-flat-svg\|check-segmented\|check-buildable-slice\|check-orchestrator" --include=*.md --include=*.ps1 --include=*.yml . | grep -v node_modules | grep -v "docs/plans/\|docs/research/\|docs/superpowers/\|.superpowers/\|docs/adr/"
@@ -688,7 +804,7 @@ grep -rn "check-flat-svg\|check-segmented\|check-buildable-slice\|check-orchestr
 
 Expected: **no output**. Any hit is a live instruction pointing at a deleted file.
 
-- [ ] **Step 7: Full verification**
+- [ ] **Step 8: Full verification**
 
 ```bash
 node tools/gate/check-all.mjs
@@ -702,16 +818,16 @@ pwsh -NoProfile -File tools/check-e2e.ps1
 
 Expected: gate `RESULT: PASS` from both entry points; e2e **24 passed**, unchanged by this plan.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add -A
 git commit -m "feat(gate): CI gate runs on Linux; retire the four PowerShell checkers"
 ```
 
-- [ ] **Step 9: Report back**
+- [ ] **Step 10: Report back**
 
-The Step 1 grep proving the CI justification was false, `npm test` output showing six files, your Step 3 decision and reasoning, the Step 6 grep (empty), and all three Step 7 results.
+The Step 1 grep proving the CI justification was false; `npm test` output showing six files; your Step 3 decision and reasoning; **the complete Step 5 WSL output including `node --version`** — this is the stage's acceptance evidence and must be quoted verbatim, not summarised; the Step 7 grep (empty); and all three Step 8 results.
 
 ---
 
@@ -719,7 +835,7 @@ The Step 1 grep proving the CI justification was false, `npm test` output showin
 
 - `node tools/gate/check-all.mjs` → `RESULT: PASS (all pipeline checks green)`, no PowerShell involved.
 - `pwsh tools/check-all.ps1` → identical output via the shim; `mf.ps1 check` still works.
-- **`ci.yml`'s gate job is green on `ubuntu-latest`** — the stage's binary acceptance test.
+- **The gate runs green on Linux**, proven locally via WSL Ubuntu-24.04 before merge (Task 6 Step 5), with `ci.yml`'s job moved to `ubuntu-latest` so the same proof runs on every future push. If the WSL run did not happen, the stage is not done — say so rather than inferring it from the Windows result.
 - Every mutation in every matrix produced a failure, recorded per task.
 - `tools/gate/` has no `package.json` and imports only `node:` builtins and `tools/rig-editor/` siblings.
 - The four `.ps1` checkers are gone; no live reference remains; dated records untouched.
