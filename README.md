@@ -36,7 +36,7 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 > and open [`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html). An animated
 > GIF/screenshot of that page is the one remaining capture step (see [CONTRIBUTING](CONTRIBUTING.md))._
 
-### Hand an image to your agent → get an owned mascot that reacts to live data
+### Hand your layers to your agent → get an owned mascot that reacts to live data
 
 <!-- HERO SLOT (P-D): record one full idle→active→alert cycle of the demo below as docs/hero-mcp-live.gif,
      then this image renders the headline story. Until then the link runs it live. -->
@@ -70,7 +70,7 @@ vehicle (Land Rover) — forged by the same engine with **zero engine edits** (s
 
 > Status: **v1 complete** (pre-1.0). Two entries feed one rig: a **layered SVG** goes straight to
 > rig → emit → orchestrate; a **raster image** first runs vectorize → segment as a fallback
-> preprocessing step. Both are verifiable with one command (`tools/check-all.ps1`). The raster path is
+> preprocessing step. Both are verifiable with one command (`node tools/gate/check-all.mjs`). The raster path is
 > proven on two visually different assets end-to-end; the layered path is proven on parser correctness
 > plus one hand-authored example carried through the full editor/agent → export → emit loop — it has
 > not been through the same cold-start playtest that stress-tested raster (see
@@ -298,12 +298,16 @@ the layered entry point there.
 
 ### Verify the gate
 
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
+```bash
+node tools/gate/check-all.mjs
 ```
 
 Runs the whole pipeline in one command — P1 → P7, including the MCP/VTracer chain and the node
-determinism test.
+determinism test. Pure Node, zero dependencies, any OS; CI runs this same command on Linux.
+
+`pwsh tools/check-all.ps1` still works and prints the same thing — it is a thin shim over the line
+above, kept so `mf check` and existing habits keep working. PowerShell is not required to verify
+this repo.
 
 ### Fallback: forge a new asset from a raster image (the `mf` CLI)
 
