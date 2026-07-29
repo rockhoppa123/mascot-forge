@@ -8,10 +8,12 @@ and a standalone browser harness for `idle`, `active`, and `alert` Animation Sta
 
 Approved source:
 
-`C:\Users\student1\Dev\DevBrain\public\mascot\default.png`
+`assets/devbrain/poses/default.png` (192×192, RGBA)
 
 The source was approved by the user on 2026-06-17 before this Manual Part SVG fixture was
-created. The source file is not copied, moved, or edited. The current Manual Part SVG
+created. It originally lived outside this repo, in the author's DevBrain project; the artwork has
+since moved in here, and `rigged.json` records the in-repo path so the provenance is reproducible on
+any clone rather than only on the author's machine. The current Manual Part SVG
 uses source-pixel row-run geometry from the approved transparent sprite so the fixture
 preserves the DevBrain likeness while still exposing semantic part groups.
 
