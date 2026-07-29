@@ -159,8 +159,9 @@ export function buildServer() {
   server.registerTool(
     "forge_propose",
     {
-      // writes regions-preview.html when outDir is given, despite the name
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      // writes regions-preview.html when outDir is given, despite the name — and can overwrite an
+      // existing file of that name, which is the same reason forge_emit is marked destructive
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       description:
         "Analyze-first report: assemble the current proposed parts + write a regions-overlay preview " +
         "(original image with the proposed part boxes drawn over it) the human can eyeball before emit. " +
@@ -198,8 +199,8 @@ export function buildServer() {
   server.registerTool(
     "forge_open_editor",
     {
-      // writes rig-handoff.svg
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      // writes rig-handoff.svg, and can overwrite an existing one
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       description:
         "Deep-fix handoff: emit the current rig as a layered SVG the browser rig editor can load, for " +
         "manual fixing, then come back and forge_emit. The handoff is a self-describing SVG (roles/pivots/" +

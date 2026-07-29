@@ -41,7 +41,7 @@ function Get-AssetPaths {
   param([string]$a)
   if ($a -eq "devbrain") {
     return @{
-      Source = "C:\Users\student1\Dev\DevBrain\public\mascot\default.png"
+      Source = "assets/devbrain/poses/default.png"
       Flat   = "docs/buildable-slice/generated/devbrain-flat.svg"
       Seg    = "docs/buildable-slice/generated/devbrain-segmented.svg"
       Review = "docs/buildable-slice/generated/devbrain-segmented-review.html"

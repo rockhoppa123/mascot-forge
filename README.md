@@ -23,7 +23,7 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 > The two differentiators are **named-layer rigging** (your Figma layers become parts with zero
 > guessing — no vision, no invented anatomy) and the **live-data binding** (animation states wired to
 > your app's data as code you own). See [Rig your mascot with your agent](#rig-your-mascot-with-your-agent-mcp)
-> and the live demo above.
+> and the live demo below.
 
 > **Scope:** input is a **layered SVG** (Figma/Illustrator/Inkscape export, each top-level `<g>` a named
 > part) — or, as a fallback with no such source, a flat raster / clean vector image. Raster auto-part
@@ -45,8 +45,9 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 > recording is an optional upgrade on top of it (see [CONTRIBUTING](CONTRIBUTING.md)), not a
 > prerequisite. Serve the repo and open
 > [`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html) — **the
-> hero:** a layered SVG (each top-level `<g>` a named part) was rigged by an agent through the **MCP**
-> (`forge_start_from_layered_svg` → `set_part` → `forge_emit`) into the self-contained SVG you see, then
+> hero:** a layered SVG (each top-level `<g>` a named part) was rigged through the **MCP tool chain**
+> — `forge_start_from_layered_svg` → `set_part` → `forge_emit`, driven by a script rather than a live
+> agent, so you can rerun it yourself — into the self-contained SVG you see, then
 > driven by the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js) bound to a mock
 > telemetry feed — no buttons, the state machine cycles idle → active → alert. Regenerate it with
 > `node mcp/build-robot-demo.mjs`. No layered source on hand? The same story runs on the **raster**
@@ -107,7 +108,7 @@ commercial use) in April 2025**, the React+GSAP output carries no licensing aste
 
 ## The showoff asset: DevBrain
 
-mascot-forge starts as dogfooding. [DevBrain](https://github.com/) (the author's
+mascot-forge starts as dogfooding. DevBrain (the author's
 self-hosted homelab dashboard) used to carry a pixel-art moustache mascot. That mascot has moved out
 of DevBrain and into mascot-forge. Its old implementation was a **flipbook of pre-rendered PNG poses**
 swapped per state, with whole-sprite motion — exactly why it looked "good but not pro": the legs and
@@ -299,11 +300,14 @@ the layered entry point there.
 ### Verify the gate
 
 ```bash
+cd mcp && npm ci && cd ..   # once per clone — P5 and P6 use these dependencies
 node tools/gate/check-all.mjs
 ```
 
 Runs the whole pipeline in one command — P1 → P7, including the MCP/VTracer chain and the node
-determinism test. Pure Node, zero dependencies, any OS; CI runs this same command on Linux.
+determinism test. Pure Node, any OS; CI runs the same two commands on Linux. Nothing is installed at
+the repo root, and the *shipped* runtime and emitters stay dependency-free — that is the claim the
+gate protects, not a claim about the gate's own test rig.
 
 `pwsh tools/check-all.ps1` still works and prints the same thing — it is a thin shim over the line
 above, kept so `mf check` and existing habits keep working. PowerShell is not required to verify

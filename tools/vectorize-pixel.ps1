@@ -3,7 +3,7 @@
 # use). This PowerShell port is Windows-only (System.Drawing) and is kept solely for the `mf forge`
 # terminal/batch path; do not add features here — change vectorize.js and mirror if needed.
 param(
-  [string]$SourcePath = "C:\Users\student1\Dev\DevBrain\public\mascot\default.png",
+  [string]$SourcePath = "assets/devbrain/poses/default.png",
   [string]$OutPath = "docs/buildable-slice/generated/devbrain-flat.svg",
   # Quantization target. The Clean Mascot Source is an anti-aliased raster (~2.4k distinct
   # RGB values), not flat pixel art, so v1 colour-clusters it down to a small fixed palette

@@ -11,8 +11,17 @@ Thanks for looking. mascot-forge is MIT and portfolio-first — issues, forks, a
 - **Python 3** (optional) — only to serve the demos locally (`python -m http.server`); `fetch()` is
   blocked on `file://`.
 
-No `npm install` and no build step are needed to run the core pipeline or the gate — the gate is
-zero-dependency by design, because it is the thing that asserts this repo has no dependencies.
+**One install, once per clone**, before the gate will pass:
+
+```bash
+cd mcp && npm ci
+```
+
+The shipped runtime and the emitters are dependency-free — that is the claim the gate exists to
+protect, and it holds. The *gate itself* is not: its P5 row includes a segmentation-quality test that
+decodes a PNG, and its P6 row exercises the MCP server, and both use the dependencies under `mcp/`.
+There is no build step, and nothing is installed at the repo root (the gate asserts no root
+`package.json` exists).
 
 ## Forge an asset
 
@@ -40,6 +49,7 @@ first (`spikes/03-second-asset/prep-source.ps1`, [ADR-0009](docs/adr/0009-vector
 The regression gate must stay green:
 
 ```bash
+cd mcp && npm ci && cd ..       # once per clone; P5 and P6 need these
 node tools/gate/check-all.mjs   # full P1–P7 gate PASSes, exit 0
 ```
 
