@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="mascot" data-state="idle" data-states="idle,active,alert" data-render-method="ccl-color-threshold" data-source-bounds="46,0,154,208" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" shape-rendering="crispEdges" role="img" aria-labelledby="title desc">
+  <style>
+#mascot .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }
+#mascot #part-antenna { transform-origin: 50% 50%; }
+#mascot #part-head { transform-origin: 50% 50%; }
+#mascot #part-body { transform-origin: 50% 50%; }
+#mascot #part-left-arm { transform-origin: 50% 0%; }
+#mascot #part-right-arm { transform-origin: 50% 0%; }
+#mascot #part-left-leg { transform-origin: 50% 0%; }
+#mascot #part-right-leg { transform-origin: 50% 0%; }
+#mascot[data-state="idle"] #part-antenna { animation: part-antenna__twitch 3200ms ease-in-out infinite; }
+#mascot[data-state="idle"] #part-head { animation: part-head__glance 4000ms ease-in-out infinite; }
+#mascot[data-state="idle"] #part-body { animation: part-body__breathe 1800ms ease-in-out infinite; }
+#mascot[data-state="active"] #part-left-arm { animation: part-left-arm__walk 520ms ease-in-out infinite; }
+#mascot[data-state="active"] #part-right-arm { animation: part-right-arm__walk-mirror 520ms ease-in-out infinite; }
+#mascot[data-state="active"] #part-left-leg { animation: part-left-leg__walk-mirror 520ms ease-in-out infinite; }
+#mascot[data-state="active"] #part-right-leg { animation: part-right-leg__walk 520ms ease-in-out infinite; }
+#mascot[data-state="alert"] #part-antenna { animation: part-antenna__pulse 420ms ease-in-out infinite; }
+#mascot[data-state="alert"] #part-head { animation: part-head__nod 900ms ease-in-out infinite; }
+@keyframes part-antenna__twitch {
+  0%, 88%, 100% { transform: rotate(0deg); }
+  92% { transform: rotate(-9deg); }
+  96% { transform: rotate(6deg); }
+}
+@keyframes part-head__glance {
+  0%, 30%, 100% { transform: translateX(0); }
+  45% { transform: translateX(-2px); }
+  70% { transform: translateX(2px); }
+}
+@keyframes part-body__breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(.985, 1.035); }
+}
+@keyframes part-left-arm__walk {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-18deg); }
+}
+@keyframes part-right-arm__walk-mirror {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(18deg); }
+}
+@keyframes part-left-leg__walk-mirror {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(18deg); }
+}
+@keyframes part-right-leg__walk {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-18deg); }
+}
+@keyframes part-antenna__pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+}
+@keyframes part-head__nod {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(10deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mascot .part { animation: none !important; transition: none !important; }
+  #mascot[data-state="idle"] #part-body { transform: scale(1); }
+  #mascot[data-state="active"] #part-left-arm { transform: rotate(10deg); }
+  #mascot[data-state="active"] #part-right-arm { transform: rotate(-10deg); }
+  #mascot[data-state="active"] #part-left-leg { transform: rotate(-10deg); }
+  #mascot[data-state="active"] #part-right-leg { transform: rotate(10deg); }
+  #mascot[data-state="alert"] #part-antenna { transform: scale(1.08); }
+}
+#mascot.force-reduced-motion .part { animation: none !important; transition: none !important; }
+#mascot.force-reduced-motion[data-state="idle"] #part-body { transform: scale(1); }
+#mascot.force-reduced-motion[data-state="active"] #part-left-arm { transform: rotate(10deg); }
+#mascot.force-reduced-motion[data-state="active"] #part-right-arm { transform: rotate(-10deg); }
+#mascot.force-reduced-motion[data-state="active"] #part-left-leg { transform: rotate(-10deg); }
+#mascot.force-reduced-motion[data-state="active"] #part-right-leg { transform: rotate(10deg); }
+#mascot.force-reduced-motion[data-state="alert"] #part-antenna { transform: scale(1.08); }
+  </style>
+  <title id="title">robot Manual Part SVG</title>
+  <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>
+  <g id="rig-root">
+    <g id="part-antenna" class="part" data-bone="antenna" data-origin="50% 50%" data-pivot-x="100" data-pivot-y="13" data-role="accent" data-pivot="100,13" data-preset-idle="twitch" data-preset-alert="pulse">
+      <path d="M100 26 L100 8" stroke="#8892a6" stroke-width="4" fill="none"/>
+      <rect x="94" y="0" width="12" height="12" rx="2" fill="#ff6b57"/>
+    </g>
+    <g id="part-head" class="part" data-bone="head" data-origin="50% 50%" data-pivot-x="100" data-pivot-y="55" data-role="accent" data-pivot="100,55" data-preset-idle="glance" data-preset-alert="nod">
+      <rect x="62" y="26" width="76" height="58" rx="10" fill="#cfd6e4"/>
+      <rect x="76" y="46" width="48" height="20" rx="6" fill="#243044"/>
+    </g>
+    <g id="part-body" class="part" data-bone="body" data-origin="50% 50%" data-pivot-x="100" data-pivot-y="123" data-role="core" data-pivot="100,123" data-preset-idle="breathe">
+      <rect x="70" y="88" width="60" height="70" rx="8" fill="#aab4c8"/>
+      <path d="M84 104 L116 104 L116 118 L84 118 Z" fill="#5b6478"/>
+    </g>
+    <g id="part-left-arm" class="part" data-bone="arm-left" data-origin="50% 0%" data-pivot-x="58" data-pivot-y="96" data-role="limb" data-pivot="58,96" data-preset-active="walk">
+      <path d="M70 96 L52 96 L46 140 L58 142 L64 106 Z" fill="#8892a6"/>
+    </g>
+    <g id="part-right-arm" class="part" data-bone="arm-right" data-origin="50% 0%" data-pivot-x="142" data-pivot-y="96" data-role="limb" data-pivot="142,96" data-preset-active="walk-mirror">
+      <path d="M130 96 L148 96 L154 140 L142 142 L136 106 Z" fill="#8892a6"/>
+    </g>
+    <g id="part-left-leg" class="part" data-bone="leg-left" data-origin="50% 0%" data-pivot-x="88" data-pivot-y="158" data-role="limb" data-pivot="88,158" data-preset-active="walk-mirror">
+      <rect x="80" y="158" width="16" height="50" rx="4" fill="#6c7791"/>
+    </g>
+    <g id="part-right-leg" class="part" data-bone="leg-right" data-origin="50% 0%" data-pivot-x="112" data-pivot-y="158" data-role="limb" data-pivot="112,158" data-preset-active="walk">
+      <rect x="104" y="158" width="16" height="50" rx="4" fill="#6c7791"/>
+    </g>
+  </g>
+</svg>

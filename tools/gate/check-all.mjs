@@ -51,7 +51,7 @@ const checks = [
   {
     name: "P6 mcp", // MCP tool chain + VTracer integration node self-checks (deps in mcp/node_modules)
     run: () => runAll(["mcp"], [
-      "tools", "server", "protocol", "vectorize-vtracer", "regions-preview", "smiley-golden",
+      "tools", "server", "protocol", "vectorize-vtracer", "regions-preview", "smiley-golden", "robot-golden",
     ]),
   },
   {
