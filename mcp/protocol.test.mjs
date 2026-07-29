@@ -4,6 +4,7 @@
 // handlers in isolation (tools.test.mjs). Catches SDK-API drift a fresh agent host would hit.
 // Run: `node mcp/protocol.test.mjs` (after `npm install`).
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { PNG } from "pngjs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -106,4 +107,28 @@ try {
     await eClient.close();
     await eServer.close();
   }
+}
+
+// --- CONTRACT: the gate's P6 list and `npm test` must run the SAME mcp tests --------------------
+// These are two hand-maintained lists, and they have drifted TWICE. First npm test chained 4 while the
+// gate ran 6 — silently skipping smiley-golden, the very test mcp/README cites as its end-to-end proof,
+// and CI ran the weak one. It was fixed, then drifted again within a single stage the moment
+// robot-golden was added to the gate. A list nobody can forget to update is not achievable here, so
+// make forgetting fail loudly instead.
+{
+  const gateSrc = readFileSync(new URL("../tools/gate/check-all.mjs", import.meta.url), "utf8");
+  const block = gateSrc.match(/runAll\(\["mcp"\],\s*\[([\s\S]*?)\]\)/);
+  assert.ok(block, "could not find the gate's P6 mcp test list — did check-all.mjs change shape?");
+  const gateTests = [...block[1].matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]).sort();
+
+  const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+  const scriptTests = [...pkg.scripts.test.matchAll(/node\s+([a-z0-9-]+)\.test\.mjs/g)].map((m) => m[1]).sort();
+
+  assert.deepEqual(
+    scriptTests, gateTests,
+    `mcp/package.json's test script and the gate's P6 row must run the same tests.\n` +
+    `  gate  : ${gateTests.join(", ")}\n  npm   : ${scriptTests.join(", ")}\n` +
+    `Add the missing file to whichever list lacks it — do not delete from the other.`
+  );
+  console.log(`protocol.test.mjs: gate P6 and npm test agree on ${gateTests.length} mcp tests.`);
 }

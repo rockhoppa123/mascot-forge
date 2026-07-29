@@ -11,7 +11,7 @@
     "mascot-forge-mcp": "server.mjs"
   },
   "scripts": {
-    "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs && node vectorize-vtracer.test.mjs && node regions-preview.test.mjs && node smiley-golden.test.mjs",
+    "test": "node tools.test.mjs && node server.test.mjs && node protocol.test.mjs && node vectorize-vtracer.test.mjs && node regions-preview.test.mjs && node smiley-golden.test.mjs && node robot-golden.test.mjs",
     "start": "node server.mjs"
   },
   "dependencies": {
