@@ -37,6 +37,6 @@ test("dropped layered SVG → assign a role + preset in-browser → export downl
     page.waitForEvent("download"),
     page.click("#exportanim"),
   ]);
-  expect(download.suggestedFilename()).toMatch(/\.svg$/);
+  expect(download.suggestedFilename()).toMatch(/mascot\.svg$/);
   expect(errors, "no uncaught page errors during export").toEqual([]);
 });

@@ -30,7 +30,9 @@ Do this to every layer, then re-export.
 
 The layer name becomes the part id: `"Left Arm"` → `part-left-arm` (lowercased, non-alphanumerics
 collapsed to `-`, `part-` prefix added, deduped with `-2`/`-3` on collision). Name your layers the way
-you'd name a character part — `Left Arm`, `Head`, `Tail` — not `Group 14`.
+you'd name a character part — `Left Arm`, `Head`, `Tail` — not `Group 14`. The name is read from
+`inkscape:label` first, falling back to `id` then `data-name`, so an Inkscape layer's panel label wins
+over its `id` if both are set.
 
 ### 3. Nesting is fine
 
@@ -89,9 +91,9 @@ transform can't be told apart from one silently applied wrong.
 **"layered ingest handles rect + path layers; N element(s) are circle/ellipse/polygon which need a
 node rasterizer (deferred). Rig this in the browser editor, or trace to paths/rects."**
 
-This is rule 5, and only fires on the agent/MCP path (`forge_start_from_image` with a layered SVG, or
-the equivalent MCP tool). Either convert the flagged shapes to paths, or open the file in the browser
-rig editor instead.
+This is rule 5, and only fires on the agent/MCP path (the `forge_start_from_layered_svg` MCP tool,
+which is what ingests a layered SVG). Either convert the flagged shapes to paths, or open the file in
+the browser rig editor instead.
 
 ## Honest limits
 

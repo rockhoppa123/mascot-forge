@@ -59,8 +59,9 @@ export function buildServer() {
       description:
         "Alt entry: start a session from a LAYERED vector SVG (Figma/Inkscape/Illustrator export) where " +
         "each top-level <g> is a part named by its layer. No segmentation — parts are already named; go " +
-        "straight to set_part + forge_emit. v1 is rect-bearing only (non-rect shapes are rejected; use " +
-        "forge_start_from_image or the browser editor for those). Returns { session, viewBox, parts }.",
+        "straight to set_part + forge_emit. v1 supports rect + path layers only (circle/ellipse/polygon/ " +
+        "polyline/line are rejected; use the browser rig editor for those, since it measures geometry " +
+        "with getBBox instead of parsing shapes). Returns { session, viewBox, parts }.",
       inputSchema: { svg: z.string().optional(), path: z.string().optional() },
     },
     async (a) => { try { return ok(startFromLayeredSvg(a)); } catch (e) { return fail(e); } }
