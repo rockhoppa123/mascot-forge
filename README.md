@@ -6,13 +6,15 @@
 ![Gate: P1–P7 green](https://img.shields.io/badge/gate-P1%E2%80%93P7%20green-brightgreen)
 
 **Hand your agent a layered SVG — the layers you already named in Figma become an animated web
-component you own, bound to your app's real data.** The agent reads each top-level layer as a named
-part through the mascot-forge **MCP** — or you do the same directly in the browser editor, which
-ingests layers independently of the MCP — no vision, no guessing anatomy either way — and you get
-editable **SVG/CSS or React+GSAP** whose animation **states bind to your app's
-live data** — no binary runtime, no black box. No layered source on hand? The same MCP and editor also
-take a flat raster image as a fallback, auto-proposing parts by vision for you to confirm — useful, but
-not the same guarantee as layers a human already named.
+component you own, bound to your app's real data.** Each top-level layer becomes a named part — no
+vision, no guessing anatomy. Two independent ways in: the mascot-forge **MCP**, so your agent can do
+it, or the **browser editor**, which reads layers on its own without the MCP. Either way you get
+editable **SVG/CSS or React+GSAP** whose animation **states bind to your app's live data** — no binary
+runtime, no black box.
+
+No layered source on hand? Both entry points also take a flat raster image as a fallback,
+auto-proposing parts by vision for you to confirm — useful, but not the same guarantee as layers a
+human already named.
 
 The former DevBrain mascot now lives here as the flagship showoff asset: source sheets, exported poses,
 and the old DevBrain runtime baseline are kept under [`assets/devbrain/`](assets/devbrain/) so the
