@@ -39,10 +39,17 @@ flow: pick a reactivity tier → grade → propose + present the motion plan →
    `forge_open_editor` is available at any point for a deep manual fix in the browser rig editor.
 
 ## Run / connect
+
+> **This folder is not standalone.** `tools.mjs` imports the shared pure modules from
+> `../tools/rig-editor/*` and `../tools/emit-react-gsap/*`, and resolves paths against the repo root.
+> Copying `mcp/` out on its own will fail at import time — run it from inside a full clone. That is
+> deliberate: the server calls the same rig and emit code the browser editor and the gate use, rather
+> than carrying a second copy that could drift.
+
 ```bash
 cd mcp && npm install
 node server.mjs            # stdio MCP server
-npm test                   # tools + server-build + protocol + VTracer-integration self-checks
+npm test                   # the same 7 self-checks the gate's P6 row runs
 ```
 Wire it into an agent host (Claude Desktop / Claude Code `.mcp.json`):
 ```json
