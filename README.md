@@ -41,13 +41,18 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 <!-- HERO SLOT (P-D): record one full idle→active→alert cycle of the demo below as docs/hero-mcp-live.gif,
      then this image renders the headline story. Until then the link runs it live. -->
 
-> _No GIF yet — this capture step is deferred. The full story runs today: serve the repo and open
-> [`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html). A flat smiley
-> PNG was rigged by an agent through the **MCP** (`assign_region` → `set_part` → `forge_emit`) into the
-> self-contained SVG you see, then driven by the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js)
-> bound to a mock telemetry feed — no buttons, the state machine cycles idle → active → alert.
-> Regenerate the agent-rigged SVG with `node mcp/build-smiley-demo.mjs`. Recording instructions are in
-> [CONTRIBUTING](CONTRIBUTING.md)._
+> _No GIF yet — and none is required: the demo below is a working, tested page, not a placeholder. A
+> recording is an optional upgrade on top of it (see [CONTRIBUTING](CONTRIBUTING.md)), not a
+> prerequisite. Serve the repo and open
+> [`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html) — **the
+> hero:** a layered SVG (each top-level `<g>` a named part) was rigged by an agent through the **MCP**
+> (`forge_start_from_layered_svg` → `set_part` → `forge_emit`) into the self-contained SVG you see, then
+> driven by the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js) bound to a mock
+> telemetry feed — no buttons, the state machine cycles idle → active → alert. Regenerate it with
+> `node mcp/build-robot-demo.mjs`. No layered source on hand? The same story runs on the **raster**
+> fallback path at [`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html),
+> where a flat smiley PNG is auto-segmented and rigged instead — regenerate that one with
+> `node mcp/build-smiley-demo.mjs`._
 
 mascot-forge is an open-source pipeline that takes a **layered SVG** — a Figma/Illustrator/Inkscape
 export where each top-level `<g>` is already a named part — and produces an **animated,
@@ -241,7 +246,11 @@ segmentation, no region-guessing — the layer names are the semantics.
 way to rig shapes the agent path can't ingest (see the honest-scope note below).
 
 A runnable, no-live-agent reproduction of the whole raster loop is `mcp/build-smiley-demo.mjs` (it emits
-the agent-rigged mascot behind the [live-data hero demo](docs/buildable-slice/mcp-live-demo.html)). The
+the agent-rigged mascot behind the [live-data raster demo](docs/buildable-slice/mcp-live-demo.html)). Its
+layered counterpart, `node mcp/build-robot-demo.mjs`, is a runnable, no-live-agent reproduction of the
+whole layered loop: it emits the agent-rigged mascot behind the
+[live-data hero demo](docs/buildable-slice/layered-live-demo.html) from
+`assets/example-layered/robot.svg`, gated by its own freshness golden (`mcp/robot-golden.test.mjs`). The
 tool chain is proven in CI by an agent-simulation test and an in-memory-transport protocol test
 (`cd mcp && npm test`).
 
@@ -332,7 +341,8 @@ The demos `fetch()` the generated SVG, so serve them over HTTP (file:// is block
 `python -m http.server 4178` as above. Then open:
 
 - `http://localhost:4178/docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — the generated SVG+CSS demo (manual state buttons).
-- `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html` — **the hero:** an MCP/agent-rigged mascot reacting to a live (mock) telemetry feed (idle → active → alert).
+- `http://localhost:4178/docs/buildable-slice/layered-live-demo.html` — **the hero:** a layered-SVG, MCP/agent-rigged mascot reacting to a live (mock) telemetry feed (idle → active → alert).
+- `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html` — the **raster** fallback: a flat-PNG, MCP/agent-rigged mascot reacting to the same live (mock) telemetry feed.
 - `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the (hand-rigged DevBrain) mascot reacting to a live (mock) telemetry feed.
 - `http://localhost:4178/docs/buildable-slice/showcase.html` — **before vs after for both assets** (DevBrain + Land Rover), forged and data-reactive side-by-side — the engine proof.
 

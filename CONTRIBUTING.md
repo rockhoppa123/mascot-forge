@@ -60,14 +60,21 @@ GIF/screenshot of it can only be captured by a human running it in a browser:
 3. Record the auto-cycling idle → active → alert loop; export a GIF.
 4. Replace `docs/hero-mascot.png` and drop the interim-still note in the README.
 
-### …and the MCP live-data hero (P-D)
+### …and the MCP live-data hero (P-D) — optional, the demo already works without it
 
 The headline story — an agent-rigged mascot reacting to live data — runs at
-[`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html). Same human-only
-capture step:
+[`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html), the
+**layered** path. The README hero slot links straight to that page and it genuinely animates on its
+own — a GIF is **not a prerequisite**, only an optional upgrade for people skimming the README without
+running it. If you'd like to capture one anyway:
 
-1. (Optional) regenerate the agent-rigged SVG: `cd mcp && npm install && node build-smiley-demo.mjs`.
+1. (Optional) regenerate the agent-rigged SVG: `cd mcp && npm install && node build-robot-demo.mjs`.
 2. `python -m http.server 4178` from the repo root.
-3. Open `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html`.
+3. Open `http://localhost:4178/docs/buildable-slice/layered-live-demo.html`.
 4. Screen-record one full idle → active → alert → idle cycle (~9 s); export a GIF.
-5. Save it as `docs/hero-mcp-live.gif` — the README hero slot already points there.
+5. Save it as `docs/hero-mcp-live.gif` and swap it into the README's `<!-- HERO SLOT -->` — do this
+   only if you want to; the linked page is the real demo either way.
+
+The same page also exists in its **raster** form,
+[`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html) (regenerate with
+`node build-smiley-demo.mjs` from `mcp/`), for anyone without a layered source to rig.
