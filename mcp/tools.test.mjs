@@ -145,21 +145,20 @@ function smileyPngBase64() {
 // named part from its layer) starts a session with parts already named — no segmentation. The agent
 // then set_part roles/presets and emits.
 {
-  const layered =
-    '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
-    '<g id="body"><rect x="30" y="30" width="40" height="40" fill="#cccccc"/></g>' +
-    '<g id="arm"><rect x="10" y="35" width="14" height="30" fill="#ff7f0e"/></g>' +
-    '<g id="eye"><rect x="42" y="40" width="6" height="6" fill="#222222"/></g>' +
-    "</svg>";
-  const ls = startFromLayeredSvg({ svg: layered });
-  assert.equal(ls.viewBox, "0 0 100 100", "layered: viewBox read from the SVG");
-  assert.deepEqual(ls.parts.map((p) => p.id).sort(), ["part-arm", "part-body", "part-eye"],
-    "layered: parts come from layer names (sanitized)");
+  // the committed example asset (assets/example-layered/robot.svg) is a designer-style export:
+  // seven named layers, rect + path only, no transform attributes. Read via `path` (not an inline
+  // string) so this test exercises the same disk-loading branch of startFromLayeredSvg as a real
+  // MCP agent would — safePath resolves it against the repo root regardless of process cwd.
+  const ls = startFromLayeredSvg({ path: "assets/example-layered/robot.svg" });
+  assert.equal(ls.viewBox, "0 0 200 220", "layered: viewBox read from the SVG");
+  assert.deepEqual(ls.parts.map((p) => p.id), [
+    "part-antenna", "part-head", "part-body", "part-left-arm", "part-right-arm", "part-left-leg", "part-right-leg",
+  ], "layered: parts come from layer names (sanitized), in document order");
 
   // roles cover all three states; forge_emit auto-fills a default preset per role.
   setPart({ session: ls.session, partId: "part-body", role: "core", presets: { idle: "breathe" } });
-  setPart({ session: ls.session, partId: "part-arm", role: "limb", presets: { active: "walk" } });
-  setPart({ session: ls.session, partId: "part-eye", role: "accent", presets: { alert: "pulse" } });
+  setPart({ session: ls.session, partId: "part-left-arm", role: "limb", presets: { active: "walk" } });
+  setPart({ session: ls.session, partId: "part-antenna", role: "accent", presets: { alert: "pulse" } });
   const lst = forgeStatus({ session: ls.session });
   assert.ok(lst.rigStatus.idle && lst.rigStatus.active && lst.rigStatus.alert, "layered: all three states covered");
   const lem = forgeEmit({ session: ls.session, assetName: "layered" });
