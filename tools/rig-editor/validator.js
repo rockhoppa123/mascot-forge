@@ -1,8 +1,8 @@
 // validator.js — pre-flight the load-bearing rigged.json v2 invariants in the browser so the
 // operator gets an instant, clear reason before export. NOT a second source of truth:
-// tools/check-buildable-slice.ps1 (`mf check`) stays canonical. Dependency-free; pure.
+// tools/gate/check-buildable-slice.mjs (`mf check`) stays canonical. Dependency-free; pure.
 //
-// The 6 invariants (subset of check-buildable-slice.ps1 that the editor can break):
+// The 6 invariants (subset of check-buildable-slice.mjs that the editor can break):
 //   1. version === 2
 //   2. states is a non-empty array
 //   3. each part has an id, a CSS origin string, and a numeric pivot {x, y}

@@ -213,7 +213,7 @@ The order front-loads the riskiest unknowns and keeps a working artifact at ever
    palette-thresholded `<rect>` geometry** (deterministic, no ML/SAM — `data-render-method=
    "ccl-color-threshold"`), names candidates by geometry, and defaults each pivot to the
    parent-joint. Output is `devbrain-segmented.svg` + a `devbrain-segmented-review.html`
-   confirm page for the human (ADR-0002: assisted, not full-auto). `tools/check-segmented.ps1`
+   confirm page for the human (ADR-0002: assisted, not full-auto). `tools/gate/check-segmented.mjs`
    guards the artifact. Naming rules are tuned to the single DevBrain input and generalise
    when a second asset exists — friction reported, not hidden.
 5. ✅ **Phase 4 (orchestrator) — done 2026-06-18.** Dependency-free state machine

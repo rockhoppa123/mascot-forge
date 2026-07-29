@@ -7,7 +7,7 @@
 // Run from mcp/ (after `npm install`):  node build-smiley-demo.mjs
 // Output: ../docs/buildable-slice/mcp-smiley/smiley-mascot.svg  (+ -demo.html, the standalone preview).
 // Kept out of generated/ on purpose — that dir is the LOCKED Phase-1 buildable slice (allowlisted by
-// tools/check-buildable-slice.ps1); this is a separate, regenerable agent-path artifact.
+// tools/gate/check-buildable-slice.mjs); this is a separate, regenerable agent-path artifact.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";

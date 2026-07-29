@@ -3,7 +3,7 @@
 // touch the Manual Part SVG, rigged.json, the emitters, or any golden. See ADR-0002 (assisted, not
 // full-auto).
 //
-// Port of tools/check-segmented.ps1 — keep assertions and messages recognisable so a contributor who
+// Port of tools/check-segmented.ps1 (retired 2026-07-28; see git history) — keep assertions and messages recognisable so a contributor who
 // hits a failure can find the old message in git history.
 import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";

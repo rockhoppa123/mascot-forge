@@ -146,8 +146,11 @@ mascot-forge/
 │   ├── segment-parts.ps1      ← P2: proposed semantic segmentation
 │   ├── emit-svg-css.ps1       ← P3: SVG+CSS Output Target emitter
 │   ├── emit-react-gsap/       ← P3: React+GSAP emitter + useMascotState hook
-│   ├── check-flat-svg.ps1 · check-segmented.ps1 · check-buildable-slice.ps1 · check-orchestrator.ps1
-│   └── check-all.ps1          ← runs every check above + the node determinism test
+│   ├── gate/                  ← the regression gate: zero-dep Node, runs on any OS
+│   │   ├── check-flat-svg.mjs · check-segmented.mjs · check-buildable-slice.mjs
+│   │   ├── check-orchestrator.mjs · emit-land-rover.mjs · svg-scan.mjs
+│   │   └── check-all.mjs      ← runs every check above + the node determinism test
+│   └── check-all.ps1          ← thin shim → node tools/gate/check-all.mjs
 ├── docs/
 │   ├── product-discovery.md   ← problem, market gap, personas, scope, success criteria
 │   ├── technical-proposal.md  ← architecture, phases, stack, open questions

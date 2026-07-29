@@ -24,19 +24,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
 
-  mcp:
-    # MCP agent-rigging tool chain (agent-sim + server build smoke + in-memory-transport protocol
-    # smoke). Pure Node, Linux.
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mcp
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: mcp/package-lock.json
-      - run: npm ci
-      - run: npm test
+  # The `mcp` job that used to live here was removed on 2026-07-28. Its only real value was running the
+  # MCP self-checks on Linux while the main gate was pinned to Windows; the gate now runs on Linux
+  # itself (ci.yml gate-linux), and its P6 row runs the same six test files.
+  #
+  # It was also actively misleading: it ran `npm test`, which chained only four of the six tests the
+  # gate runs — so CI silently skipped smiley-golden.test.mjs, the exact test mcp/README.md cites as its
+  # end-to-end proof. Two places defining "what CI runs for mcp" is what let them drift; there is now
+  # one. (mcp/package.json's test script has been corrected to the full six regardless.)

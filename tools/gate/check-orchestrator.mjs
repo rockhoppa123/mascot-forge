@@ -1,4 +1,4 @@
-// check-orchestrator.mjs — port of tools/check-orchestrator.ps1 (P4).
+// check-orchestrator.mjs — port of tools/check-orchestrator.ps1 (retired 2026-07-28; see git history) (P4).
 //
 // Structural checks for the Phase 4 State Orchestrator: the runtime API surface is present, the demo
 // wires the core to the generated SVG, the demo's state list is derived from rigged.json rather than

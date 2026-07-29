@@ -4,12 +4,15 @@ Thanks for looking. mascot-forge is MIT and portfolio-first — issues, forks, a
 
 ## Prerequisites
 
-- **PowerShell 7+** (`pwsh`) — the pipeline tools are PowerShell.
-- **Node.js** — for the dependency-free orchestrator self-check (and the React+GSAP emit).
+- **Node.js** — everything that matters runs on Node: the full regression gate, every self-check,
+  and the React+GSAP emit.
+- **PowerShell 7+** (`pwsh`) — *optional*. Only the `mf.ps1` batch path (`forge` / `emit`) is
+  PowerShell. You do not need it to run the gate or to contribute a fix.
 - **Python 3** (optional) — only to serve the demos locally (`python -m http.server`); `fetch()` is
   blocked on `file://`.
 
-No `npm install` and no build step are needed to run the core pipeline or the gate.
+No `npm install` and no build step are needed to run the core pipeline or the gate — the gate is
+zero-dependency by design, because it is the thing that asserts this repo has no dependencies.
 
 ## Forge an asset
 
@@ -36,9 +39,12 @@ first (`spikes/03-second-asset/prep-source.ps1`, [ADR-0009](docs/adr/0009-vector
 
 The regression gate must stay green:
 
-```powershell
-pwsh tools/check-all.ps1   # full P1–P7 gate PASSes, exit 0
+```bash
+node tools/gate/check-all.mjs   # full P1–P7 gate PASSes, exit 0
 ```
+
+`pwsh tools/check-all.ps1` still works and prints the same thing — it is now a thin shim over the
+line above, kept so `mf check` and existing habits keep working.
 
 Keep generated artifacts as **build output** — regenerate them via `mf emit`, don't hand-patch.
 Don't introduce a new runtime dependency for what a few lines can do.

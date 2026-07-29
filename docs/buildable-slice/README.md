@@ -82,7 +82,7 @@ is untouched.
 > rather than re-baking the goldens. Any future move to a truer anatomical hip is a separate
 > reviewed golden-acceptance pass.
 
-The `check-buildable-slice.ps1` guard now asserts version 2, the structured channel fields,
+The `tools/gate/check-buildable-slice.mjs` guard now asserts version 2, the structured channel fields,
 and the optional `reactGsap` block, in addition to all prior SVG+CSS invariants.
 
 ## Run
@@ -97,10 +97,12 @@ docs/buildable-slice/devbrain-svg-css-demo.html?state=alert&reduce=1
 
 Run the structural checks from the repository root:
 
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-buildable-slice.ps1
+```bash
+node tools/gate/check-buildable-slice.mjs
 ```
+
+(Artifacts are produced by `mf emit`; `tools/emit-svg-css.ps1` is the legacy batch emitter —
+`tools/rig-editor/emit.js` is the canonical one.)
 
 Open the generated demo directly in a browser after running the emitter:
 

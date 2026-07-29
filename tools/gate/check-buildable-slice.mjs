@@ -3,7 +3,7 @@
 // showcase.html reference integrity. This is the largest and most-load-bearing gate checker — see
 // docs/buildable-slice/README.md for what the fixture proves.
 //
-// Port of tools/check-buildable-slice.ps1 — keep assertions and messages recognisable so a contributor
+// Port of tools/check-buildable-slice.ps1 (retired 2026-07-28; see git history) — keep assertions and messages recognisable so a contributor
 // who hits a failure can find the old message in git history. This is a PORT: assertions are preserved
 // as-is, including one (source.path, below) that already cannot pass on a fresh clone. Do not fix it
 // here — see the comment at that assertion.
