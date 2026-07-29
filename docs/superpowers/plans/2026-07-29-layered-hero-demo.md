@@ -70,6 +70,12 @@ Rig plan — every preset below is real; verified against `presetsFor(role, stat
 
 Legs are deliberately opposite their same-side arms — that is what makes a gait read as walking rather than hopping. All three states (`idle`, `active`, `alert`) get at least one animated part, which the validator requires; a state with zero recipes warns.
 
+`forgeEmit` names its output `${assetName}-mascot.svg` and `${assetName}-mascot-demo.html`
+(`mcp/tools.mjs:367`) — verified, not assumed; the committed smiley artifact is `smiley-mascot.svg` /
+`smiley-mascot-demo.html`. With `assetName: "robot"` you will get `robot-mascot.svg` and
+`robot-mascot-demo.html`. Note that emitted demo page is a **static state-toggle** page; it is not the
+live-data hero, which Task 2 writes separately.
+
 Export `buildRobot({ outDir = DEFAULT_OUT_DIR } = {})` and give the file a `main`-style invocation so `node mcp/build-robot-demo.mjs` regenerates the committed artifact, exactly as the smiley one does.
 
 - [ ] **Step 3: Generate the artifact and look at what came out**
@@ -89,7 +95,7 @@ Then check the thing that actually broke last time — pivots:
 ```bash
 node -e "
 const fs=require('node:fs');
-const svg=fs.readFileSync('docs/buildable-slice/layered-robot/robot-svg-css.generated.svg','utf8');
+const svg=fs.readFileSync('docs/buildable-slice/layered-robot/robot-mascot.svg','utf8');
 for(const m of svg.matchAll(/#(part-[a-z-]+)\s*\{\s*transform-origin:\s*([^;]+);/g)){
   const [,id,origin]=m; const pcts=origin.match(/-?\d+(\.\d+)?%/g)||[];
   const wild=pcts.some(p=>{const v=parseFloat(p); return v<-25||v>125;});
@@ -98,7 +104,7 @@ for(const m of svg.matchAll(/#(part-[a-z-]+)\s*\{\s*transform-origin:\s*([^;]+);
 "
 ```
 
-Adjust the filename if the emitter names it differently. **Any `WILD` row means a pivot outside -25..125% of its own box — that is the smiley bug's signature.** Stop and report rather than committing it.
+**Any `WILD` row means a pivot outside -25..125% of its own box — that is the smiley bug's signature.** Stop and report rather than committing it.
 
 - [ ] **Step 4: Write `mcp/robot-golden.test.mjs`**
 
@@ -182,25 +188,45 @@ const drift = await page.evaluate(() => {
   if (!anims.length) return { error: "no animations on part-left-arm" };
   const a = anims[0];
   a.pause();
+  // getComputedTiming().duration is a number in ms; getTiming().duration can be the string "auto",
+  // which would silently make currentTime NaN and freeze the measurement at zero drift.
+  const d = a.effect.getComputedTiming().duration;
   a.currentTime = 0;
-  const t0 = el.getBoundingClientRect();
-  a.currentTime = (a.effect.getTiming().duration) / 2;
-  const t1 = el.getBoundingClientRect();
-  return { dx: Math.abs(t1.x - t0.x), dy: Math.abs(t1.y - t0.y), rot: t1.width - t0.width };
+  const r0 = el.getBoundingClientRect();
+  a.currentTime = d / 2;
+  const r1 = el.getBoundingClientRect();
+  // A rotation moves the bounding box's width/height as well as its origin, so measure all four.
+  return {
+    dx: Math.abs(r1.x - r0.x), dy: Math.abs(r1.y - r0.y),
+    dw: Math.abs(r1.width - r0.width), dh: Math.abs(r1.height - r0.height),
+  };
 });
 expect(drift.error).toBeUndefined();
-expect(drift.dx + drift.dy + Math.abs(drift.rot)).toBeGreaterThan(0.5);
+expect(drift.dx + drift.dy + drift.dw + drift.dh).toBeGreaterThan(0.5);
 ```
 
 Adjust the part id and the state that animates it to match what the page actually renders — `part-left-arm` animates in `active`, so the page may need to be in that state first. Report any adjustment.
 
 Assert as well that switching state changes which animation is running, since that is the live-data claim.
 
-- [ ] **Step 4: Negative control**
+- [ ] **Step 4: Prove the page actually loads the committed artifact**
+
+A committed artifact nothing references is dead weight that still has to be maintained. Confirm the
+page really pulls it in:
+
+```bash
+node -e "const fs=require('node:fs');const p=fs.readFileSync('docs/buildable-slice/layered-live-demo.html','utf8');const ref=p.includes('layered-robot/robot-mascot.svg')||p.includes('robot-mascot.svg');console.log(ref?'PAGE REFERENCES THE ARTIFACT':'DEAD ARTIFACT — page does not load it');"
+```
+
+Expected: `PAGE REFERENCES THE ARTIFACT`. If the page inlines the SVG rather than fetching it, say so —
+inlining is acceptable, but then the freshness gate is the only thing tying page to artifact and that
+must be stated in your report.
+
+- [ ] **Step 5: Negative control**
 
 Break it deliberately: in a scratch copy, remove the animation (or point the selector at a part with no preset) and confirm the test fails. A motion assertion that passes on a frozen page is worthless. Record the failure, then restore.
 
-- [ ] **Step 5: Run and commit**
+- [ ] **Step 6: Run and commit**
 
 ```bash
 pwsh -NoProfile -File tools/check-e2e.ps1
@@ -216,9 +242,9 @@ git add docs/buildable-slice/layered-live-demo.html tests/e2e/layered-hero.spec.
 git commit -m "feat(demo): layered live-data hero page, proven to animate"
 ```
 
-- [ ] **Step 6: Report back**
+- [ ] **Step 7: Report back**
 
-The measured drift numbers, the negative-control failure, the true e2e count, any selector or state you adjusted, and the gate's final line.
+The measured drift numbers, the Step 4 artifact-reference result, the negative-control failure, the true e2e count, any selector or state you adjusted, and the gate's final line.
 
 ---
 
