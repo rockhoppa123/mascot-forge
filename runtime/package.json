@@ -1,0 +1,4 @@
+{
+  "//": "Declares this directory ESM. These are .js files containing ES modules; without this, Node treats .js as CommonJS unless its module-syntax DETECTION heuristic rescues them — unflagged only in Node 22.7+ and backported to 20.19+. On Node 18 the gate failed here. Declared beats detected. NOT a root package.json (the locked constraint is root-only) and deliberately carries no dependencies: runtime/ is zero-dependency by design.",
+  "type": "module"
+}

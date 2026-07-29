@@ -1,0 +1,4 @@
+{
+  "//": "Declares this directory ESM. Same reason as runtime/package.json: these are .js files containing ES modules, and Node only treats them as such via a version-dependent detection heuristic otherwise. The browser loads them via <script type=\"module\">, which is unaffected either way. NOT a root package.json, and no dependencies — tools/rig-editor/ is zero-dependency by design.",
+  "type": "module"
+}
