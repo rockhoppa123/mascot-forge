@@ -1,5 +1,12 @@
 # Product Discovery — mascot-forge
 
+> **2026-07-29 note:** Written 2026-06-17, before [ADR-0011](adr/0011-geometry-agnostic-parts.md) moved
+> the product to lead with a **layered SVG** input (raster auto-segmentation demoted to a labelled
+> fallback after failing a cold-start playtest 3/3 on unseen assets). This document is 100% raster-framed
+> and is kept unchanged below as the record of what was understood at the time — see
+> [`../README.md`](../README.md) and [`guides/exporting-layers.md`](guides/exporting-layers.md) for the
+> current direction.
+
 > **Document type:** Product Discovery
 > **Project code:** MASCOT-FORGE
 > **Author:** Andrew Lawson

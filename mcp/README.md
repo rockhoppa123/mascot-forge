@@ -11,8 +11,8 @@ node-tested modules the browser editor uses. No model is bundled; the agent is t
 ## Tools (10)
 | Tool | What it does |
 |---|---|
-| `forge_start_from_image` | PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. |
-| `forge_start_from_layered_svg` | Alt entry: a layered vector SVG (Figma/Inkscape/Illustrator) where each top-level `<g>` is already a named part — no segmentation needed. |
+| `forge_start_from_layered_svg` | Primary entry: a layered vector SVG (Figma/Inkscape/Illustrator) where each top-level `<g>` is already a named part — no segmentation needed. **Ingests `rect` and `path` shapes only** — a layer containing `circle`, `ellipse`, `polygon`, `polyline`, or `line` is refused; convert to paths first, or use the browser rig editor, which handles all seven SVG shape types. |
+| `forge_start_from_image` | Fallback entry when no layered source exists: PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. |
 | `assign_region` | Move shapes inside a normalized box (`x,y,w,h` each 0..1 of the viewBox) into a part, with a role. The vision-driven core. |
 | `set_part` | Set a part's motion metadata in one call: `role`, `kind`, `bone`, `pivot` (role-aware default if omitted), and `presets` per state. |
 | `forge_propose` | Analyze-first report: a regions overlay plus a per-part motion plan (mirror-aware) for the human to confirm at a checkpoint. |
@@ -27,8 +27,8 @@ flow: pick a reactivity tier → grade → propose + present the motion plan →
 
 ## The guided agent loop
 1. Ask the user for a reactivity tier — Simple (`["idle"]`), Standard (`idle/active/alert`), or Signals
-   (adds `loading/error/success`) — and pass it as `states` to `forge_start_from_image` (or
-   `forge_start_from_layered_svg`). The vocabulary is fixed at start.
+   (adds `loading/error/success`) — and pass it as `states` to `forge_start_from_layered_svg` (or, as a
+   fallback when no layered source exists, `forge_start_from_image`). The vocabulary is fixed at start.
 2. For each part you SEE in the image, `assign_region({ session, box:{x,y,w,h}/*0..1*/, partId, role })`
    (`core`=body, `limb`=arm/leg, `accent`=eyes/tongue, `passive`=still); `set_part` for role/kind/pivot/
    presets per state.

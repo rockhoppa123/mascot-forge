@@ -6,9 +6,10 @@
 ![Gate: P1–P7 green](https://img.shields.io/badge/gate-P1%E2%80%93P7%20green-brightgreen)
 
 **Hand your agent a layered SVG — the layers you already named in Figma become an animated web
-component you own, bound to your app's real data.** The agent (or you, in the browser editor) reads
-each top-level layer as a named part through the mascot-forge **MCP** — no vision, no guessing
-anatomy — and you get editable **SVG/CSS or React+GSAP** whose animation **states bind to your app's
+component you own, bound to your app's real data.** The agent reads each top-level layer as a named
+part through the mascot-forge **MCP** — or you do the same directly in the browser editor, which
+ingests layers independently of the MCP — no vision, no guessing anatomy either way — and you get
+editable **SVG/CSS or React+GSAP** whose animation **states bind to your app's
 live data** — no binary runtime, no black box. No layered source on hand? The same MCP and editor also
 take a flat raster image as a fallback, auto-proposing parts by vision for you to confirm — useful, but
 not the same guarantee as layers a human already named.
@@ -19,7 +20,7 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 
 > The two differentiators are **named-layer rigging** (your Figma layers become parts with zero
 > guessing — no vision, no invented anatomy) and the **live-data binding** (animation states wired to
-> your app's data as code you own). See [Rig an image with your agent](#rig-an-image-with-your-agent-mcp)
+> your app's data as code you own). See [Rig your mascot with your agent](#rig-your-mascot-with-your-agent-mcp)
 > and the live demo above.
 
 > **Scope:** input is a **layered SVG** (Figma/Illustrator/Inkscape export, each top-level `<g>` a named
@@ -182,7 +183,7 @@ mascot-forge/
     └── devbrain/                 ← flagship showoff asset + legacy DevBrain baseline
 ```
 
-## Rig an image with your agent (MCP)
+## Rig your mascot with your agent (MCP)
 
 An agent (e.g. Claude in Claude Desktop / Claude Code) drives the mascot-forge **MCP server** to emit
 an owned, animated mascot — no terminal, no manual rigging. Two entries: hand it a **layered SVG**
@@ -281,7 +282,7 @@ No npm install, no build step for the runtime core — it's dependency-free.
 Exporting your own Figma/Illustrator/Inkscape layers instead of using the shipped example? Follow
 [`docs/guides/exporting-layers.md`](docs/guides/exporting-layers.md) for the naming and transform rules
 the ingest expects. Prefer an agent to drive it? See
-[Rig an image with your agent](#rig-an-image-with-your-agent-mcp) — `forge_start_from_layered_svg` is
+[Rig your mascot with your agent](#rig-your-mascot-with-your-agent-mcp) — `forge_start_from_layered_svg` is
 the layered entry point there.
 
 ### Verify the gate
