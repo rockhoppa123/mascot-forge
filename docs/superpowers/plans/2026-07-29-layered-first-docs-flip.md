@@ -271,16 +271,39 @@ State honest limit #3: the example is hand-authored to these rules, not a captur
 
 For each rule in your table, name the file:line that implements it. If you cannot find one, the rule is folklore — remove it or fix it. Put this mapping in your report.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Guard the quoted error strings against rot**
+
+The troubleshooting section quotes real error text so a user searching their error finds the guide. Quoted text drifts from the code the moment someone rewords a message. Verify each quote is a genuine substring of its source right now, and record the check in your report:
+
+```bash
+node -e "
+const fs=require('node:fs');
+const guide=fs.readFileSync('docs/guides/exporting-layers.md','utf8');
+const sources=['tools/rig-editor/layer-ingest.js','mcp/tools.mjs'].map(f=>fs.readFileSync(f,'utf8')).join('
+');
+const quotes=[...guide.matchAll(/\`([^\`
+]{25,})\`/g)].map(m=>m[1]);
+let bad=0;
+for(const q of quotes){
+  if(/^[a-z0-9_./-]+\.(md|mjs|js|svg|ps1|json)/i.test(q)) continue;   // a path, not an error quote
+  if(!sources.includes(q)){ console.log('NOT IN SOURCE:', q.slice(0,70)); bad++; }
+}
+console.log(bad===0?'ALL QUOTED ERROR TEXT MATCHES SOURCE':'DRIFTED QUOTES: '+bad);
+"
+```
+
+If a quote does not match, fix the **guide** to match the code — never the reverse. Some `code spans` will be paths or attribute names rather than error text; the filter above skips obvious paths, and anything else it flags that is genuinely not an error quote should be reported as a false positive rather than silently ignored.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add docs/guides/exporting-layers.md
 git commit -m "docs: add the Figma/Illustrator layer-export guide"
 ```
 
-- [ ] **Step 5: Report back**
+- [ ] **Step 6: Report back**
 
-The rule → file:line mapping from Step 3, and any rule you dropped as unverifiable.
+The rule → file:line mapping from Step 3, the Step 4 quote-check result, and any rule you dropped as unverifiable.
 
 ---
 
@@ -293,7 +316,21 @@ This is the load-bearing task. `README.md:8-12` is the single most important sen
 
 - [ ] **Step 1: Flip the four raster-leading positions**
 
-1. **Headline (`README.md:8-12`)** — currently *"Hand a flat image to your AI agent; it rigs the parts by vision and hands you back an animated web component you own."* Rewrite so layered leads: a designer's named layers become an owned, animated, data-bindable component. Keep the "you own it" claim — that is the real differentiator and it is true. Keep the sentence roughly as short as it is now.
+1. **Headline (`README.md:8-12`)** — currently:
+
+   > *"Hand a flat image to your AI agent; it rigs the parts by vision and hands you back an animated web component you own."*
+
+   This is the single most load-bearing sentence in the repo, so do not improvise it. Two candidates,
+   both true today — pick one, or adapt one and say what you changed and why:
+
+   **A.** *"Hand your agent a layered SVG — the layers you already named in Figma become an animated web component you own, bound to your app's real data."*
+
+   **B.** *"Your Figma layers are already the rig. Hand them to your agent and get back an animated, data-bound web component you own — no runtime, no lock-in."*
+
+   Both keep the "you own it" claim, which is the real differentiator and is true. Both lead with
+   layered. **A** is closer to the current sentence's shape; **B** leads with the insight that makes
+   the reframe make sense. Neither may claim raster parity, and neither may imply the CLI accepts
+   layered input (it does not — honest limit #2).
 2. **Executive framing (`README.md:45-49`)** — currently opens *"takes a flat raster image (PNG, pixel-art first)"*. Lead with layered; keep raster as the labelled fallback.
 3. **Pipeline diagram (`README.md:97-113`)** — currently `image.png → P1 Vectorize → P2 Segment → P3 Emit`, which implies vectorise-then-segment is mandatory. Show the layered path entering at the rig step and **skipping P1/P2**, with the raster path as the second, labelled-fallback branch.
 4. **Quickstart (`README.md:224-259`)** — currently entirely raster. The first thing a newcomer is told to do becomes: drop `assets/example-layered/robot.svg` into the rig editor. Link the export guide from Task 3.
@@ -302,24 +339,44 @@ This is the load-bearing task. `README.md:8-12` is the single most important sen
 
 All four from the top of this plan, in user-facing prose, not a footnote. In particular fix the internal inconsistency at `README.md:220-222`, where the "Honest scope" callout sits directly under the layered alt-entry paragraph and reverts to raster-only framing.
 
-- [ ] **Step 3: Do not delete the raster path**
+- [ ] **Step 3: Fix the dangling hero image — the README is currently broken**
+
+`README.md:35` embeds `![…](docs/hero-mcp-live.gif)`. **That file does not exist in the repo** — verified
+with `ls` and `git ls-files`. The README renders a broken image today, and the "Placeholder GIF — owner
+capture step" note beneath it describes a file that was never committed. This is the first thing a
+visitor sees.
+
+Stage 4 (hero capture) is deferred, so do **not** attempt to create or capture a GIF here. Do this
+instead:
+
+- Remove the dangling `![…](docs/hero-mcp-live.gif)` image line so nothing renders broken.
+- **Keep** the `<!-- HERO SLOT (P-D) … -->` comment above it — that is the record of intent, and stage 4
+  needs it.
+- Keep the surrounding prose that points at the runnable demo (`docs/buildable-slice/mcp-live-demo.html`),
+  since that part is true and is what a visitor can actually use today.
+- Note in your report that the demo the comment describes is the **raster** path, so stage 4 will need
+  to decide what the hero should show under layered-first. Do not decide that here.
+
+`docs/hero-mascot.png` (referenced at `README.md:25`) **does** exist — leave that one alone.
+
+- [ ] **Step 4: Do not delete the raster path**
 
 It is a real, working, documented fallback with a genuine use (no layered source exists). Demote it, label it, keep it accurate.
 
-- [ ] **Step 4: Verify every surviving claim**
+- [ ] **Step 5: Verify every surviving claim**
 
 Re-read the whole README and check each factual claim against the code. Report anything you found that was already wrong — the exploration flagged that `docs/launch/README.md:10`'s "Premium input path… full fidelity" is narrower than it sounds; expect similar.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add README.md
 git commit -m "docs(README): lead with layered SVG; raster becomes a labelled fallback"
 ```
 
-- [ ] **Step 6: Report back**
+- [ ] **Step 7: Report back**
 
-The old and new headline side by side, how you redrew the pipeline diagram, where the four honest limits landed, and any pre-existing incorrect claim you found.
+The old and new headline side by side, how you redrew the pipeline diagram, where the four honest limits landed, confirmation the dangling hero image is gone while the HERO SLOT comment survives, and any pre-existing incorrect claim you found.
 
 ---
 
@@ -351,7 +408,46 @@ pwsh -NoProfile -File tools/check-e2e.ps1
 
 Expected: `RESULT: PASS`; the e2e count Task 2 established.
 
-- [ ] **Step 5: Check the repo no longer contradicts itself**
+- [ ] **Step 5: HONEST-LIMITS CHECK — the one that stops a docs pass overclaiming**
+
+Prose instructions to "keep the limits" are exactly what a docs pass drops. Prove they survived:
+
+```bash
+echo "--- 1. MCP is rect+path only ---";  grep -rn "rect.*path only\|circle.*ellipse.*polygon" --include=*.md README.md mcp/README.md docs/guides/ | head -5
+echo "--- 2. CLI has no layered entry ---"; grep -rni "cli.*no layered\|mf.ps1.*PNG\|no layered entry" --include=*.md README.md docs/guides/ | head -5
+echo "--- 3. example is hand-authored ---"; grep -rni "hand-authored" --include=*.md README.md docs/guides/ | head -5
+echo "--- 4. evidence stated honestly ---"; grep -rni "cold-start\|parser correctness\|proven user loop" --include=*.md README.md docs/guides/ | head -5
+```
+
+Every one of the four must return at least one hit in a **user-facing** doc. A limit that appears only
+in this plan, or only in the spec, is not shipped. If a grep is empty, the limit is missing — add it,
+do not reword the grep to match what you wrote.
+
+- [ ] **Step 6: LINK CHECK — the classic docs regression**
+
+Every task added references to a new asset and a new guide. Verify each relative link resolves:
+
+```bash
+node -e "
+const fs=require('node:fs'),path=require('node:path');
+const files=['README.md','mcp/README.md','docs/README.md','docs/guides/exporting-layers.md','docs/product-discovery.md','docs/technical-proposal.md'];
+let bad=0;
+for(const f of files){
+  if(!fs.existsSync(f)){console.log('MISSING DOC',f);bad++;continue;}
+  const t=fs.readFileSync(f,'utf8');
+  for(const m of t.matchAll(/\]\(([^)#:]+?)(?:#[^)]*)?\)/g)){
+    const rel=m[1].trim(); if(/^(https?:|mailto:)/.test(rel)) continue;
+    const target=path.resolve(path.dirname(f),rel);
+    if(!fs.existsSync(target)){console.log('BROKEN',f,'->',rel);bad++;}
+  }
+}
+console.log(bad===0?'ALL LINKS RESOLVE':'BROKEN LINKS: '+bad);
+"
+```
+
+Expected: `ALL LINKS RESOLVE`.
+
+- [ ] **Step 7: Check the repo no longer contradicts itself**
 
 ```bash
 grep -rn "flat raster image\|Hand a flat image\|takes a flat" --include=*.md . | grep -v node_modules | grep -v "docs/plans/\|docs/research/\|docs/superpowers/\|\.superpowers/\|docs/adr/\|docs/internal/"
@@ -359,16 +455,16 @@ grep -rn "flat raster image\|Hand a flat image\|takes a flat" --include=*.md . |
 
 Every remaining hit should be either an intentional description of the fallback or a dated record. Report the list and your judgement on each.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add mcp/README.md docs/README.md docs/product-discovery.md docs/technical-proposal.md
 git commit -m "docs: point the satellite docs at the layered-first story"
 ```
 
-- [ ] **Step 7: Report back**
+- [ ] **Step 9: Report back**
 
-The Step 5 grep output with your per-hit judgement, and confirmation the two dated docs' bodies are unchanged (`git diff --stat` should show only the banner lines).
+The Step 5 honest-limits output (all four with hits), the Step 6 link-check result, the Step 7 grep with your per-hit judgement, and confirmation the two dated docs' bodies are unchanged (`git diff --stat` should show only the banner lines).
 
 ---
 
