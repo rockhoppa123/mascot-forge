@@ -2,7 +2,7 @@
   "version": 2,
   "source": {
     "kind": "clean-mascot-source",
-    "path": "C:\\Users\\student1\\Dev\\DevBrain\\public\\mascot\\default.png",
+    "path": "assets/devbrain/poses/default.png",
     "metadata": {
       "width": 192,
       "height": 192,

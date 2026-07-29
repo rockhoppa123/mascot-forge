@@ -4,9 +4,8 @@
 // docs/buildable-slice/README.md for what the fixture proves.
 //
 // Port of tools/check-buildable-slice.ps1 (retired 2026-07-28; see git history) — keep assertions and messages recognisable so a contributor
-// who hits a failure can find the old message in git history. This is a PORT: assertions are preserved
-// as-is, including one (source.path, below) that already cannot pass on a fresh clone. Do not fix it
-// here — see the comment at that assertion.
+// who hits a failure can find the old message in git history. This began as a strict PORT; the one
+// assertion knowingly carried over wrong (source.path, below) has since been fixed — see there.
 //
 // Case-sensitivity note (applies throughout this file): PowerShell's `-eq`, `-match`, `-notmatch`,
 // `-contains`, and its default string Sort-Object are all case-INSENSITIVE. This port's `===`, regex
@@ -217,12 +216,27 @@ const rig = readJsonFile(rigPath);
 
 assertTrue(rig.version === 2, "rigged.json version must be 2 (schema-lock: canonical pivots + structured channels + explicit yoyo/iteration).");
 assertTrue(rig.source?.kind === "clean-mascot-source", "rigged.json source.kind must be clean-mascot-source.");
-// Trap 2 (verbatim, on purpose): this exact absolute author-machine path already cannot pass on
-// anyone else's clone. Ported verbatim anyway — this is a port, not a fix — and flagged as a
-// follow-up in the task report. Do not relax this assertion here.
+// source.path is REPO-RELATIVE. It used to be an absolute author-machine path
+// ("C:\\Users\\<user>\\Dev\\DevBrain\\public\\mascot\\default.png"), carried verbatim through the
+// PowerShell->Node port because that port's rule was to change no assertion. Two reasons it is now
+// fixed rather than left as a footnote: on a public repo an absolute home path leaks the author's
+// username and directory layout, and the artwork genuinely lives in this repo today (the mascot moved
+// out of DevBrain — see the README), so the relative path is also the more truthful record. Verified
+// the in-repo file matches the metadata asserted below: 192x192, RGBA.
 assertTrue(
-  rig.source?.path === "C:\\Users\\student1\\Dev\\DevBrain\\public\\mascot\\default.png",
-  "rigged.json source.path must record the approved Clean Mascot Source."
+  rig.source?.path === "assets/devbrain/poses/default.png",
+  "rigged.json source.path must record the approved Clean Mascot Source, repo-relative."
+);
+assertTrue(
+  existsSync(join(root, ...String(rig.source.path).split("/"))),
+  `rigged.json source.path must point at a file that exists in the repo: ${rig.source?.path}`
+);
+// Guard the CLASS, not just today's value: any absolute path here is both non-portable and a privacy
+// leak, and it took a pre-publication review to notice the last one. A drive letter, a leading slash,
+// or a backslash separator each mean someone recorded a machine-specific path.
+assertTrue(
+  !/^[a-zA-Z]:|^\/|\\/.test(String(rig.source.path)),
+  `rigged.json source.path must be repo-relative with forward slashes, not machine-specific: ${rig.source.path}`
 );
 assertTrue(rig.source?.metadata?.width === 192, "Clean Mascot Source width must be recorded as 192.");
 assertTrue(rig.source?.metadata?.height === 192, "Clean Mascot Source height must be recorded as 192.");
