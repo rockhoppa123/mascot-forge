@@ -2,7 +2,7 @@
   "version": 2,
   "source": {
     "kind": "clean-mascot-source",
-    "path": "C:\\Users\\student1\\Dev\\mascot-forge\\assets\\land-rover\\land-rover.png",
+    "path": "assets/land-rover/land-rover.png",
     "metadata": {
       "width": 256,
       "height": 256,

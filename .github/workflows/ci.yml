@@ -7,15 +7,45 @@ on:
     branches: [main]
 
 jobs:
-  check:
-    # The full pipeline gate includes vectorize-pixel.ps1, which uses System.Drawing
-    # (Windows-only), so the gate runs on windows-latest (pwsh + Node preinstalled).
+  gate-linux:
+    # The canonical gate. It is pure Node with zero dependencies, so Linux is its natural home and the
+    # cheapest runner — and running it here is what PROVES the "clone it on any OS and verify it" claim
+    # rather than merely asserting it.
+    #
+    # This job used to run on windows-latest, justified by a comment saying the gate includes
+    # vectorize-pixel.ps1 and its Windows-only System.Drawing. That was never true: check-all has zero
+    # references to that script, which is reachable only through `mf forge`.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      # P6 runs the MCP self-checks, which import pngjs and @modelcontextprotocol/sdk. node_modules is
+      # gitignored, so without this step the gate fails at P6 — as it did before this job was rewritten.
+      - name: Install MCP dependencies
+        working-directory: mcp
+        run: npm ci
+      - name: Full pipeline gate (P1-P7)
+        run: node tools/gate/check-all.mjs
+
+  gate-windows-shim:
+    # Windows stays covered, as the secondary platform: this exercises tools/check-all.ps1, now a thin
+    # shim forwarding to the Node gate, and keeps the PowerShell path contributors reach via `mf check`
+    # honest. If the shim ever stops forwarding its exit code, this job is what catches it.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Full pipeline gate (P1–P5)
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - name: Install MCP dependencies
+        working-directory: mcp
+        run: npm ci
+      - name: Full pipeline gate via the PowerShell shim
         shell: pwsh
         run: ./tools/check-all.ps1

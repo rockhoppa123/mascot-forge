@@ -11,8 +11,8 @@ node-tested modules the browser editor uses. No model is bundled; the agent is t
 ## Tools (10)
 | Tool | What it does |
 |---|---|
-| `forge_start_from_image` | PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. |
-| `forge_start_from_layered_svg` | Alt entry: a layered vector SVG (Figma/Inkscape/Illustrator) where each top-level `<g>` is already a named part — no segmentation needed. |
+| `forge_start_from_layered_svg` | Primary entry: a layered vector SVG (Figma/Inkscape/Illustrator) where each top-level `<g>` is already a named part — no segmentation needed. **Ingests `rect` and `path` shapes only** — a layer containing `circle`, `ellipse`, `polygon`, `polyline`, or `line` is refused; convert to paths first, or use the browser rig editor, which handles all seven SVG shape types. |
+| `forge_start_from_image` | Fallback entry when no layered source exists: PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. |
 | `assign_region` | Move shapes inside a normalized box (`x,y,w,h` each 0..1 of the viewBox) into a part, with a role. The vision-driven core. |
 | `set_part` | Set a part's motion metadata in one call: `role`, `kind`, `bone`, `pivot` (role-aware default if omitted), and `presets` per state. |
 | `forge_propose` | Analyze-first report: a regions overlay plus a per-part motion plan (mirror-aware) for the human to confirm at a checkpoint. |
@@ -27,8 +27,8 @@ flow: pick a reactivity tier → grade → propose + present the motion plan →
 
 ## The guided agent loop
 1. Ask the user for a reactivity tier — Simple (`["idle"]`), Standard (`idle/active/alert`), or Signals
-   (adds `loading/error/success`) — and pass it as `states` to `forge_start_from_image` (or
-   `forge_start_from_layered_svg`). The vocabulary is fixed at start.
+   (adds `loading/error/success`) — and pass it as `states` to `forge_start_from_layered_svg` (or, as a
+   fallback when no layered source exists, `forge_start_from_image`). The vocabulary is fixed at start.
 2. For each part you SEE in the image, `assign_region({ session, box:{x,y,w,h}/*0..1*/, partId, role })`
    (`core`=body, `limb`=arm/leg, `accent`=eyes/tongue, `passive`=still); `set_part` for role/kind/pivot/
    presets per state.
@@ -39,10 +39,17 @@ flow: pick a reactivity tier → grade → propose + present the motion plan →
    `forge_open_editor` is available at any point for a deep manual fix in the browser rig editor.
 
 ## Run / connect
+
+> **This folder is not standalone.** `tools.mjs` imports the shared pure modules from
+> `../tools/rig-editor/*` and `../tools/emit-react-gsap/*`, and resolves paths against the repo root.
+> Copying `mcp/` out on its own will fail at import time — run it from inside a full clone. That is
+> deliberate: the server calls the same rig and emit code the browser editor and the gate use, rather
+> than carrying a second copy that could drift.
+
 ```bash
 cd mcp && npm install
 node server.mjs            # stdio MCP server
-npm test                   # tools + server-build + protocol + VTracer-integration self-checks
+npm test                   # the same 7 self-checks the gate's P6 row runs
 ```
 Wire it into an agent host (Claude Desktop / Claude Code `.mcp.json`):
 ```json

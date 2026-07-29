@@ -1,5 +1,12 @@
 # Technical Proposal — mascot-forge
 
+> **2026-07-29 note:** Written 2026-06-17, before [ADR-0011](adr/0011-geometry-agnostic-parts.md) moved
+> the product to lead with a **layered SVG** input (raster auto-segmentation demoted to a labelled
+> fallback after failing a cold-start playtest 3/3 on unseen assets). This document is 100% raster-framed
+> and is kept unchanged below as the record of what was understood at the time — see
+> [`../README.md`](../README.md) and [`guides/exporting-layers.md`](guides/exporting-layers.md) for the
+> current direction.
+
 > **Document type:** Technical Proposal / Architecture
 > **Project code:** MASCOT-FORGE
 > **Author:** Andrew Lawson
@@ -213,7 +220,7 @@ The order front-loads the riskiest unknowns and keeps a working artifact at ever
    palette-thresholded `<rect>` geometry** (deterministic, no ML/SAM — `data-render-method=
    "ccl-color-threshold"`), names candidates by geometry, and defaults each pivot to the
    parent-joint. Output is `devbrain-segmented.svg` + a `devbrain-segmented-review.html`
-   confirm page for the human (ADR-0002: assisted, not full-auto). `tools/check-segmented.ps1`
+   confirm page for the human (ADR-0002: assisted, not full-auto). `tools/gate/check-segmented.mjs`
    guards the artifact. Naming rules are tuned to the single DevBrain input and generalise
    when a second asset exists — friction reported, not hidden.
 5. ✅ **Phase 4 (orchestrator) — done 2026-06-18.** Dependency-free state machine

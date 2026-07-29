@@ -4,6 +4,7 @@
 // handlers in isolation (tools.test.mjs). Catches SDK-API drift a fresh agent host would hit.
 // Run: `node mcp/protocol.test.mjs` (after `npm install`).
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { PNG } from "pngjs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -106,4 +107,66 @@ try {
     await eClient.close();
     await eServer.close();
   }
+}
+
+// --- CONTRACT: the gate's P6 list and `npm test` must run the SAME mcp tests --------------------
+// These are two hand-maintained lists, and they have drifted TWICE. First npm test chained 4 while the
+// gate ran 6 — silently skipping smiley-golden, the very test mcp/README cites as its end-to-end proof,
+// and CI ran the weak one. It was fixed, then drifted again within a single stage the moment
+// robot-golden was added to the gate. A list nobody can forget to update is not achievable here, so
+// make forgetting fail loudly instead.
+{
+  const gateSrc = readFileSync(new URL("../tools/gate/check-all.mjs", import.meta.url), "utf8");
+  const block = gateSrc.match(/runAll\(\["mcp"\],\s*\[([\s\S]*?)\]\)/);
+  assert.ok(block, "could not find the gate's P6 mcp test list — did check-all.mjs change shape?");
+  const gateTests = [...block[1].matchAll(/"([a-z0-9-]+)"/g)].map((m) => m[1]).sort();
+
+  const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+  const scriptTests = [...pkg.scripts.test.matchAll(/node\s+([a-z0-9-]+)\.test\.mjs/g)].map((m) => m[1]).sort();
+
+  assert.deepEqual(
+    scriptTests, gateTests,
+    `mcp/package.json's test script and the gate's P6 row must run the same tests.\n` +
+    `  gate  : ${gateTests.join(", ")}\n  npm   : ${scriptTests.join(", ")}\n` +
+    `Add the missing file to whichever list lacks it — do not delete from the other.`
+  );
+  console.log(`protocol.test.mjs: gate P6 and npm test agree on ${gateTests.length} mcp tests.`);
+}
+
+// --- CONTRACT: every tool ships annotations, and the read-only ones stay read-only ---------------
+// Annotations steer host auto-approval, so a wrong one is worse than a missing one: marking a
+// file-writing tool read-only invites a client to run it unattended. These are pinned rather than
+// spot-checked because the classification is not guessable from the tool NAMES — forge_propose writes
+// a preview file despite sounding like a query, and forge_apply_tweaks is not idempotent because
+// renameTo cannot find the old id on a second call.
+{
+  // A fresh pair: the transports opened earlier in this file are already closed.
+  const aServer = buildServer();
+  const [aT, bT] = InMemoryTransport.createLinkedPair();
+  const aClient = new Client({ name: "annotations-check", version: "0" }, { capabilities: {} });
+  await Promise.all([aServer.connect(bT), aClient.connect(aT)]);
+  const { tools: annotated } = await aClient.listTools();
+  const byName = Object.fromEntries(annotated.map((t) => [t.name, t.annotations || {}]));
+
+  assert.ok(annotated.every((t) => t.annotations), "every tool must ship annotations");
+
+  // The only two tools that touch nothing.
+  for (const ro of ["forge_status", "forge_review"]) {
+    assert.equal(byName[ro].readOnlyHint, true, `${ro} must be annotated readOnlyHint:true`);
+  }
+  // Everything that mutates a session or writes a file must NOT claim read-only.
+  for (const rw of [
+    "forge_start_from_image", "forge_start_from_layered_svg", "assign_region", "set_part",
+    "forge_emit", "forge_propose", "forge_apply_tweaks", "forge_open_editor",
+  ]) {
+    assert.notEqual(byName[rw].readOnlyHint, true, `${rw} mutates or writes — it must not claim readOnlyHint:true`);
+  }
+  // forge_emit can overwrite files the user may have edited; a host should not auto-approve it.
+  assert.equal(byName.forge_emit.destructiveHint, true, "forge_emit writes/overwrites files — destructiveHint must be true");
+  // Nothing here reaches outside the local repo.
+  assert.ok(annotated.every((t) => t.annotations.openWorldHint === false), "no tool touches an open world");
+
+  console.log(`protocol.test.mjs: all ${annotated.length} tools annotated; read-only set is exactly forge_status + forge_review.`);
+  await aClient.close();
+  await aServer.close();
 }

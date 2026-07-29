@@ -8,10 +8,12 @@ and a standalone browser harness for `idle`, `active`, and `alert` Animation Sta
 
 Approved source:
 
-`C:\Users\student1\Dev\DevBrain\public\mascot\default.png`
+`assets/devbrain/poses/default.png` (192×192, RGBA)
 
 The source was approved by the user on 2026-06-17 before this Manual Part SVG fixture was
-created. The source file is not copied, moved, or edited. The current Manual Part SVG
+created. It originally lived outside this repo, in the author's DevBrain project; the artwork has
+since moved in here, and `rigged.json` records the in-repo path so the provenance is reproducible on
+any clone rather than only on the author's machine. The current Manual Part SVG
 uses source-pixel row-run geometry from the approved transparent sprite so the fixture
 preserves the DevBrain likeness while still exposing semantic part groups.
 
@@ -82,7 +84,7 @@ is untouched.
 > rather than re-baking the goldens. Any future move to a truer anatomical hip is a separate
 > reviewed golden-acceptance pass.
 
-The `check-buildable-slice.ps1` guard now asserts version 2, the structured channel fields,
+The `tools/gate/check-buildable-slice.mjs` guard now asserts version 2, the structured channel fields,
 and the optional `reactGsap` block, in addition to all prior SVG+CSS invariants.
 
 ## Run
@@ -97,10 +99,12 @@ docs/buildable-slice/devbrain-svg-css-demo.html?state=alert&reduce=1
 
 Run the structural checks from the repository root:
 
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-buildable-slice.ps1
+```bash
+node tools/gate/check-buildable-slice.mjs
 ```
+
+(Artifacts are produced by `mf emit`; `tools/emit-svg-css.ps1` is the legacy batch emitter —
+`tools/rig-editor/emit.js` is the canonical one.)
 
 Open the generated demo directly in a browser after running the emitter:
 

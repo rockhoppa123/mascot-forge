@@ -32,6 +32,8 @@ export function buildServer() {
   server.registerTool(
     "forge_start_from_image",
     {
+      // creates a NEW session per call, so not idempotent
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
         "Start a rig session from a PNG (base64 preferred; or a project-relative path). Vectorises + " +
         "proposes coarse parts. Returns { session, viewBox, parts:[{id,role,rectCount,bbox}] }. The auto " +
@@ -56,11 +58,14 @@ export function buildServer() {
   server.registerTool(
     "forge_start_from_layered_svg",
     {
+      // creates a NEW session per call, so not idempotent
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
         "Alt entry: start a session from a LAYERED vector SVG (Figma/Inkscape/Illustrator export) where " +
         "each top-level <g> is a part named by its layer. No segmentation — parts are already named; go " +
-        "straight to set_part + forge_emit. v1 is rect-bearing only (non-rect shapes are rejected; use " +
-        "forge_start_from_image or the browser editor for those). Returns { session, viewBox, parts }.",
+        "straight to set_part + forge_emit. v1 supports rect + path layers only (circle/ellipse/polygon/ " +
+        "polyline/line are rejected; use the browser rig editor for those, since it measures geometry " +
+        "with getBBox instead of parsing shapes). Returns { session, viewBox, parts }.",
       inputSchema: { svg: z.string().optional(), path: z.string().optional() },
     },
     async (a) => { try { return ok(startFromLayeredSvg(a)); } catch (e) { return fail(e); } }
@@ -69,6 +74,8 @@ export function buildServer() {
   server.registerTool(
     "assign_region",
     {
+      // reassigns parts within the session; repeating is a no-op
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Move every shape inside a normalized box (x,y,w,h each 0..1 of the viewBox) into partId, " +
         "optionally setting its role. Use this to carve the parts you see (a hand, the tongue, …). " +
@@ -86,6 +93,8 @@ export function buildServer() {
   server.registerTool(
     "set_part",
     {
+      // sets absolute values; repeating is a no-op
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       description:
         "Set a part's motion metadata in one call: role (core=body that breathes, limb=arm/leg that " +
         "rotates, accent=small mover like eyes/tongue, passive=still), bone, pivot (x,y each 0..1 of the " +
@@ -112,6 +121,8 @@ export function buildServer() {
   server.registerTool(
     "forge_status",
     {
+      // pure read of session state
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "Inspect rig progress: { parts:[{id,role,rectCount,bbox}], rigStatus:{idle,active,alert," +
         "animated,total}, ungroupedRects }. Use it between set_part calls to confirm every state has " +
@@ -124,6 +135,8 @@ export function buildServer() {
   server.registerTool(
     "forge_emit",
     {
+      // WRITES and can overwrite files in outDir
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       description:
         "Validate the rig and emit a self-contained animated mascot (SVG that animates on its own + a " +
         "demo HTML). Roles are enough. Writes to outDir (project-relative) if given, else returns sizes. " +
@@ -146,6 +159,9 @@ export function buildServer() {
   server.registerTool(
     "forge_propose",
     {
+      // writes regions-preview.html when outDir is given, despite the name — and can overwrite an
+      // existing file of that name, which is the same reason forge_emit is marked destructive
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       description:
         "Analyze-first report: assemble the current proposed parts + write a regions-overlay preview " +
         "(original image with the proposed part boxes drawn over it) the human can eyeball before emit. " +
@@ -163,6 +179,8 @@ export function buildServer() {
   server.registerTool(
     "forge_apply_tweaks",
     {
+      // renameTo is not repeatable — the second call cannot find the old id
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       description:
         "Inline checkpoint fixes without leaving chat: rename parts and/or change roles. edits is an " +
         "array of { partId, renameTo?, setRole? }. Returns { parts, rigStatus }.",
@@ -181,6 +199,8 @@ export function buildServer() {
   server.registerTool(
     "forge_open_editor",
     {
+      // writes rig-handoff.svg, and can overwrite an existing one
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       description:
         "Deep-fix handoff: emit the current rig as a layered SVG the browser rig editor can load, for " +
         "manual fixing, then come back and forge_emit. The handoff is a self-describing SVG (roles/pivots/" +
@@ -195,6 +215,8 @@ export function buildServer() {
   server.registerTool(
     "forge_review",
     {
+      // reads status and asks the human; mutates nothing
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
         "Checkpoint: ask the HUMAN to approve / redo / open the editor for the proposed rig, via MCP " +
         "elicitation. Returns { elicitation:true, action } once the human chooses. If the client can't " +

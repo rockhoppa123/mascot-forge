@@ -142,6 +142,16 @@ In its place, insert:
   assert.ok(elements[0].markup.includes('fill="#0b0"'), "the real drawable is the one kept");
 }
 
+// [Post-review correction, 2026-07-26]: the "Root-level <defs> was never at risk" line above was
+// wrong, and that wrong reasoning is what let the bug ship. `topLevelGroups` scans the raw document
+// text; a <g> inside a root-level <defs>/<clipPath> IS picked up as a top-level layer there (it is
+// only outside every top-level <g> in the DOM, which is irrelevant to a text scanner run before any
+// layer is chosen). The per-layer NON_RENDERED strip in this plan's implementation ran too late —
+// after topLevelGroups had already selected layers from the unstripped document — to catch it. Fixed
+// post-review by stripping comments + NON_RENDERED once at the document level, before topLevelGroups
+// runs; see `tools/rig-editor/layer-ingest.js` and the finding write-up in
+// `.superpowers/sdd/final-review-fixes-report.md`. This plan entry is left as-authored, as a record.
+
 // A transform cannot be resolved by either ingest path (bbox arithmetic here, getBBox in the browser,
 // and `markup` is re-parented away from its ancestors on export). Refuse it, naming the layers, rather
 // than place the art silently wrong.

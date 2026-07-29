@@ -1,8 +1,9 @@
 # Browser e2e (Playwright)
 
-Headless smoke + product-path tests for the in-browser rig editor. Kept **out of the repo root** so
-the project stays dependency-free — the root `package.json` is only an ESM module-boundary marker
-(`{"type":"module"}`, no `dependencies`). Playwright lives here, in `tests/`, with its own `package.json`.
+Headless smoke + product-path tests for the in-browser rig editor. Kept **out of the repo root** so the
+runtime and emitters stay dependency-free. There is deliberately **no root `package.json`** — the gate
+asserts its absence, and the `{"type":"module"}` markers live in `runtime/` and `tools/rig-editor/`
+instead. Playwright lives here, in `tests/`, with its own `package.json`.
 
 ## Run it
 
@@ -26,8 +27,8 @@ The config (`playwright.config.mjs`) starts a static server on **:4179** serving
   (tag a part `kind=wheel` → it auto-selects `spin` → exports). Fixture: `e2e/fixtures/blocks.png`,
   regenerable with `node e2e/fixtures/make-blocks.mjs` (zero-dep, `node:zlib` only).
 
-## Why it isn't in `tools/check-all.ps1`
+## Why it isn't in the node gate
 
-The node gate (`check-all.ps1`, P1–P6) is deliberately node-only and dependency-free. Wiring Playwright
+The node gate (`node tools/gate/check-all.mjs`, P1–P7) is deliberately node-only and browser-free. Wiring Playwright
 into it would drag a browser binary + an npm dependency into the zero-dep gate. The e2e is run
 separately (here, or via `tools/check-e2e.ps1`); the node gate stays clean.

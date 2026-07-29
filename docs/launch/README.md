@@ -11,7 +11,8 @@ runbook + the talking points, not an automation.
 - **Guided vision route** — `forge_propose` (regions-overlay preview + silhouette advisory) →
   `forge_review` (MCP elicitation: approve / redo / open-editor, with a no-capability fallback) →
   inline `forge_apply_tweaks` / `forge_open_editor` handoff → `forge_emit`.
-- **Gate** — `tools/check-all.ps1` is green across P1–P6 (P6 covers the MCP + VTracer chain).
+- **Gate** — `node tools/gate/check-all.mjs` is green across P1–P7 (P6 covers the MCP + VTracer chain,
+  P7 the React+GSAP target). Needs `cd mcp && npm ci` first — P5 and P6 use those dependencies.
 
 ## Demo script (for the GIF + transcript)
 

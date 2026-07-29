@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="200" height="220">
+  <!-- Hand-authored example of a LAYERED export (Figma/Illustrator/Inkscape shape).
+       Each top-level <g> is one part; its name becomes the part id. rect + path only, and
+       no transform attributes — see docs/guides/exporting-layers.md for why. -->
+  <g id="Antenna">
+    <path d="M100 26 L100 8" stroke="#8892a6" stroke-width="4" fill="none"/>
+    <rect x="94" y="0" width="12" height="12" rx="2" fill="#ff6b57"/>
+  </g>
+  <g id="Head">
+    <rect x="62" y="26" width="76" height="58" rx="10" fill="#cfd6e4"/>
+    <rect x="76" y="46" width="48" height="20" rx="6" fill="#243044"/>
+  </g>
+  <g id="Body">
+    <rect x="70" y="88" width="60" height="70" rx="8" fill="#aab4c8"/>
+    <path d="M84 104 L116 104 L116 118 L84 118 Z" fill="#5b6478"/>
+  </g>
+  <g id="Left Arm">
+    <path d="M70 96 L52 96 L46 140 L58 142 L64 106 Z" fill="#8892a6"/>
+  </g>
+  <g id="Right Arm">
+    <path d="M130 96 L148 96 L154 140 L142 142 L136 106 Z" fill="#8892a6"/>
+  </g>
+  <g id="Left Leg">
+    <rect x="80" y="158" width="16" height="50" rx="4" fill="#6c7791"/>
+  </g>
+  <g id="Right Leg">
+    <rect x="104" y="158" width="16" height="50" rx="4" fill="#6c7791"/>
+  </g>
+</svg>

@@ -22,6 +22,7 @@
 
 Run the narrowest relevant local check. The full pipeline gate is:
 
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\check-all.ps1
+```bash
+cd mcp && npm ci     # once per clone: P5 and P6 use these dependencies
+node tools/gate/check-all.mjs
 ```

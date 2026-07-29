@@ -87,18 +87,25 @@ assert.deepEqual(b.timeline, a.timeline, "same signal sequence must yield the sa
 
 // race guard: an earlier tick's slow response resolving AFTER a later tick's fast one must not
 // overwrite the fresher result (a stale 'alert' landing late shouldn't re-trigger after it cleared).
+//
+// TIMING BUDGETS — change all three together, keeping their RATIOS. pollJson keeps polling, so the
+// observation window must contain EXACTLY two ticks: wait must exceed the interval (so tick 2 happens)
+// and the slow reply (so its drop is observed), but stay under 2x the interval (or tick 3 lands and
+// `calls` grows past ["v2"]). The original 20/30/35 left ~15ms of slack and failed ~30% of runs under
+// load — measured, not theorised. These are the same numbers scaled 4x: interval 80, slow reply 1.5x
+// the interval, wait 1.75x. Widening only the wait makes it WORSE, not better: it admits a third tick.
 {
   const calls = [];
   const savedFetch = globalThis.fetch;
   let n = 0;
   globalThis.fetch = async () => {
     const call = ++n;
-    await new Promise((r) => setTimeout(r, call === 1 ? 30 : 0)); // tick 1 is slow, tick 2 is instant
+    await new Promise((r) => setTimeout(r, call === 1 ? 120 : 0)); // tick 1 is slow, tick 2 is instant
     return { ok: true, json: async () => ({ v: call }) };
   };
-  const source = pollJson("/x", (d) => `v${d.v}`, 20); // tick 2 fires ~20ms after tick 1 starts
+  const source = pollJson("/x", (d) => `v${d.v}`, 80); // tick 2 fires ~80ms after tick 1 starts
   const stop = source((asserted) => calls.push(asserted));
-  await new Promise((r) => setTimeout(r, 35)); // tick 2 settles (~20ms), then tick 1's stale reply (~30ms)
+  await new Promise((r) => setTimeout(r, 140)); // tick 2 settles (~80ms), then tick 1's stale reply (~120ms)
   stop();
   globalThis.fetch = savedFetch;
   assert.deepEqual(calls, ["v2"], `the newer tick wins; the slower stale reply is dropped (got ${JSON.stringify(calls)})`);

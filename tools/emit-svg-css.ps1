@@ -1,3 +1,9 @@
+# LEGACY / batch-only (cross-platform gate, 2026-07-28). The CANONICAL SVG+CSS emitter is now the
+# browser module tools/rig-editor/emit.js (cross-platform, node-tested, what the MCP server, the rig
+# editor and the gate all use). This PowerShell script is a SECOND implementation of the same Output
+# Target and is kept solely for the `mf emit` terminal/batch path; do not add features here — change
+# emit.js and mirror if needed. The gate's cross-asset proof moved to tools/gate/emit-land-rover.mjs,
+# so this file is no longer gated: treat any behaviour here as unverified until emit.js agrees.
 param(
   [string]$SvgPath = "docs/buildable-slice/devbrain-manual-part.svg",
   [string]$RigPath = "docs/buildable-slice/devbrain-rigged.json",

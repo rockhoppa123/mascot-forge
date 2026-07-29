@@ -70,7 +70,8 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   carries roles/pivots/presets/declared states through the MCP alt entry (previously dropped); part ids
   are sanitized at every input boundary (MCP + editor) so a space/uppercase id can no longer produce a
   broken `<g id>` or CSS selector; nested `<g>` layers in a layered-SVG import are now rejected with a
-  clear error instead of silently losing the outer group's geometry; the suggested signal-state
+  clear error instead of silently losing the outer group's geometry (**reversed** — see *Changed*
+  below, nested layers are now accepted and flattened); the suggested signal-state
   vocabulary now orders `error` last (highest priority), matching the runtime; silhouette grading
   requires ≤2 fills — a dominant-but-colourful image now grades borderline instead of unrigable;
   `pollJson` treats a non-2xx response as nothing-asserted instead of relying on a JSON-parse throw;
@@ -102,6 +103,14 @@ Public-ready state — staged for the `v1.0.0` release (cut at public launch alo
   part overlaps an inert one, the defect class that makes a mascot visibly come apart.
 
 ### Changed
+- **Layered ingest accepts nested layers.** A top-level `<g>` now owns every drawable in its subtree at
+  any depth, so ordinary Figma/Illustrator exports ingest without being flattened by hand first. This
+  reverses the nested-`<g>` rejection listed under Fixed above, which worked around a non-greedy
+  tokenizer rather than repairing it; a depth-aware scan repairs it, and `<defs>`/`<clipPath>` subtrees —
+  root-level or nested inside a layer — are excluded so a clip shape can never become phantom art in
+  either ingest path. Transforms are still not *resolved*, but are
+  now refused **by layer name** with a corrective action rather than silently dropped — a dropped
+  transform placed the art in the wrong position with no error at all.
 - Repositioned around the defensible core: *owned, editable, data-reactive animation code* (states bind
   to live app data), not "auto-rig any image."
 - Auto-segmentation demoted to a best-effort flat-art fallback (see

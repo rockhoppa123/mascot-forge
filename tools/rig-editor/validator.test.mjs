@@ -1,5 +1,5 @@
 // Self-check for the in-browser pre-flight validator. It re-implements the ~6 load-bearing
-// rigged.json v2 invariants from tools/check-buildable-slice.ps1 as a convenience gate; the
+// rigged.json v2 invariants from tools/gate/check-buildable-slice.mjs as a convenience gate; the
 // PowerShell `mf check` stays canonical. Run: `node tools/rig-editor/validator.test.mjs`.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

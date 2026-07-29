@@ -1,12 +1,22 @@
 # mascot-forge docs
 
-Documentation index. Start with the two top-level docs, then dig into decisions, the buildable slice,
+Documentation index. Start with the current story below, then dig into decisions, the buildable slice,
 and research as needed.
 
 ## Start here
-- [`product-discovery.md`](product-discovery.md) — the problem, market gap, personas, scope, success criteria (the *why*).
-- [`technical-proposal.md`](technical-proposal.md) — architecture, phases, stack, open questions (the *how*).
+- [`../README.md`](../README.md) — the current story: layered SVG leads, raster is a labelled fallback,
+  pipeline diagram, quickstart.
+- [`guides/exporting-layers.md`](guides/exporting-layers.md) — how to export a layered SVG (Figma/
+  Illustrator/Inkscape) that ingests cleanly.
 - [`../DESIGN.md`](../DESIGN.md) — editor/demo visual constraints and agent UI-skill routing (the *product surface*).
+
+## Historical record (predates ADR-0011)
+- [`product-discovery.md`](product-discovery.md) — the original problem, market gap, personas, scope,
+  success criteria, written 2026-06-17. 100% raster-framed; superseded as the *why* by the README once
+  ADR-0011 moved the product to lead with layered SVG. Kept as the record of what was understood at the
+  time — see its banner.
+- [`technical-proposal.md`](technical-proposal.md) — the original architecture, phases, stack, open
+  questions, same vintage. See the README and the export guide for the current direction.
 
 ## Reference
 - [`../assets/devbrain/`](../assets/devbrain/) — the former DevBrain mascot, now the flagship showoff

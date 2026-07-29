@@ -202,7 +202,7 @@ function mascotRects() {
 
 // P-seg fallback guard: the DevBrain flat input (true pixel art), segmented WITHOUT a parts-spec,
 // still yields distinct positionally-named blobs — the generic part-N fallback must never fire here.
-// (The shipped DevBrain asset carries a parts-spec — see tools/check-segmented.ps1 — so in the real
+// (The shipped DevBrain asset carries a parts-spec — see tools/gate/check-segmented.mjs — so in the real
 // pipeline these ids resolve to the spec's anatomical names; this test drives the bare geometry
 // heuristic, which is why the two colour islands land as separate island-1/island-2 here.)
 {
