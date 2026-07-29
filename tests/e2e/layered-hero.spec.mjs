@@ -14,7 +14,10 @@ const PAGE = "/docs/buildable-slice/layered-live-demo.html";
 // window.__mascot is exposed by the page for exactly this kind of deterministic verification.
 async function gotoActive(page) {
   await page.goto(PAGE);
-  await page.waitForSelector("#part-left-arm"); // the SVG mounts async (fetch); wait before driving state
+  // The SVG mounts async via fetch(), and window.__mascot is assigned after it. Waiting on the
+  // handle itself is the guard that matches what the test then uses; waiting only on the element
+  // relies on JS execution-order reasoning that a retune could quietly invalidate.
+  await page.waitForFunction(() => window.__mascot && document.querySelector("#part-left-arm"));
   await page.evaluate(() => window.__mascot.setState("active"));
 }
 
@@ -70,7 +73,7 @@ test("switching to active state makes part-left-arm actually move", async ({ pag
 // are scoped to [data-state="active"] in the artifact's CSS) and exactly one at active.
 test("switching state changes which animation is running on a part", async ({ page }) => {
   await page.goto(PAGE);
-  await page.waitForSelector("#part-left-arm"); // the SVG mounts async (fetch); wait before reading animations
+  await page.waitForFunction(() => window.__mascot && document.querySelector("#part-left-arm"));
 
   const idleAnimNames = await page.evaluate(() => {
     const el = document.querySelector("#part-left-arm");
