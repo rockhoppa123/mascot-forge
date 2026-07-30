@@ -232,7 +232,7 @@ unconstrained `z.string()`. Proof artifacts from the attempt sit at `out/playtes
 |---|---|---|
 | High | 4 | path-traversal write (`mcp/tools.mjs:367`); unescaped `assetName` → HTML (`tools/rig-editor/emit.js:54`); ingested markup embedded verbatim, `on*` handlers not stripped (`tools/rig-editor/exporter.js:126`); same taint reaching `dangerouslySetInnerHTML` in **generated, shippable** React (`tools/emit-react-gsap/emit-react.mjs:76-91` → `:302`) |
 | Medium | 2 | 22 broken relative links: `docs/plans/*.md` (16, missing `../`) and `docs/research/*-prompt.md` (6, missing `plans/`) |
-| Low | 3 | personal path default `spikes/03-second-asset/prep-source.ps1:2` (`C:\Users\student1\Downloads\…`); one internal broken link; README's ADR table stops at 0009 while the repo has 11 |
+| Low | 3 | personal path default `spikes/03-second-asset/prep-source.ps1:2` (`C:\Users\dev\Downloads\…`); one internal broken link; README's ADR table stops at 0009 while the repo has 11 |
 | Info | 1 | maintainer email public in `CITATION.cff`/`CODE_OF_CONDUCT.md`/`SECURITY.md` — standard OSS, confirm intentional |
 
 No credentials, tokens, `eval`, stray/backup files, or private hostnames. README's own 34 relative links

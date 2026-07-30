@@ -238,7 +238,7 @@ what a checker with no teeth also produces.
    string produces a filename containing a literal backslash on POSIX. Every path must be built with
    `path.join(root, "docs", "buildable-slice")` — separate segments, never an embedded separator.
 2. **`rigged.json` carries an absolute author-machine `source.path`**
-   (`C:\Users\student1\Dev\DevBrain\public\mascot\default.png`) which the current checker asserts
+   (`C:\Users\dev\Dev\DevBrain\public\mascot\default.png`) which the current checker asserts
    exactly. That assertion is *already* wrong for any other contributor and would fail on a fresh clone
    elsewhere. It is out of scope to fix here (see Non-goals: this is a port), but the ported checker
    must preserve the behaviour and the plan must flag it as a follow-up — porting it silently would

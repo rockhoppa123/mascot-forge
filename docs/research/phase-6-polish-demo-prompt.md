@@ -1,14 +1,14 @@
 # Phase 6 (Polish & Demo) — fresh-agent implementation prompt
 
 > Copy everything below the line into a fresh Claude Code session at
-> `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
+> `C:\Users\dev\Dev\mascot-forge`. Companion design doc:
 > [`docs/phase-6-polish-demo-implementation-plan.md`](../plans/phase-6-polish-demo-implementation-plan.md).
 
 ---
 
 Invoke the ponytail skill (/ponytail) FIRST and keep it active for the entire task. This is the final "polish & demo" phase — the engine already works end-to-end, so the temptation to over-build is the main risk. Every choice must be the laziest thing that actually works: edit the README rather than write a site, reuse the locked generated SVG rather than render anything new, one thin script over the checks that already exist rather than a test framework. Question whether each new file needs to exist at all (YAGNI).
 
-You are implementing Phase 6 (Polish & Demo) of mascot-forge in C:\Users\student1\Dev\mascot-forge. This is step 6 (final) of the build plan. Only make changes directly requested. Do NOT add new pipeline capability, files, abstractions, dependencies, or features beyond this phase — the engine is feature-complete for v1; this phase only makes it legible and showable.
+You are implementing Phase 6 (Polish & Demo) of mascot-forge in C:\Users\dev\Dev\mascot-forge. This is step 6 (final) of the build plan. Only make changes directly requested. Do NOT add new pipeline capability, files, abstractions, dependencies, or features beyond this phase — the engine is feature-complete for v1; this phase only makes it legible and showable.
 
 ## Context (carry forward — Phases 1–4 all shipped)
 - Pipeline, all DONE: PNG →[P1 vectorize ✅]→ flat.svg →[P2 segment ✅]→ named parts + pivots →[P3 codegen ✅]→ emitters →[P4 orchestrator ✅]→ data-reactive mascot.

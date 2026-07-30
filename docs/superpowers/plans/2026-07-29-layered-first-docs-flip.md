@@ -97,7 +97,7 @@ Create `assets/example-layered/robot.svg`. Use exactly this — the geometry is 
 - [ ] **Step 2: Prove it ingests on BOTH paths before anything depends on it**
 
 ```bash
-node -e "import('file:///C:/Users/student1/Dev/mascot-forge/tools/rig-editor/layer-ingest.js').then(async (m)=>{const fs=await import('node:fs');const t=fs.readFileSync('assets/example-layered/robot.svg','utf8');const r=m.parseLayered(t);console.log('parts:',[...new Set(r.elements.map(e=>e.part))]);console.log('elements:',r.elements.length);console.log('any null bbox (would break MCP):',r.elements.some(e=>!e.bbox));})"
+node -e "import('file:///C:/Users/dev/Dev/mascot-forge/tools/rig-editor/layer-ingest.js').then(async (m)=>{const fs=await import('node:fs');const t=fs.readFileSync('assets/example-layered/robot.svg','utf8');const r=m.parseLayered(t);console.log('parts:',[...new Set(r.elements.map(e=>e.part))]);console.log('elements:',r.elements.length);console.log('any null bbox (would break MCP):',r.elements.some(e=>!e.bbox));})"
 ```
 
 Expected: seven parts (`part-antenna`, `part-head`, `part-body`, `part-left-arm`, `part-right-arm`, `part-left-leg`, `part-right-leg`), and **`any null bbox: false`**.
@@ -107,7 +107,7 @@ A `true` there means the file contains a shape the MCP path cannot measure — f
 Then the real agent-path entry:
 
 ```bash
-node -e "import('file:///C:/Users/student1/Dev/mascot-forge/mcp/tools.mjs').then(async (m)=>{const r=m.startFromLayeredSvg({path:'assets/example-layered/robot.svg'});console.log('session:',!!r.session,'viewBox:',r.viewBox);console.log('parts:',r.parts.map(p=>p.id||p));})"
+node -e "import('file:///C:/Users/dev/Dev/mascot-forge/mcp/tools.mjs').then(async (m)=>{const r=m.startFromLayeredSvg({path:'assets/example-layered/robot.svg'});console.log('session:',!!r.session,'viewBox:',r.viewBox);console.log('parts:',r.parts.map(p=>p.id||p));})"
 ```
 
 Expected: a session, the viewBox, and the same seven parts. If it throws, read the message — it will name exactly what the asset violates.

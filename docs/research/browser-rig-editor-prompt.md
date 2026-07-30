@@ -1,7 +1,7 @@
 # Browser Rig Editor (Phase 1) — fresh-agent implementation prompt
 
 > Copy everything below the line into a fresh Claude Code session rooted at
-> `C:\Users\student1\Dev\mascot-forge`. Your deliverable is **working code + tests**,
+> `C:\Users\dev\Dev\mascot-forge`. Your deliverable is **working code + tests**,
 > built work-item by work-item from an existing plan. Build the plan as written; do not
 > re-plan or re-architect. If you find the plan genuinely wrong mid-build, stop and flag it.
 

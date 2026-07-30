@@ -10,7 +10,7 @@
 > [Phase 1 — Vectorize](phase-1-vectorize-prompt.md)
 > ([plan](../plans/phase-1-vectorize-implementation-plan.md)).
 
-Target: fresh Codex or Claude Code session working inside `C:\Users\student1\Dev\mascot-forge`.
+Target: fresh Codex or Claude Code session working inside `C:\Users\dev\Dev\mascot-forge`.
 
 Optimized for: the stage after Spike 01 resolved Q1 (ADR-0007: both targets, SVG+CSS
 default, React+GSAP opt-in) and after the dependency-free **SVG+CSS emitter**
@@ -23,7 +23,7 @@ one JSON drives *both* emitters around identical pivots.
 ## Copyable prompt
 
 ```text
-You are implementing the next stage of mascot-forge in C:\Users\student1\Dev\mascot-forge.
+You are implementing the next stage of mascot-forge in C:\Users\dev\Dev\mascot-forge.
 This completes Phase 3 ("one rigged.json → both emitters"). It is two coupled deliverables:
 (1) lock the rig schema, (2) build the React+GSAP emitter. Favour clarity over cleverness.
 

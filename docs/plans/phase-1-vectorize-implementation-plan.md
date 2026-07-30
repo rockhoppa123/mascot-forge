@@ -51,7 +51,7 @@ intermediate-artifact contract of the pipeline.
 
 **Input:** the Clean Mascot Source PNG (read-only, never copied/edited — same rule as the
 Buildable Slice). Documented source:
-`C:\Users\student1\Dev\DevBrain\public\mascot\default.png` — `192x192`, `Format32bppArgb`,
+`C:\Users\dev\Dev\DevBrain\public\mascot\default.png` — `192x192`, `Format32bppArgb`,
 alpha true, visible bounds `21,77,170,177`.
 
 **Output:** `flat.svg` — a single SVG:

@@ -1,14 +1,14 @@
 # Phase 4 (State Orchestrator) — fresh-agent implementation prompt
 
 > Copy everything below the line into a fresh Claude Code session at
-> `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
+> `C:\Users\dev\Dev\mascot-forge`. Companion design doc:
 > [`docs/phase-4-orchestrator-implementation-plan.md`](../plans/phase-4-orchestrator-implementation-plan.md).
 
 ---
 
 Invoke the ponytail skill (/ponytail) FIRST and keep it active for the entire task. Every design choice must be the laziest thing that actually works: deterministic vanilla JS over any framework, write onto the emitters' EXISTING state surface over a new rendering layer, a static demo over a web app, the fewest files possible. Question whether each new file/abstraction needs to exist at all (YAGNI).
 
-You are implementing Phase 4 (State Orchestrator) of mascot-forge in C:\Users\student1\Dev\mascot-forge. Only make changes directly requested. Do not add extra files, abstractions, dependencies, or features beyond this phase.
+You are implementing Phase 4 (State Orchestrator) of mascot-forge in C:\Users\dev\Dev\mascot-forge. Only make changes directly requested. Do not add extra files, abstractions, dependencies, or features beyond this phase.
 
 ## Context (carry forward — Phases 1–3 shipped, Phase 2 just shipped)
 - Pipeline: PNG →[P1 vectorize ✅]→ flat.svg →[P2 segment ✅]→ named parts + pivots →[P3 codegen ✅]→ emitters →[**P4 orchestrator ← YOU**]→ data-reactive mascot.

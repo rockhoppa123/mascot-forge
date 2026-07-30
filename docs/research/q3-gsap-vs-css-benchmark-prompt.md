@@ -1,14 +1,14 @@
 # Q3 — GSAP-vs-CSS runtime cost benchmark — fresh-agent implementation prompt
 
 > Copy everything below the line into a fresh Claude Code session at
-> `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
+> `C:\Users\dev\Dev\mascot-forge`. Companion design doc:
 > [`docs/q3-gsap-vs-css-benchmark-implementation-plan.md`](../plans/q3-gsap-vs-css-benchmark-implementation-plan.md).
 
 ---
 
 Invoke the ponytail skill (/ponytail) FIRST and keep it active for the entire task. This is a measurement spike, not a feature: the engine is feature-complete (Phases 1–4 + Phase 6 all shipped). The temptation to build a benchmark *framework* is the main risk. Both Output Targets already render the same mascot from the same rig — so there is nothing to build except ~30 lines of instrumentation over the demos that already exist. No benchmark framework, no new dependency (no Lighthouse/Playwright/tachometer/benchmark.js), no CI, no new demo page. The deliverable is a results table and a one-line verdict, NOT a tool.
 
-You are running the **Q3 runtime-cost benchmark** for mascot-forge in C:\Users\student1\Dev\mascot-forge. Q3 is the last open question in `docs/research/research-log.md` (🔴): *"GSAP vs CSS runtime cost on low-power clients."* Only make changes directly requested. Do NOT add pipeline capability, emitter/rig/Output-Target changes, dependencies, or features.
+You are running the **Q3 runtime-cost benchmark** for mascot-forge in C:\Users\dev\Dev\mascot-forge. Q3 is the last open question in `docs/research/research-log.md` (🔴): *"GSAP vs CSS runtime cost on low-power clients."* Only make changes directly requested. Do NOT add pipeline capability, emitter/rig/Output-Target changes, dependencies, or features.
 
 ## Context (carry forward — v1 is complete)
 - Pipeline all shipped: PNG →[P1 vectorize]→ flat.svg →[P2 segment]→ named parts + pivots →[P3 codegen]→ emitters →[P4 orchestrator]→ data-reactive mascot. Phase 6 (polish/demo) closed the build plan.

@@ -1,7 +1,7 @@
 # Spike 01 — Emitter Shoot-out (implementation prompt)
 
 Hand this prompt to a coding agent (Codex or a fresh Claude Code session) run **inside
-`C:\Users\student1\Dev\mascot-forge`**. It is self-contained; the agent should read the
+`C:\Users\dev\Dev\mascot-forge`**. It is self-contained; the agent should read the
 referenced repo files first.
 
 ---
@@ -9,7 +9,7 @@ referenced repo files first.
 ## PROMPT (copy from here ⬇)
 
 You are implementing **Spike 01** for the open-source project `mascot-forge`. Work inside
-the repo at `C:\Users\student1\Dev\mascot-forge`. This is a **throwaway spike to learn
+the repo at `C:\Users\dev\Dev\mascot-forge`. This is a **throwaway spike to learn
 from**, but two of its outputs are keepers (a hand-segmented SVG and a written comparison)
 that later phases depend on. Favour clarity over cleverness.
 
@@ -22,7 +22,7 @@ that later phases depend on. Favour clarity over cleverness.
 - `docs/adr/0003-pluggable-emitter.md` and `docs/adr/0005-pixel-art-poc-first.md`.
 - `assets/README.md` + `assets/devbrain-mascot-reference-v1.png` — the mascot art and the
   baseline you must beat. Also inspect the current implementation for context:
-  `C:\Users\student1\Dev\DevBrain\components\mascot\devbrain-mascot.tsx` (it swaps
+  `C:\Users\dev\Dev\DevBrain\components\mascot\devbrain-mascot.tsx` (it swaps
   pre-rendered PNG poses — that's the flipbook you're replacing with a real rig).
 
 ### 1. Why this spike exists

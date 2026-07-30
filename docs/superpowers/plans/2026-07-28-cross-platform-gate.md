@@ -195,7 +195,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 
-const REPO = "C:/Users/student1/Dev/mascot-forge";
+const REPO = "C:/Users/dev/Dev/mascot-forge";
 const SRC = join(REPO, "docs/buildable-slice/generated/devbrain-flat.svg");
 const CHECKER = join(REPO, "tools/gate/check-flat-svg.mjs");
 const orig = readFileSync(SRC, "utf8");
@@ -388,7 +388,7 @@ Group 9 deserves care: it re-runs the same assertions against a second directory
 **Trap 1 — Windows path literals.** The source contains `Join-Path $repoRoot "docs\buildable-slice"` (line 74), `"tools\emit-svg-css.ps1"` (line 85), and an inverse `$ref -replace "/", "\"` (line 373). These work only because PowerShell accepts `\` as a separator on Windows. Build **every** path as separate segments — `path.join(root, "docs", "buildable-slice")` — never with an embedded separator. A string like `"docs\\buildable-slice"` in Node is a single filename containing a backslash on Linux, and this task's whole point is that it runs on Linux.
 
 **Trap 2 — the absolute author-machine path.** The checker asserts `source.path` equals exactly
-`C:\Users\student1\Dev\DevBrain\public\mascot\default.png`. That assertion **already cannot pass on anyone else's clone**. Port it **verbatim anyway** — this is a port, and silently relaxing it would hide a behaviour change inside a translation diff. Then flag it prominently in your report as a follow-up. Do not fix it here.
+`C:\Users\dev\Dev\DevBrain\public\mascot\default.png`. That assertion **already cannot pass on anyone else's clone**. Port it **verbatim anyway** — this is a port, and silently relaxing it would hide a behaviour change inside a translation diff. Then flag it prominently in your report as a follow-up. Do not fix it here.
 
 Note also that line 85 references `tools/emit-svg-css.ps1`; check whether that is an existence assertion. If it is, it must survive — the script still exists after this plan (it is marked legacy in Task 5, not deleted).
 
@@ -768,7 +768,7 @@ CI cannot verify it here (we are not pushing), but **WSL Ubuntu-24.04 is availab
 it can be proven locally before anything is deleted.
 
 ```bash
-wsl -d Ubuntu-24.04 -- bash -lc "cd /mnt/c/Users/student1/Dev/mascot-forge && node --version && node tools/gate/check-all.mjs"
+wsl -d Ubuntu-24.04 -- bash -lc "cd /mnt/c/Users/dev/Dev/mascot-forge && node --version && node tools/gate/check-all.mjs"
 ```
 
 Expected: `RESULT: PASS (all pipeline checks green)`.

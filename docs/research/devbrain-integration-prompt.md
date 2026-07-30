@@ -5,7 +5,7 @@
 > as the showoff asset and legacy baseline for before/after comparison.
 
 > Copy everything below the line into a fresh Claude Code session rooted at
-> `C:\Users\student1\Dev\mascot-forge`. Your deliverable is a **plan document**,
+> `C:\Users\dev\Dev\mascot-forge`. Your deliverable is a **plan document**,
 > not implementation. Do NOT edit any source file in either repo.
 
 ---
@@ -25,7 +25,7 @@ implementation plan a fresh agent can execute without asking questions.
 
 ## 0. Read first (do not skip, in this order)
 
-### mascot-forge (`C:\Users\student1\Dev\mascot-forge`)
+### mascot-forge (`C:\Users\dev\Dev\mascot-forge`)
 1. `docs/technical-proposal.md` §1–§5 — pipeline overview, four phases, two output targets.
 2. `docs/buildable-slice/README.md` — what the SVG+CSS buildable slice is and its files.
 3. `docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — open mentally;
@@ -38,7 +38,7 @@ implementation plan a fresh agent can execute without asking questions.
    understand the shape of both output targets.
 9. `spikes/01-emitter/FINDINGS.md` — original shoot-out; cross-target summary.
 
-### DevBrain (`C:\Users\student1\Dev\DevBrain`)
+### DevBrain (`C:\Users\dev\Dev\DevBrain`)
 10. `components/mascot/devbrain-mascot.tsx` — current PNG-sprite-swap component (full file).
 11. `lib/mascot-pose.mjs` — `resolveMascotPose`: maps `DevBrainMascotState` → pose + loop.
 12. `lib/mascot-contract.test.mjs` — the contract test that guards the mascot API.
@@ -114,7 +114,7 @@ D5 — **Orchestrator wiring**: what drives the state machine in DevBrain?
 
 ## 2. Deliverable
 
-Write `docs/devbrain-integration-implementation-plan.md` in `C:\Users\student1\Dev\mascot-forge`.
+Write `docs/devbrain-integration-implementation-plan.md` in `C:\Users\dev\Dev\mascot-forge`.
 
 The plan must include:
 - **Goal** (one paragraph — what done looks like).

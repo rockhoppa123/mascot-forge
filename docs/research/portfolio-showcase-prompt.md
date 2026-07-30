@@ -1,7 +1,7 @@
 # mascot-forge portfolio showcase — fresh-agent planning prompt
 
 > Copy everything below the line into a fresh Claude Code session rooted at
-> `C:\Users\student1\Dev\mascot-forge`. Your deliverable is a **plan document**,
+> `C:\Users\dev\Dev\mascot-forge`. Your deliverable is a **plan document**,
 > not implementation. Do NOT edit any source file.
 
 ---
@@ -101,7 +101,7 @@ section, links to the live demo, and `check-all.ps1` still passes").
 ## 3. Deliverable
 
 Write `docs/portfolio-showcase-implementation-plan.md` in
-`C:\Users\student1\Dev\mascot-forge`.
+`C:\Users\dev\Dev\mascot-forge`.
 
 The plan must include:
 - **Goal** — what the repo looks like when done (one paragraph; written as if describing

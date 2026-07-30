@@ -1,7 +1,7 @@
 # Second-Asset Validation — fresh-agent implementation prompt
 
 > Copy everything below the line into a fresh Claude Code session at
-> `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
+> `C:\Users\dev\Dev\mascot-forge`. Companion design doc:
 > [`docs/second-asset-validation-implementation-plan.md`](../plans/second-asset-validation-implementation-plan.md).
 
 ---
@@ -13,7 +13,7 @@ tool is hard-coded to the DevBrain mascot, **record the gap and proceed with a m
 refactor the engine inside a validation spike. The deliverable is a second mascot rendered in both Output
 Targets across `idle/active/alert` PLUS an honest friction catalogue and a v1.1 backlog — NOT new engine code.
 
-You are running the **Second-Asset Validation spike** for mascot-forge in C:\Users\student1\Dev\mascot-forge.
+You are running the **Second-Asset Validation spike** for mascot-forge in C:\Users\dev\Dev\mascot-forge.
 The whole pipeline has only ever run on one asset (DevBrain). This spike runs it on a *second, different*
 mascot to prove the engine generalises. Only make changes directly required by this spike. Do NOT add
 pipeline capability, dependencies, tools, CI, or a second engine.

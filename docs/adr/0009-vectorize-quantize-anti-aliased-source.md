@@ -8,7 +8,7 @@
 ADR-0005 assumed the Clean Mascot Source is flat pixel art with a small fixed palette, so
 Phase 1 could do exact same-colour clustering → `<rect>` RLE/greedy-mesh with no quantization
 ("no K-means in v1"). Decoding the actual approved source
-(`C:\Users\student1\Dev\DevBrain\public\mascot\default.png`, 192×192, `Format32bppArgb`)
+(`C:\Users\dev\Dev\DevBrain\public\mascot\default.png`, 192×192, `Format32bppArgb`)
 contradicts that premise:
 
 | Measure | Value |

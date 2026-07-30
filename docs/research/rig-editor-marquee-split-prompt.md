@@ -1,7 +1,7 @@
 # Rig Editor — marquee rect-level split (Phase 1 finish) — fresh-agent prompt
 
 > Copy everything below the line into a fresh Claude Code session rooted at
-> `C:\Users\student1\Dev\mascot-forge`. Deliverable is **working code + tests**. This finishes the
+> `C:\Users\dev\Dev\mascot-forge`. Deliverable is **working code + tests**. This finishes the
 > one functional gap left in the shipped Phase 1 rig editor; it is a small, contained addition, not
 > a re-architecture. Build it as written; if you find it genuinely wrong mid-build, stop and flag it.
 

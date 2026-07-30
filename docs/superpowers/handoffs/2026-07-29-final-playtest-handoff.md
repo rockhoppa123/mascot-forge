@@ -1,6 +1,6 @@
 # Handoff — mascot-forge final playtest (the last item before the project is complete)
 
-**Written:** 2026-07-29 · **Repo:** `C:\Users\student1\Dev\mascot-forge` · **Branch:** `main`, clean
+**Written:** 2026-07-29 · **Repo:** `C:\Users\dev\Dev\mascot-forge` · **Branch:** `main`, clean
 **State:** merged and **pushed** — `main` == `origin/main`, 0 unpushed. Public repo:
 `https://github.com/rockhoppa123/mascot-forge`
 

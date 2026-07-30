@@ -13,7 +13,7 @@ plan.
 Completed:
 
 - Clean Mascot Source candidate approved by the user:
-  `C:\Users\student1\Dev\DevBrain\public\mascot\default.png`.
+  `C:\Users\dev\Dev\DevBrain\public\mascot\default.png`.
 - Source metadata rechecked and recorded in `docs/buildable-slice/README.md`.
 - Manual Part SVG fixture created at `docs/buildable-slice/devbrain-manual-part.svg`.
 - Small rig fixture created at `docs/buildable-slice/devbrain-rigged.json`.
@@ -46,9 +46,9 @@ Results:
 Review artifacts:
 
 ```text
-C:\Users\student1\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-idle-reduced.png
-C:\Users\student1\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-active-reduced.png
-C:\Users\student1\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-alert-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-idle-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-active-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-buildable-slice-screenshots\devbrain-svg-css-alert-reduced.png
 ```
 
 Current state after golden acceptance:
@@ -122,7 +122,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
 Result:
 
 ```text
-Emitted SVG+CSS demo files to C:\Users\student1\Dev\mascot-forge\docs\buildable-slice\generated
+Emitted SVG+CSS demo files to C:\Users\dev\Dev\mascot-forge\docs\buildable-slice\generated
 ```
 
 ```powershell
@@ -139,9 +139,9 @@ Browser review artifacts captured with existing Chrome through Playwright CLI at
 accepted `900x620` review viewport:
 
 ```text
-C:\Users\student1\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-idle-reduced.png
-C:\Users\student1\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-active-reduced.png
-C:\Users\student1\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-alert-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-idle-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-active-reduced.png
+C:\Users\dev\AppData\Local\Temp\mascot-forge-generated-screenshots\devbrain-svg-css-generated-alert-reduced.png
 ```
 
 These captures are temporary review artifacts. They were not copied into
@@ -265,7 +265,7 @@ telemetry binding belongs in this stage.
 
 ### Verification For The Approved Emitter Stage
 
-Run from `C:\Users\student1\Dev\mascot-forge`:
+Run from `C:\Users\dev\Dev\mascot-forge`:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
@@ -375,7 +375,7 @@ Candidate found:
 
 | Field | Value |
 |---|---|
-| Candidate path | `C:\Users\student1\Dev\DevBrain\public\mascot\default.png` |
+| Candidate path | `C:\Users\dev\Dev\DevBrain\public\mascot\default.png` |
 | Dimensions | `192x192` |
 | Pixel format | `Format32bppArgb` |
 | Alpha flag | `true` |
@@ -384,7 +384,7 @@ Candidate found:
 | Last modified | `2026-06-16 13:32:59` |
 
 The parallel copy at
-`C:\Users\student1\Dev\DevBrain-mascot\public\mascot\default.png` has the same
+`C:\Users\dev\Dev\DevBrain-mascot\public\mascot\default.png` has the same
 dimensions, pixel format, alpha flag, corner alpha values, and file size.
 
 The checked-in `assets/devbrain-mascot-reference-v1.png` remains a reference sheet only.
@@ -452,7 +452,7 @@ Required shape:
   "version": 1,
   "source": {
     "kind": "clean-mascot-source",
-    "path": "C:\\Users\\student1\\Dev\\DevBrain\\public\\mascot\\default.png",
+    "path": "C:\\Users\\dev\\Dev\\DevBrain\\public\\mascot\\default.png",
     "metadata": {
       "width": 192,
       "height": 192,
@@ -634,12 +634,12 @@ Evidence:
 
 ## Verification Commands For The First Implementation Pass
 
-Run from `C:\Users\student1\Dev\mascot-forge`.
+Run from `C:\Users\dev\Dev\mascot-forge`.
 
 Clean source metadata:
 
 ```powershell
-$path = 'C:\Users\student1\Dev\DevBrain\public\mascot\default.png'
+$path = 'C:\Users\dev\Dev\DevBrain\public\mascot\default.png'
 Add-Type -AssemblyName System.Drawing
 $img = [System.Drawing.Bitmap]::FromFile($path)
 try {

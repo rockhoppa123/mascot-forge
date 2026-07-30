@@ -1,6 +1,6 @@
 # Next Stage Prompt — Phase 1 Ingest & Vectorize (PNG → flat.svg)
 
-Target: fresh Claude Code (or Codex) session in `C:\Users\student1\Dev\mascot-forge`.
+Target: fresh Claude Code (or Codex) session in `C:\Users\dev\Dev\mascot-forge`.
 
 Optimized for: the stage after Phase 3 (codegen) closed — one `rigged.json` (schema v2)
 drives both Output Targets around canonical pivots, and the React+GSAP emitter shipped at
@@ -15,7 +15,7 @@ Full plan: [`docs/phase-1-vectorize-implementation-plan.md`](../plans/phase-1-ve
 
 ```text
 You are implementing Phase 1 (Ingest & Vectorize) of mascot-forge in
-C:\Users\student1\Dev\mascot-forge. Deliver a dependency-free pixel-art vectorizer that
+C:\Users\dev\Dev\mascot-forge. Deliver a dependency-free pixel-art vectorizer that
 turns the Clean Mascot Source PNG into a generated flat.svg. Favour clarity and exactness
 over cleverness. Only build what is specified below — do not add features, segmentation,
 or abstractions beyond this phase.

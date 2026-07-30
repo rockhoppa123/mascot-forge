@@ -13,7 +13,7 @@ Buildable Slice fixture/demo pass and golden acceptance are complete.
 ## Copyable prompt
 
 ```text
-You are Codex working in C:\Users\student1\Dev\mascot-forge.
+You are Codex working in C:\Users\dev\Dev\mascot-forge.
 
 ## Objective
 
