@@ -1,7 +1,7 @@
 # Phase 4 — State Orchestrator: Implementation Plan
 
 **Status:** 📋 planned. Created 2026-06-18.
-**Build-plan position:** step 5 of [`technical-proposal.md` §7](technical-proposal.md). Phases 3
+**Build-plan position:** step 5 of [`technical-proposal.md` §7](../technical-proposal.md). Phases 3
 (codegen + schema-lock v2), 1 (vectorize), and 2 (assisted segmentation) are complete; this is
 the next phase. After this: step 6 (Polish & demo).
 
@@ -30,12 +30,12 @@ data-reactive mascot (Phase 4)**.
 
 ## Evidence basis (documented)
 
-- **[technical-proposal.md §5](technical-proposal.md)** — Phase 4 contract: small state machine
+- **[technical-proposal.md §5](../technical-proposal.md)** — Phase 4 contract: small state machine
   (`idle`/`active`/`alert`, transition rules — debounce, priority); thin data-binding hook
   `useMascotState(source)` reading JSON poll / WebSocket / DevBrain telemetry, source injectable;
   performance posture (CSS for idle loops, GSAP only on events). **Output contract: a documented
   runtime API — `setState(name)`, `bind(source)`, and the React hook.**
-- **[ADR-0008 — rigged.json schema v2](adr/0008-rigged-json-schema-v2-lock.md)** — `states`
+- **[ADR-0008 — rigged.json schema v2](../adr/0008-rigged-json-schema-v2-lock.md)** — `states`
   array (`idle`, `active`, `alert`) is the canonical state vocabulary the orchestrator targets.
 - **Existing state surface (locked, read-only):**
   - SVG+CSS — `tools/emit-svg-css.ps1` emits CSS keyed on `#mascot[data-state="<state>"]`; the
@@ -43,7 +43,7 @@ data-reactive mascot (Phase 4)**.
     drive is **the `data-state` attribute on an inlined `#mascot` SVG**.
   - React+GSAP — `tools/emit-react-gsap/` drives timelines from a state value; the hook returns
     the current state for the component to consume.
-- **[research-log Q3](research/research-log.md)** — GSAP-vs-CSS runtime cost on low-power
+- **[research-log Q3](../research/research-log.md)** — GSAP-vs-CSS runtime cost on low-power
   clients is "now unblocked: both targets emit from one `rigged.json`, so a fair comparison is
   runnable." A live bound mascot is what makes that benchmark runnable (companion note below).
 

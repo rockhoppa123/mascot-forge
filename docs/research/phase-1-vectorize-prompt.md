@@ -7,7 +7,7 @@ drives both Output Targets around canonical pivots, and the React+GSAP emitter s
 `tools/emit-react-gsap/`. The next documented build-plan step is **Phase 1 — Ingest &
 Vectorize**: a dependency-free PNG→`flat.svg` pixel-art vectorizer.
 
-Full plan: [`docs/phase-1-vectorize-implementation-plan.md`](phase-1-vectorize-implementation-plan.md).
+Full plan: [`docs/phase-1-vectorize-implementation-plan.md`](../plans/phase-1-vectorize-implementation-plan.md).
 
 ---
 

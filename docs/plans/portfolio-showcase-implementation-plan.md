@@ -102,7 +102,7 @@ rough effort in parens.
 - What: (1) add a hero image at the top — see Risk on capture; interim use the existing
   `land-rover-svgcss-idle.png` or a showcase screenshot. (2) Add one line near the top: "Proven on two
   visually different assets — a pixel-art creature and a cartoon vehicle — with zero engine edits
-  (see the [second-asset spike](spikes/03-second-asset/FINDINGS.md))." (3) Click every demo/showcase
+  (see the [second-asset spike](../../spikes/03-second-asset/FINDINGS.md))." (3) Click every demo/showcase
   link and confirm it resolves.
 - Acceptance: README renders the hero on GitHub (image committed, relative path); "two assets" line
   present; all links valid. No section rewritten.

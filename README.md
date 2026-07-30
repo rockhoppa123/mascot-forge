@@ -154,6 +154,8 @@ See the [Technical Proposal](docs/technical-proposal.md) for the full architectu
 | Output verdict | **Both targets; SVG+CSS default**, React+GSAP opt-in | [0007](docs/adr/0007-output-target-verdict-both-svg-css-default.md) |
 | Rig contract | **`rigged.json` schema v2** (canonical pivots, structured channels) | [0008](docs/adr/0008-rigged-json-schema-v2-lock.md) |
 | Vectorization | **Deterministic colour quantization** for anti-aliased source | [0009](docs/adr/0009-vectorize-quantize-anti-aliased-source.md) |
+| Part taxonomy | **Per-asset data**, not a tool constant | [0010](docs/adr/0010-part-taxonomy-is-per-asset-data.md) |
+| Rig geometry | **Geometry-agnostic parts** — any SVG element, not just `rect` | [0011](docs/adr/0011-geometry-agnostic-parts.md) |
 
 ## Repository layout
 

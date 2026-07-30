@@ -8,7 +8,7 @@
 > cleanly, and honours reduced motion. Decision recorded in
 > [ADR-0008](../adr/0008-rigged-json-schema-v2-lock.md). Next stage:
 > [Phase 1 — Vectorize](phase-1-vectorize-prompt.md)
-> ([plan](../phase-1-vectorize-implementation-plan.md)).
+> ([plan](../plans/phase-1-vectorize-implementation-plan.md)).
 
 Target: fresh Codex or Claude Code session working inside `C:\Users\student1\Dev\mascot-forge`.
 

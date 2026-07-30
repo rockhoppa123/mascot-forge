@@ -1,8 +1,8 @@
 # Q3 — GSAP-vs-CSS runtime cost benchmark: Implementation Plan
 
 **Status:** 📋 planned. Created 2026-06-18.
-**Tracks:** open question **Q3** in [`research/research-log.md`](research/research-log.md) (🔴 → measure) and the
-"main-thread jank on weak clients" risk in [`technical-proposal.md` §8](technical-proposal.md). This is a
+**Tracks:** open question **Q3** in [`research/research-log.md`](../research/research-log.md) (🔴 → measure) and the
+"main-thread jank on weak clients" risk in [`technical-proposal.md` §8](../technical-proposal.md). This is a
 **measurement spike**, not a pipeline phase — v1 is feature-complete (Phases 1–4 + Phase 6 shipped). It
 adds **no new pipeline capability**; it attaches numbers to a decision already made on judgement (ADR-0007).
 

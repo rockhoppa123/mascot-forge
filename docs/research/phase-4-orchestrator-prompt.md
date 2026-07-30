@@ -2,7 +2,7 @@
 
 > Copy everything below the line into a fresh Claude Code session at
 > `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
-> [`docs/phase-4-orchestrator-implementation-plan.md`](../phase-4-orchestrator-implementation-plan.md).
+> [`docs/phase-4-orchestrator-implementation-plan.md`](../plans/phase-4-orchestrator-implementation-plan.md).
 
 ---
 

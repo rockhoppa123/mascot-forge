@@ -2,7 +2,7 @@
 
 > Copy everything below the line into a fresh Claude Code session at
 > `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
-> [`docs/q3-gsap-vs-css-benchmark-implementation-plan.md`](../q3-gsap-vs-css-benchmark-implementation-plan.md).
+> [`docs/q3-gsap-vs-css-benchmark-implementation-plan.md`](../plans/q3-gsap-vs-css-benchmark-implementation-plan.md).
 
 ---
 

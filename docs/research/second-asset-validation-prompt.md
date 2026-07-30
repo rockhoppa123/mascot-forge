@@ -2,7 +2,7 @@
 
 > Copy everything below the line into a fresh Claude Code session at
 > `C:\Users\student1\Dev\mascot-forge`. Companion design doc:
-> [`docs/second-asset-validation-implementation-plan.md`](../second-asset-validation-implementation-plan.md).
+> [`docs/second-asset-validation-implementation-plan.md`](../plans/second-asset-validation-implementation-plan.md).
 
 ---
 

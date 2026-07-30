@@ -392,7 +392,7 @@ git commit -m "feat(mcp): forge_propose flags animated/inert overlap that would 
 ```markdown
   `.riv` file played by a ~200 KB WASM canvas runtime. You don't own the animation as
   editable code. (Size is not the argument — our own payload is the emitted SVG geometry and scales
-  with the art; see [ADR-0007](docs/adr/0007-output-target-verdict-both-svg-css-default.md). Ownership is.)
+  with the art; see [ADR-0007](../../adr/0007-output-target-verdict-both-svg-css-default.md). Ownership is.)
 ```
 
 - [ ] **Step 2: Correct the autonomy framing** — the headline reads "**Hand a flat image to your AI agent and get back an animated web component you own.**" The playtest showed the auto-proposal cannot emit: roles are the agent's judgment. Adjust the headline sentence so it promises assisted rigging, not autopilot — keep it punchy, e.g.:

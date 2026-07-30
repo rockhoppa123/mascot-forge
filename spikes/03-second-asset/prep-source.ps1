@@ -1,5 +1,5 @@
 param(
-  [string]$SourceJpg = "C:\Users\student1\Downloads\Series III Land Rover Mascot.jpg",
+  [string]$SourceJpg = "",   # required - pass the source photo; no default (it used to be a personal Downloads path)
   [string]$OutPng    = "assets/land-rover/land-rover.png",
   [int]$Size         = 256,   # downscale target; native 1024 is too big for the pixel-RLE vectorizer (DevBrain was 192)
   [int]$SatTol       = 30,    # background is near-grey: max-min channel <= SatTol
@@ -14,6 +14,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 function Resolve-RepoPath { param([string]$p) if ([System.IO.Path]::IsPathRooted($p)) { return $p } return (Join-Path $repoRoot $p) }
 $src = $SourceJpg
+if (-not $src) { throw "Pass -SourceJpg <path to the source photo>. This spike prepares ONE asset and that file is not in the repo." }
 if (-not (Test-Path -LiteralPath $src)) { throw "Source not found: $src" }
 $out = Resolve-RepoPath $OutPng
 $outDir = Split-Path -Parent $out

@@ -1,7 +1,7 @@
 # Phase 6 — Polish & Demo: Implementation Plan
 
 **Status:** 📋 planned. Created 2026-06-18.
-**Build-plan position:** step 6 (final) of [`technical-proposal.md` §7](technical-proposal.md). Phases 3
+**Build-plan position:** step 6 (final) of [`technical-proposal.md` §7](../technical-proposal.md). Phases 3
 (codegen + schema-lock v2), 1 (vectorize), 2 (assisted segmentation), and 4 (orchestrator) are all
 complete. This is the closing phase: make the finished pipeline **legible and showable** — it adds
 no new pipeline capability.
@@ -37,7 +37,7 @@ This is the portfolio close-out (mascot-forge is portfolio-first, MIT — ADR-00
 
 ## Evidence basis (documented)
 
-- **[technical-proposal.md §7 step 6](technical-proposal.md)** — Phase 6 scope verbatim: "Polish &
+- **[technical-proposal.md §7 step 6](../technical-proposal.md)** — Phase 6 scope verbatim: "Polish &
   demo. README demo, docs, tests, before/after vs. the PNG baseline."
 - **Stale `README.md`** — line 11–12 still says *"Status: pre-alpha / research + design phase … No
   runtime code yet."* The pipeline diagram (§Pipeline) has **no ✅ markers**; the repository-layout
@@ -51,7 +51,7 @@ This is the portfolio close-out (mascot-forge is portfolio-first, MIT — ADR-00
   `data-state` from a mock feed. The showcase reuses this exact mechanism.
 - **Existing checks to aggregate:** `check-flat-svg.ps1` (P1), `check-segmented.ps1` (P2),
   `check-buildable-slice.ps1` (P3 slice), `check-orchestrator.ps1` (P4) + `node runtime/mascot-state.test.mjs`.
-- **[research-log Q3](research/research-log.md)** — GSAP-vs-CSS low-power benchmark is 🔴 "now
+- **[research-log Q3](../research/research-log.md)** — GSAP-vs-CSS low-power benchmark is 🔴 "now
   unblocked" but **empirical / separate**; Phase 6 flags it as runnable, does not run it.
 
 ---

@@ -58,6 +58,9 @@ const checks = [
     name: "P7 react-gsap", // second Output Target: pure-core golden + the cross-target pivot proof
     run: () => runAll(["tools", "emit-react-gsap"], ["emit-react", "cross-target-pivot"]),
   },
+  // Docs are part of the product here — the README is the pitch and the guides are the contract. 25
+  // broken relative links shipped because nothing checked them.
+  { name: "P8 docs-links", run: () => run(gate("check-links.mjs")) },
 ];
 
 const results = [];

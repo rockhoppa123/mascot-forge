@@ -1,14 +1,14 @@
 # Phase 1 — Ingest & Vectorize: Implementation Plan
 
 **Status:** ✅ done 2026-06-18 (`tools/vectorize-pixel.ps1`). Created 2026-06-17.
-**Build-plan position:** step 3 of [`technical-proposal.md` §7](technical-proposal.md). Phase 3
+**Build-plan position:** step 3 of [`technical-proposal.md` §7](../technical-proposal.md). Phase 3
 (codegen — both emitters + schema-lock v2) is complete; this is the next phase.
 
 > **Outcome note (2026-06-18):** the Clean Mascot Source proved to be an anti-aliased raster
 > (2,381 distinct colours), not flat pixel art, so the "exact same-colour clustering, no
 > K-means" approach below degenerates to ~1 rect/pixel. v1 instead vectorizes by deterministic
 > **colour quantization** (median-cut, largest-gap split) — see
-> [ADR-0009](adr/0009-vectorize-quantize-anti-aliased-source.md). `flat.svg` is a faithful
+> [ADR-0009](../adr/0009-vectorize-quantize-anti-aliased-source.md). `flat.svg` is a faithful
 > colour-clustered reduction (default palette 6 → 89 rects, 98.8% reduction), not bit-exact.
 > The contract (viewBox, per-colour `<g>` groups, rects-not-paths, transparent pose preserved,
 > deterministic) below still holds; `data-render-method` is `quantized-color-rle`.
@@ -30,13 +30,13 @@ intermediate-artifact contract of the pipeline.
 
 ## Evidence basis (documented)
 
-- **[technical-proposal.md §2](technical-proposal.md)** — Phase 1 contract: pixel-art path
+- **[technical-proposal.md §2](../technical-proposal.md)** — Phase 1 contract: pixel-art path
   v1, RLE / greedy-meshing so contiguous same-colour pixels collapse into one `<rect>`;
   output `flat.svg` with colours preserved, geometry grouped by colour cluster, viewBox
   matching source dimensions. "Vectorization is a solved, deterministic problem — no VLM."
-- **[ADR-0005 — pixel-art PoC first](adr/0005-pixel-art-poc-first.md)** — pixel-grid →
+- **[ADR-0005 — pixel-art PoC first](../adr/0005-pixel-art-poc-first.md)** — pixel-grid →
   exact SVG geometry is the reliable v1 route; DevBrain mascot is pixel art.
-- **[research/references.md](research/references.md)** — prior art: GLORP (greedy meshing),
+- **[research/references.md](../research/references.md)** — prior art: GLORP (greedy meshing),
   pixel2svg (RLE: contiguous pixels → one rect), jwolle1 grid approach; **VTracer (MIT,
   O(n), colour clustering)** reserved for the *later* general flat-art path, not v1.
 - **Existing proof:** `devbrain-manual-part.svg` already carries `data-render-method=
