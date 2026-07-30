@@ -57,11 +57,7 @@ file is served from your own app. Reach for `vtracer` when the output needs to b
 embedded in a README, a favicon, anywhere download weight or a hard size ceiling matters more than
 per-pixel exactness.
 
-**Current limit:** `engine` is a real parameter on `startFromImage` and reachable by any direct caller
-(a script, `mcp/tools.test.mjs`), but it is **not yet in the MCP tool's own input schema**
-(`forge_start_from_image` in `mcp/server.mjs`) — an agent driving the live MCP tools cannot select it
-today. Stated here rather than silently, per this repo's own honesty rule: a capability that exists in
-one code path but not the one most callers actually use is a gap, not a feature.
+Selectable over the wire: pass `engine: "vtracer"` (or omit for `"scanline"`) to `forge_start_from_image`.
 
 ## Run / connect
 

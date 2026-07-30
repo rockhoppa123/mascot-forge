@@ -43,12 +43,18 @@ export function buildServer() {
         "front (e.g. [\"idle\",\"active\",\"alert\",\"loading\",\"success\",\"error\"] — order is runtime priority, " +
         "error last = highest); signal states reuse " +
         "alert/active motion and must be declared here — a rig's vocabulary is fixed at start. Defaults to " +
-        "[\"idle\",\"active\",\"alert\"].",
+        "[\"idle\",\"active\",\"alert\"]. `engine`: \"scanline\" (default) preserves per-pixel colour but is " +
+        "heavy — thousands of near-duplicate colours on an anti-aliased source become thousands of " +
+        "<rect>s. \"vtracer\" traces compact <path> contours instead (one path per colour REGION, not per " +
+        "pixel) — ~100x smaller, at the cost of per-pixel colour and returning everything as one passive " +
+        "\"part-body\" you then carve with assign_region. Reach for vtracer when the output needs to be " +
+        "small (an embed, a badge); scanline when per-pixel fidelity matters more.",
       inputSchema: {
         base64: z.string().optional(),
         path: z.string().optional(),
         colors: z.number().int().min(1).max(32).optional(),
         maxDim: z.number().int().min(16).max(1024).optional(),
+        engine: z.enum(["scanline", "vtracer"]).optional(),
         states: z.array(z.string()).optional(),
       },
     },

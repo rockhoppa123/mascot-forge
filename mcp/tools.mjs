@@ -170,8 +170,8 @@ function downscale({ rgba, w, h }, maxDim) {
 // on an anti-aliased source become thousands of <rect>s (~500KB for a 192x192 DevBrain-sized asset).
 // "vtracer" traces proper <path> contours instead: ~100x smaller for the same source, at the cost of
 // per-region (not per-pixel) colour. Use vtracer when output SIZE matters (embeds, badges), scanline
-// when per-pixel fidelity matters more. See mcp/README.md "Choosing a raster engine" for the tradeoff
-// — NOT yet exposed on the MCP tool schema (server.mjs), only reachable by a direct caller.
+// when per-pixel fidelity matters more. See mcp/README.md "Choosing a raster engine" for the tradeoff.
+// Exposed on the MCP tool schema too (server.mjs) — an agent can select it directly.
 export function startFromImage({ base64, path, colors = 6, maxDim = 256, engine = "scanline", states = STANDARD_STATES } = {}) { // colors default matches the editor + docs (6)
   if (!base64 && !path) throw new Error("provide base64 or path (PNG)");
   const buf = base64 ? Buffer.from(base64, "base64") : readFileSync(safePath(path));

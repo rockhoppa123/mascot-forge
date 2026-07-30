@@ -67,6 +67,22 @@ try {
   assert.equal(emitted.ok, true, `forge_emit is valid over the wire: ${JSON.stringify(emitted.validation || emitted.error)}`);
   assert.ok(emitted.svgBytes > 0, "produced a self-contained svg over the wire");
 
+  // 2a2. engine is selectable AT THE WIRE, not just via a direct tools.mjs call. The 3-block fixture
+  // is specifically shaped to segment into 3 parts via the default scanline engine (that's what the
+  // regions loop above just proved) — vtracer instead always returns exactly ONE passive "part-body"
+  // (mcp/tools.mjs: elements all get part:"part-body"), so the part count is a cheap, real signal
+  // that the engine choice actually reached the vectoriser, not just that the call didn't crash.
+  const vtraced = parseResult(await client.callTool({
+    name: "forge_start_from_image", arguments: { base64: threeBlockPngBase64(), colors: 4, engine: "vtracer" },
+  }));
+  assert.deepEqual(vtraced.parts.map((p) => p.id), ["part-body"],
+    "engine:'vtracer' over the wire produces vtracer's single-part shape, not scanline's multi-part one");
+
+  const badEngine = await client.callTool({
+    name: "forge_start_from_image", arguments: { base64: threeBlockPngBase64(), engine: "bogus" },
+  });
+  assert.equal(badEngine.isError, true, "an unknown engine value is rejected by the schema, not silently ignored");
+
   // 2b. the layered-SVG alt entry also works over the wire (parts named from layers, no segmentation)
   const layered = parseResult(await client.callTool({
     name: "forge_start_from_layered_svg",
