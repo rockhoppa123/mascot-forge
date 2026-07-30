@@ -12,7 +12,7 @@ node-tested modules the browser editor uses. No model is bundled; the agent is t
 | Tool | What it does |
 |---|---|
 | `forge_start_from_layered_svg` | Primary entry: a layered vector SVG (Figma/Inkscape/Illustrator) where each top-level `<g>` is already a named part — no segmentation needed. **Ingests `rect` and `path` shapes only** — a layer containing `circle`, `ellipse`, `polygon`, `polyline`, or `line` is refused; convert to paths first, or use the browser rig editor, which handles all seven SVG shape types. |
-| `forge_start_from_image` | Fallback entry when no layered source exists: PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. |
+| `forge_start_from_image` | Fallback entry when no layered source exists: PNG (base64 or project-relative path) → vectorise, grade the input, propose coarse parts. Pass `states` to declare a reactivity tier up front. Returns `{ session, viewBox, parts, inputGrade }`. Vectorises via one of two engines — see below. |
 | `assign_region` | Move shapes inside a normalized box (`x,y,w,h` each 0..1 of the viewBox) into a part, with a role. The vision-driven core. |
 | `set_part` | Set a part's motion metadata in one call: `role`, `kind`, `bone`, `pivot` (role-aware default if omitted), and `presets` per state. |
 | `forge_propose` | Analyze-first report: a regions overlay plus a per-part motion plan (mirror-aware) for the human to confirm at a checkpoint. |
@@ -37,6 +37,31 @@ flow: pick a reactivity tier → grade → propose + present the motion plan →
 4. `forge_status` until `rigStatus` shows every declared state covered.
 5. `forge_emit({ session, assetName })` → a validated, self-contained animated mascot — code you own.
    `forge_open_editor` is available at any point for a deep manual fix in the browser rig editor.
+
+## Choosing a raster engine (file size vs. pixel fidelity)
+
+`startFromImage` (`mcp/tools.mjs`) vectorises a raster source through one of two engines, and the
+choice is entirely about **output weight**, not rig quality — both produce a fully riggable model.
+
+- **`scanline` (default)** — one `<rect>` per contiguous run of same-colour pixels, preserving the
+  source's exact per-pixel colour (including anti-aliasing). Faithful, but that fidelity is expensive:
+  the shipped `devbrain-manual-part.svg` fixture is ~500 KB for a 192×192 pixel-art image, because an
+  anti-aliased source produces thousands of near-duplicate colours, each needing its own `<rect>`.
+- **`vtracer`** — proper contour tracing into compact `<path>` geometry. The same DevBrain source
+  vectorises to ~5 KB through this engine — two orders of magnitude smaller, visually indistinguishable
+  at icon/badge scale. The cost: one path per colour region, geometry-agnostic parts only (no
+  per-pixel colour data), so it suits flat/limited-palette art better than a smoothly-shaded source.
+
+**Rule of thumb:** default (`scanline`) for the primary rigged asset, where fidelity matters and the
+file is served from your own app. Reach for `vtracer` when the output needs to be small and portable —
+embedded in a README, a favicon, anywhere download weight or a hard size ceiling matters more than
+per-pixel exactness.
+
+**Current limit:** `engine` is a real parameter on `startFromImage` and reachable by any direct caller
+(a script, `mcp/tools.test.mjs`), but it is **not yet in the MCP tool's own input schema**
+(`forge_start_from_image` in `mcp/server.mjs`) — an agent driving the live MCP tools cannot select it
+today. Stated here rather than silently, per this repo's own honesty rule: a capability that exists in
+one code path but not the one most callers actually use is a gap, not a feature.
 
 ## Run / connect
 
