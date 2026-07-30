@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>mascot-forge — before / after, two assets</title>
+  <title>Mascot Forge — before / after, two assets</title>
   <!--
     Showcase: the visual proof that mascot-forge is an ENGINE, not one hand-tuned demo.
     Two visually different assets, each shown baseline-vs-forged:
-      • DevBrain   — pixel-art creature (the origin asset, test case #1).
+      • Moustache mascot — pixel-art creature (the origin asset, test case #1).
       • Land Rover — cartoon vehicle (the second-asset validation, spikes/03-second-asset).
     BEFORE = the original raster (a whole-sprite PNG; parts can't move independently, no live data).
     AFTER  = the SAME asset, forged. Each "after" panel fetch+injects the locked generated SVG+CSS
@@ -49,17 +49,17 @@
        auto-cycling idle &rarr; active &rarr; alert. Same engine, zero per-asset render code.</p>
   </header>
 
-  <h2 class="asset">DevBrain — pixel-art creature (origin asset)</h2>
+  <h2 class="asset">Moustache mascot — pixel-art creature (origin asset)</h2>
   <main>
     <section class="panel">
       <div class="tag before">Before — flipbook baseline</div>
-      <div class="stage"><img src="../../assets/devbrain-mascot-reference-v1.png" alt="DevBrain flipbook baseline PNG (whole-sprite pose)"></div>
+      <div class="stage"><img src="../../assets/devbrain/reference-sheets/devbrain-mascot-reference-v1.png" alt="Moustache mascot flipbook baseline PNG (whole-sprite pose)"></div>
       <div class="caption"><p>Whole-sprite pre-rendered PNG. Motion is a flipbook of full-frame poses — the legs and
          antenna cannot move independently, and it knows nothing about live data.</p></div>
     </section>
     <section class="panel">
       <div class="tag after">After — forged &amp; data-reactive</div>
-      <div class="stage" id="stage-db" aria-label="Forged DevBrain mascot driven by a live telemetry source"></div>
+      <div class="stage" id="stage-db" aria-label="Forged moustache mascot driven by a live telemetry source"></div>
       <div class="caption">
         <p>Independent part articulation + reacts to live data via the Phase-4 orchestrator.
            Priority <code>alert &gt; active &gt; idle</code>; downgrades hold for hysteresis.</p>
@@ -80,7 +80,7 @@
       <div class="tag after">After — forged &amp; data-reactive</div>
       <div class="stage" id="stage-lr" aria-label="Forged Land Rover mascot driven by a live telemetry source"></div>
       <div class="caption">
-        <p>The DevBrain rig slots remapped onto vehicle anatomy (wheels, flag, headlight eyes, grille) —
+        <p>The moustache mascot's rig slots remapped onto vehicle anatomy (wheels, flag, headlight eyes, grille) —
            same schema, same orchestrator, same mock feed.</p>
         <span id="badge-lr" class="badge" data-state="idle">idle</span>
       </div>

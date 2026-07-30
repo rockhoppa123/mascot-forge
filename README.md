@@ -1,4 +1,4 @@
-# mascot-forge
+# Mascot Forge
 
 [![CI](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -16,9 +16,10 @@ No layered source on hand? Both entry points also take a flat raster image as a 
 auto-proposing parts by vision for you to confirm — useful, but not the same guarantee as layers a
 human already named.
 
-The former DevBrain mascot now lives here as the flagship showoff asset: source sheets, exported poses,
-and the old DevBrain runtime baseline are kept under [`assets/devbrain/`](assets/devbrain/) so the
-project can prove the whole loop from existing art → MCP-assisted rig → owned animated code.
+The moustache mascot below is the flagship showoff asset — a real pixel-art character retired from a
+personal dashboard project, not art drawn for this README. Its source sheets, exported poses, and old
+flipbook-PNG baseline are kept under [`assets/devbrain/`](assets/devbrain/) so the project can prove the
+whole loop from existing art → MCP-assisted rig → owned animated code.
 
 > The two differentiators are **named-layer rigging** (your Figma layers become parts with zero
 > guessing — no vision, no invented anatomy) and the **live-data binding** (animation states wired to
@@ -30,29 +31,27 @@ project can prove the whole loop from existing art → MCP-assisted rig → owne
 > detection is a best-effort starting point — you finish the rig in the visual editor. Photographic
 > input is out of scope either way.
 
-![A mascot forged by mascot-forge — semantic parts that articulate and react to live state](docs/hero-mascot.png)
+![The flagship mascot, forged: idle breathing, walking legs, an alert antenna pulse — all three states from one rig](docs/hero-mascot.gif)
 
-> _Interim still. The live before/after showcase animates two assets side by side — serve the repo
-> and open [`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html). An animated
-> GIF/screenshot of that page is the one remaining capture step (see [CONTRIBUTING](CONTRIBUTING.md))._
+> _Live capture of [`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html)'s forged
+> panel cycling idle → active → alert. That page also shows the *before* — a whole-sprite flipbook PNG
+> that can't move independently — side by side with this, plus a second asset (a cartoon vehicle) proving
+> the engine isn't tuned to one input._
 
 ### Hand your layers to your agent → get an owned mascot that reacts to live data
 
-<!-- HERO SLOT (P-D): record one full idle→active→alert cycle of the demo below as docs/hero-mcp-live.gif,
-     then this image renders the headline story. Until then the link runs it live. -->
+![An agent-rigged robot mascot reacting to a live telemetry feed — no buttons, the state machine drives it](docs/hero-mcp-live.gif)
 
-> _No GIF yet — and none is required: the demo below is a working, tested page, not a placeholder. A
-> recording is an optional upgrade on top of it (see [CONTRIBUTING](CONTRIBUTING.md)), not a
-> prerequisite. Serve the repo and open
-> [`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html) — **the
-> hero:** a layered SVG (each top-level `<g>` a named part) was rigged through the **MCP tool chain**
-> — `forge_start_from_layered_svg` → `set_part` → `forge_emit`, driven by a script rather than a live
-> agent, so you can rerun it yourself — into the self-contained SVG you see, then
-> driven by the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js) bound to a mock
-> telemetry feed — no buttons, the state machine cycles idle → active → alert. Regenerate it with
-> `node mcp/build-robot-demo.mjs`. No layered source on hand? The same story runs on the **raster**
-> fallback path at [`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html),
-> where a flat smiley PNG is auto-segmented and rigged instead — regenerate that one with
+> _The headline story: a layered SVG (each top-level `<g>` a named part) was rigged through the **MCP
+> tool chain** — `forge_start_from_layered_svg` → `set_part` → `forge_emit`, driven by a script rather
+> than a live agent, so you can rerun it yourself — into the self-contained SVG above, then driven by
+> the dependency-free [`runtime/mascot-state.js`](runtime/mascot-state.js) bound to a mock telemetry
+> feed — no buttons, the state machine cycles idle → active → alert. Regenerate it with
+> `node mcp/build-robot-demo.mjs`, or open the live page yourself:
+> [`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html). No
+> layered source on hand? The same story runs on the **raster** fallback path at
+> [`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html), where a flat
+> smiley PNG is auto-segmented and rigged instead — regenerate that one with
 > `node mcp/build-smiley-demo.mjs`._
 
 mascot-forge is an open-source pipeline that takes a **layered SVG** — a Figma/Illustrator/Inkscape
@@ -64,8 +63,8 @@ black-box runtime, the output is **human-readable code you can read, edit, and o
 component, GSAP timelines (or pure SVG/CSS), and a small state machine that binds animation states to
 your application's live data.
 
-**Proven on two visually different assets** — a pixel-art creature (DevBrain) and a cartoon
-vehicle (Land Rover) — forged by the same engine with **zero engine edits** (see the
+**Proven on two visually different assets** — a pixel-art creature (the moustache mascot) and a cartoon
+vehicle (a Land Rover) — forged by the same engine with **zero engine edits** (see the
 [second-asset validation](spikes/03-second-asset/FINDINGS.md)). That is the difference between
 *one hand-tuned demo* and *an engine*.
 
@@ -108,13 +107,12 @@ animation **states bind to your app's live data**. That data-reactive binding, a
 the part Rive and Lottie structurally can't give you. And since **GSAP became 100% free (all plugins,
 commercial use) in April 2025**, the React+GSAP output carries no licensing asterisk.
 
-## The showoff asset: DevBrain
+## The showoff asset: the moustache mascot
 
-mascot-forge starts as dogfooding. DevBrain (the author's
-self-hosted homelab dashboard) used to carry a pixel-art moustache mascot. That mascot has moved out
-of DevBrain and into mascot-forge. Its old implementation was a **flipbook of pre-rendered PNG poses**
-swapped per state, with whole-sprite motion — exactly why it looked "good but not pro": the legs and
-antenna could not move independently. That asset is now the flagship showoff asset
+mascot-forge starts as dogfooding. This pixel-art moustache mascot used to carry a personal, self-hosted
+homelab dashboard. Its old implementation was a **flipbook of pre-rendered PNG poses** swapped per
+state, with whole-sprite motion — exactly why it looked "good but not pro": the legs and antenna could
+not move independently. That asset is now the flagship showoff asset
 (see [`assets/devbrain/`](assets/devbrain/)) and the baseline mascot-forge must beat.
 
 ## Pipeline (shipped — v1 buildable slice)
@@ -192,7 +190,7 @@ mascot-forge/
 │   ├── research/              ← landscape, references, research-log, phase plans
 │   └── adr/                   ← architecture decision records (0001–0011)
 └── assets/
-    └── devbrain/                 ← flagship showoff asset + legacy DevBrain baseline
+    └── devbrain/                 ← flagship showoff asset + its legacy flipbook baseline
 ```
 
 ## Rig your mascot with your agent (MCP)
@@ -343,7 +341,7 @@ preview the motion, and export the `manual-part.svg` + `rigged.json` pair instea
 
 - It assumes `assets/<asset>/parts-spec.json` exists; source PNG, rig, and out-dir default by
   convention and are overridable (`-SourcePath`, `-RigPath`, `-OutDir`, …). `mf forge devbrain`
-  reproduces the committed DevBrain output byte-for-byte.
+  reproduces the committed moustache-mascot output byte-for-byte.
 - **Oversized sources:** segmentation's CCL is O(n²) over flat `<rect>`s, so `segment-parts.ps1`
   fails fast above `-MaxRects` (default 8000). Downscale a large source with **nearest-neighbor**
   first (`spikes/03-second-asset/prep-source.ps1`, ADR-0009) before forging.
@@ -351,7 +349,7 @@ preview the motion, and export the `manual-part.svg` + `rigged.json` pair instea
 ### Regenerate the shipped demo output (optional)
 
 ```powershell
-# Re-emit the SVG+CSS Output Target from the committed DevBrain rig contract (regenerates docs/buildable-slice/generated/)
+# Re-emit the SVG+CSS Output Target from the committed moustache-mascot rig contract (regenerates docs/buildable-slice/generated/)
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\emit-svg-css.ps1
 ```
 
@@ -361,8 +359,8 @@ The demos `fetch()` the generated SVG, so serve them over HTTP (file:// is block
 - `http://localhost:4178/docs/buildable-slice/generated/devbrain-svg-css.generated-demo.html` — the generated SVG+CSS demo (manual state buttons).
 - `http://localhost:4178/docs/buildable-slice/layered-live-demo.html` — **the hero:** a layered-SVG, MCP/agent-rigged mascot reacting to a live (mock) telemetry feed (idle → active → alert).
 - `http://localhost:4178/docs/buildable-slice/mcp-live-demo.html` — the **raster** fallback: a flat-PNG, MCP/agent-rigged mascot reacting to the same live (mock) telemetry feed.
-- `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the (hand-rigged DevBrain) mascot reacting to a live (mock) telemetry feed.
-- `http://localhost:4178/docs/buildable-slice/showcase.html` — **before vs after for both assets** (DevBrain + Land Rover), forged and data-reactive side-by-side — the engine proof.
+- `http://localhost:4178/docs/buildable-slice/orchestrator-demo.html` — Phase-4: the hand-rigged moustache mascot reacting to a live (mock) telemetry feed.
+- `http://localhost:4178/docs/buildable-slice/showcase.html` — **before vs after for both assets** (moustache mascot + Land Rover), forged and data-reactive side-by-side — the engine proof.
 
 ## License
 

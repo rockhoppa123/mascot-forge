@@ -59,32 +59,19 @@ line above, kept so `mf check` and existing habits keep working.
 Keep generated artifacts as **build output** — regenerate them via `mf emit`, don't hand-patch.
 Don't introduce a new runtime dependency for what a few lines can do.
 
-## Help wanted — capture the showcase hero
+## Regenerating the README hero GIFs
 
-The README hero is an interim still. The live two-asset before/after page
-([`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html)) is the real thing but a
-GIF/screenshot of it can only be captured by a human running it in a browser:
+`docs/hero-mascot.gif` and `docs/hero-mcp-live.gif` are captures of the live demo pages
+([`docs/buildable-slice/showcase.html`](docs/buildable-slice/showcase.html) and
+[`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html)), not
+hand-drawn art. They are regenerable-but-ungated: nothing checks their freshness, so if the rig, the
+CSS, or the demo markup changes, re-run the capture rather than letting the README quietly go stale.
 
-1. `python -m http.server 4178` from the repo root.
-2. Open `http://localhost:4178/docs/buildable-slice/showcase.html`.
-3. Record the auto-cycling idle → active → alert loop; export a GIF.
-4. Replace `docs/hero-mascot.png` and drop the interim-still note in the README.
+```powershell
+python -m http.server 4178      # from the repo root, in one terminal
+node tools/capture-hero-gifs.mjs  # in another — needs Playwright (tests/node_modules) and ffmpeg on PATH
+```
 
-### …and the MCP live-data hero (P-D) — optional, the demo already works without it
-
-The headline story — an agent-rigged mascot reacting to live data — runs at
-[`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html), the
-**layered** path. The README hero slot links straight to that page and it genuinely animates on its
-own — a GIF is **not a prerequisite**, only an optional upgrade for people skimming the README without
-running it. If you'd like to capture one anyway:
-
-1. (Optional) regenerate the agent-rigged SVG: `cd mcp && npm install && node build-robot-demo.mjs`.
-2. `python -m http.server 4178` from the repo root.
-3. Open `http://localhost:4178/docs/buildable-slice/layered-live-demo.html`.
-4. Screen-record one full idle → active → alert → idle cycle (~9 s); export a GIF.
-5. Save it as `docs/hero-mcp-live.gif` and swap it into the README's `<!-- HERO SLOT -->` — do this
-   only if you want to; the linked page is the real demo either way.
-
-The same page also exists in its **raster** form,
-[`docs/buildable-slice/mcp-live-demo.html`](docs/buildable-slice/mcp-live-demo.html) (regenerate with
-`node build-smiley-demo.mjs` from `mcp/`), for anyone without a layered source to rig.
+Not part of the gate: it needs a real browser and ffmpeg, neither of which the zero-dependency
+runtime/gate may depend on. If ffmpeg isn't on PATH, install it (`winget install ffmpeg` on Windows) —
+the script has no fallback renderer.

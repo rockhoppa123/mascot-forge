@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DevBrain mascot — Phase 4 orchestrator (reacts to live data)</title>
+  <title>Moustache mascot — Phase 4 orchestrator (reacts to live data)</title>
   <!--
     Phase 4 proof: the mascot REACTS TO LIVE DATA. This page reuses the LOCKED generated SVG+CSS
     Output Target read-only (fetched + injected — no duplicated geometry), then drives it with the
@@ -33,7 +33,7 @@
 </head>
 <body>
   <main>
-    <section class="stage" id="stage" aria-label="DevBrain mascot driven by a live telemetry source"></section>
+    <section class="stage" id="stage" aria-label="Moustache mascot driven by a live telemetry source"></section>
     <aside class="panel">
       <h1>Phase 4 — orchestrator</h1>
       <p class="sub">Mock telemetry feed drives the state machine. Priority <code>alert &gt; active &gt; idle</code>; downgrades hold for hysteresis.</p>
@@ -71,7 +71,7 @@
     }
 
     // Mock telemetry: a synthetic activity metric that ramps 0 -> 1 -> 0 over ~9s, the shape a
-    // DevBrain feed would push. >0.66 => alert, >0.25 => active, else nothing asserted (idle).
+    // live telemetry feed would push. >0.66 => alert, >0.25 => active, else nothing asserted (idle).
     function metricToState(load) {
       if (load > 0.66) return "alert";
       if (load > 0.25) return "active";
