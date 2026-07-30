@@ -1,7 +1,7 @@
 # Launch Checklist — mascot-forge v1.0.0
 
-Owner-gated steps to take mascot-forge public. Most need Andrew (publish, tag, record); this doc is the
-runbook + the talking points, not an automation.
+Maintainer runbook for taking mascot-forge public: the steps that need a human (publish, tag, record)
+plus the talking points. Not an automation, and not a contributor guide — see CONTRIBUTING.md for that.
 
 ## What's shippable now (done)
 
@@ -16,7 +16,7 @@ runbook + the talking points, not an automation.
 
 ## Demo script (for the GIF + transcript)
 
-Use the former DevBrain mascot in `assets/devbrain/` as the flagship showoff unless Andrew deliberately
+Use the former DevBrain mascot in `assets/devbrain/` as the flagship showoff unless the maintainer deliberately
 chooses a different public asset.
 
 1. `forge_start_from_image` on the DevBrain showoff mascot PNG (colour-distinct → use the `vtracer` engine).
@@ -24,7 +24,7 @@ chooses a different public asset.
 3. `forge_review` → approve at the elicitation prompt.
 4. `forge_emit` → open the side-by-side demo HTML (original beside the animated mascot).
 
-## Checklist (needs Andrew)
+## Checklist (needs a maintainer)
 
 - [ ] **Hero GIF** of the loop above → `docs/hero-mcp-live.gif` (screen-record steps 1–4).
 - [ ] **Live-agent transcript** (a real client driving the MCP, not the sim) → `docs/launch/transcript.md`.

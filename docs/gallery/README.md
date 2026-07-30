@@ -36,7 +36,7 @@ distinct body / window / wheel colours → real parts → per-part motion.
 
 A **flat single-colour shape** (e.g. a black cat icon). There is one fill, so there is one part:
 the whole body. You get breathing, but nothing can wave, blink, or spin, because there is nothing
-to separate. `Cat.png` is the canonical example — the grade flags it up front so you can swap to a
+to separate. `assets/test-images/cat.png` is the canonical example — the grade flags it up front so you can swap to a
 layered source instead of finding out after you've rigged.
 
 > **Rule of thumb:** if you can't point at 3–4 *different colours* that map to *different moving

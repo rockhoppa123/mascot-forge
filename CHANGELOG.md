@@ -9,6 +9,35 @@ All notable changes to mascot-forge are documented here. Format follows
 Public-ready state — staged for the `v1.0.0` release (cut at public launch alongside the live demo).
 
 ### Added
+- **The gate is cross-platform.** `node tools/gate/check-all.mjs` is now the canonical regression gate:
+  pure Node, zero dependencies at the repo root, runs on any OS. The four PowerShell checkers (P1 flat-svg,
+  P2 segmented, P3 buildable-slice, P4 orchestrator) were ported to `tools/gate/*.mjs` and retired.
+  `tools/check-all.ps1` survives as a thin shim so `mf check` and existing habits keep working, and both
+  entry points print the same summary. CI's gate job moved to `ubuntu-latest`, with a second Windows job
+  covering the shim. Port fidelity was proven by per-checker mutation matrices run against temp copies —
+  breaking one thing at a time and requiring the checker to notice — rather than by the gate going green,
+  because a checker that asserts nothing also produces PASS.
+- **A committed layered-SVG example, and a guide for producing one.**
+  [`assets/example-layered/robot.svg`](assets/example-layered/robot.svg) is a hand-authored export with
+  seven named layers, proven to ingest through both the browser editor and `forge_start_from_layered_svg`.
+  [`docs/guides/exporting-layers.md`](docs/guides/exporting-layers.md) is the onboarding path under the
+  layered-first direction: every rule in it is traced to the code that implements it, and it leads with the
+  transform rule, which previously existed nowhere but a runtime error string.
+- **A layered live-data hero that cannot rot silently.**
+  [`docs/buildable-slice/layered-live-demo.html`](docs/buildable-slice/layered-live-demo.html) is generated
+  from the committed asset by `node mcp/build-robot-demo.mjs` — the layered counterpart to
+  `build-smiley-demo.mjs`, i.e. a runnable reproduction of the whole layered loop with no live agent. It is
+  gated twice: a freshness golden that rebuilds from the same recipe and demands a byte match, and an e2e
+  that measures real displacement under a paused-and-seeked animation. The previous hero was a README image
+  reference to a file that never existed.
+- **Per-tool MCP annotations** (`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`) on
+  all ten tools, pinned by a contract test. Classification came from reading what each tool does, not its
+  name: `forge_propose` writes a preview file, `forge_emit` can overwrite files in `outDir`, and
+  `forge_apply_tweaks` is not idempotent because a rename cannot find the old id twice. Only `forge_status`
+  and `forge_review` are read-only. Tool count unchanged at 10.
+- **New e2e coverage** for the layered path: a real `#file` drop through the UI to a real download
+  (matching what the raster path already had), a cross-path test proving the pure node parser and the
+  browser DOM parser agree on one fixture, and the hero animation proof. Suite: 24 → 30.
 - **React+GSAP reachable from the MCP agent path** — `forge_emit` gains a `target` parameter
   (`"svg-css"` default | `"react-gsap"` | `"both"`), implementing ADR-0003's "one rig contract,
   swappable emitter" for the first time on the agent path. The emitter's logic moved into a pure ESM
