@@ -4,6 +4,8 @@
 // the test is deterministic. Run: `node mcp/tools.test.mjs` (after `npm install` in mcp/).
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { existsSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { PNG } from "pngjs";
 import { startFromImage, assignRegion, setPart, forgeStatus, forgeEmit, forgePropose, applyTweaks, editorHandoff, defaultPresetFor, startFromLayeredSvg, planFor, _sessions } from "./tools.mjs";
 import { parseLayered } from "../tools/rig-editor/layer-ingest.js";
@@ -562,3 +564,29 @@ console.log(`tools.test.mjs (agent-sim): all assertions passed. moved=${a1.moved
   assert.match(a, /silhouette|single-colour|one region|whole-body/i, "the silhouette problem is stated");
   assert.match(a, /role/i, "the no-role problem is ALSO stated");
 }
+
+// --- PATH TRAVERSAL: the joined FILENAME must be re-validated, not just the directory --------------
+// safePath() confines outDir, but the output filename interpolates assetName and the JOINED result was
+// never re-checked, so `assetName: "../.."` walked back out. Reproduced in the 2026-07-30 playtest,
+// which left proof artifacts one directory above the session dir every legitimate emit wrote into.
+{
+  const LAYERED = '<svg viewBox="0 0 100 100"><g id="body" data-role="core" data-preset-idle="breathe">'
+    + '<rect x="10" y="10" width="40" height="40" fill="#c00"/></g></svg>';
+  const s = startFromLayeredSvg({ svg: LAYERED });
+  const escapeName = "../".repeat(8) + "pwned";
+  const target = resolve(fileURLToPath(new URL("..", import.meta.url)), "out/traversal-test", `${escapeName}-mascot.svg`);
+  assert.throws(
+    () => forgeEmit({ session: s.session, assetName: escapeName, outDir: "out/traversal-test" }),
+    /outside project root/,
+    "an assetName that walks out of the project root is refused at the write, not just at the directory",
+  );
+  assert.equal(existsSync(target), false, `nothing was written outside the root (${target})`);
+
+  // and a legitimate emit into the same dir still works — the guard must not block the normal path
+  const okEmit = forgeEmit({ session: s.session, assetName: "traversal-control", outDir: "out/traversal-test" });
+  assert.equal(okEmit.ok, true, "a normal assetName still emits");
+  assert.ok(okEmit.written.every((f) => f.includes("traversal-test")), "…and lands inside the requested dir");
+  rmSync(fileURLToPath(new URL("../out/traversal-test", import.meta.url)), { recursive: true, force: true });
+}
+
+console.log("tools.test.mjs: traversal guard green.");

@@ -148,7 +148,11 @@ export function buildServer() {
         "a path-based rig returns a clear error naming the ceiling.",
       inputSchema: {
         session: z.string(),
-        assetName: z.string().optional(),
+        // assetName becomes a FILENAME and is interpolated into the emitted HTML/SVG, so it is
+        // constrained to a safe charset at the wire, before any of that. A charset allowlist, not a
+        // ".." filter — an encoded separator walks around a filter. tools.mjs re-validates the joined
+        // path at the write too, so a direct caller that never touches this schema is still confined.
+        assetName: z.string().regex(/^[A-Za-z0-9._-]+$/, "assetName may contain only letters, digits, dot, underscore and hyphen").optional(),
         outDir: z.string().optional(),
         target: z.enum(["svg-css", "react-gsap", "both"]).optional(),
       },

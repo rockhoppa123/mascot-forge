@@ -62,4 +62,24 @@ const manualSvg = readFileSync(join(root, "docs/buildable-slice/devbrain-manual-
   for (const s of rig.states) assert.ok(html.includes(`data-s="${s}"`), `has a ${s} button`);
 }
 
+// --- assetName is untrusted in BOTH pages -------------------------------------------------------
+// Over MCP the input schema constrains it, but the browser editor takes it from the dropped FILE NAME,
+// which is a different trust path with no schema in front of it. It reaches a text node, an <h3>, and
+// a `download="…"` attribute, so it is escaped at every one of them.
+{
+  const evil = '"><img src=x onerror="alert(1)';
+  const animatedSvg = emitAnimatedSvg(rig, manualSvg);
+  for (const [what, html] of [
+    ["demo page", emitDemoHtml(rig, animatedSvg, evil)],
+    ["showcase page", emitShowcaseHtml(rig, animatedSvg, evil, "data:image/png;base64,AAAA")],
+  ]) {
+    // targeted, because the showcase legitimately renders an <img> for the source thumbnail
+    assert.ok(!/<img[^>]*onerror/i.test(html), `${what}: a hostile assetName must not inject an element`);
+    assert.ok(html.includes("&quot;&gt;&lt;img"), `${what}: it appears escaped instead`);
+  }
+  // the download attribute is its own context — a bare quote there escapes the attribute, not a tag
+  const show = emitShowcaseHtml(rig, animatedSvg, evil);
+  assert.ok(!/download="[^"]*"[^>]*\bonerror\b/.test(show), "showcase: the download attribute cannot be broken out of");
+}
+
 console.log("emit.test.mjs: all assertions passed.");

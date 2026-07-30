@@ -4,6 +4,12 @@
 // emitter stays the reference — equivalence, not byte-identity). `scope` lets the editor target
 // `#stage` and the standalone export target `#mascot`.
 
+// assetName reaches text nodes and a `download="…"` attribute. Over MCP its charset is constrained by
+// the input schema, but the browser editor takes it from the dropped FILE NAME — a different trust path
+// with no schema in front of it — so it is escaped here, where every page is built.
+const escHtml = (s) => String(s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 export function emitCss(rig, { scope = "#mascot" } = {}) {
   const L = [];
   L.push(`${scope} .part { transform-box: fill-box; transition: transform 160ms ease, opacity 120ms ease; }`);
@@ -45,13 +51,14 @@ export function emitAnimatedSvg(rig, manualSvg) {
 // A standalone demo page: the animated SVG inlined with state-toggle buttons. One file, no dependencies.
 // sourceDataUri (optional) shows the original image beside the mascot so the rig can be compared to it.
 export function emitDemoHtml(rig, animatedSvg, assetName = "mascot", sourceDataUri = null) {
+  const name = escHtml(assetName);
   const buttons = rig.states.map((s) => `<button data-s="${s}">${s}</button>`).join("");
   const source = sourceDataUri
     ? `<div id="source"><p>original</p><img alt="source image" src="${sourceDataUri}"></div>`
     : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${assetName} — animated mascot</title>
+<title>${name} — animated mascot</title>
 <style>
   body { font:14px system-ui,sans-serif; margin:0; display:flex; min-height:100vh; }
   #stage { flex:1; display:grid; place-items:center; background:#eef3f8; }
@@ -64,7 +71,7 @@ export function emitDemoHtml(rig, animatedSvg, assetName = "mascot", sourceDataU
 </style></head>
 <body>
   <div id="stage">${animatedSvg}</div>
-  <div id="panel"><h3>${assetName}</h3><p>preview state:</p>${buttons}${source}</div>
+  <div id="panel"><h3>${name}</h3><p>preview state:</p>${buttons}${source}</div>
   <script>
     var svg = document.querySelector('#stage svg');
     document.querySelectorAll('[data-s]').forEach(function (b) { b.onclick = function () { svg.setAttribute('data-state', b.dataset.s); }; });
@@ -79,6 +86,7 @@ export function emitDemoHtml(rig, animatedSvg, assetName = "mascot", sourceDataU
 // CSS — opens correctly on file://. prefers-reduced-motion: the inlined SVG CSS already disables the
 // animations; here we also skip auto-starting the cycle when the user asked for reduced motion.
 export function emitShowcaseHtml(rig, animatedSvg, assetName = "mascot", sourceDataUri = null) {
+  const name = escHtml(assetName);
   const inlineSvg = animatedSvg.replace(/^\s*<\?xml[^?]*\?>\s*/, ""); // strip XML prolog → embeds cleanly
   // base64 the SVG for the download anchor. Buffer in node (mcp), btoa in the browser (drop-zone) —
   // emit.js is shared, so it must work in both. encodeURIComponent guards non-ASCII before btoa.
@@ -91,7 +99,7 @@ export function emitShowcaseHtml(rig, animatedSvg, assetName = "mascot", sourceD
     : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${assetName} — mascot showcase</title>
+<title>${name} — mascot showcase</title>
 <style>
   :root { color-scheme: light; }
   body { font:14px system-ui,sans-serif; margin:0; color:#1d2533; background:#eef3f8; display:flex; min-height:100vh; }
@@ -111,11 +119,11 @@ export function emitShowcaseHtml(rig, animatedSvg, assetName = "mascot", sourceD
 <body>
   <div id="stage">${inlineSvg}</div>
   <div id="panel">
-    <h3>${assetName}</h3>
+    <h3>${name}</h3>
     <p>state</p>
     <div class="btns">${buttons}</div>
     <button id="play" aria-pressed="false">▶ Play feed</button>
-    <a id="dl" download="${assetName}.svg" href="data:image/svg+xml;base64,${svgB64}">⬇ Download SVG</a>
+    <a id="dl" download="${name}.svg" href="data:image/svg+xml;base64,${svgB64}">⬇ Download SVG</a>
     ${source}
   </div>
   <script>

@@ -79,6 +79,17 @@ try {
   assert.equal(err.isError, true, "a handler error is reported as an MCP tool error, not a transport failure");
   assert.match(err.content[0].text, /base64 or path/, "the error message reaches the client");
 
+  // 3b. assetName is constrained AT THE WIRE — it becomes a filename and is interpolated into the
+  // emitted HTML/SVG. Rejected by the schema, so the handler never runs and no directory is created.
+  for (const bad of ["../../evil", "a/b", "x\\y", "<img src=x onerror=alert(1)>"]) {
+    const rej = await client.callTool({ name: "forge_emit", arguments: { session: started.session, assetName: bad } });
+    assert.equal(rej.isError, true, `assetName ${JSON.stringify(bad)} must be rejected by the input schema`);
+  }
+  const goodName = parseResult(await client.callTool({
+    name: "forge_emit", arguments: { session: started.session, assetName: "my_asset-2.v1" },
+  }));
+  assert.equal(goodName.ok, true, "a normal assetName (letters, digits, dot, underscore, hyphen) still passes");
+
   // 4. forge_review with a NON-eliciting client falls back to a plain result (never hangs)
   const rev = parseResult(await client.callTool({ name: "forge_review", arguments: { session: started.session } }));
   assert.equal(rev.elicitation, false, "forge_review degrades gracefully without client elicitation");

@@ -155,4 +155,15 @@ assert.ok(out.partsSpec.parts.every((p) => p.role && p.bone));
   for (const pct of originPct.split(" ")) assert.ok(Math.abs(parseFloat(pct)) <= 150, `origin ${pct} is sane (<=150%)`);
 }
 
+// assetName is interpolated into the manual-part SVG's <title> and its stylesheet href, and that SVG
+// is later inlined into the showcase page — so an unescaped `</title><script>` would become script in
+// somebody's document. Same untrusted-name path as emit.js, one layer earlier.
+{
+  const evil = '"></title><script>alert(1)</script>';
+  const out = exportRig(m, { assetName: evil, recipeFor });
+  assert.ok(!/<script/i.test(out.manualSvg), "a hostile assetName must not inject an element into the emitted SVG");
+  assert.ok(!/<\/title>[\s\S]*<\/title>/.test(out.manualSvg), "nor close the title element early");
+  assert.ok(out.manualSvg.includes("&lt;script&gt;"), "it appears escaped instead");
+}
+
 console.log("exporter.test.mjs: all assertions passed.");

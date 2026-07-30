@@ -89,10 +89,16 @@ export function exportRig(model, opts = {}) {
   return { manualSvg, riggedJson, partsSpec, ungrouped: model.ungroupedRects() };
 }
 
+// assetName reaches the SVG's <title> and its stylesheet href, and this SVG is later inlined into the
+// showcase page — an unescaped `</title><script>` there becomes script in somebody's document.
+const escXml = (s) => String(s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects, selections, opts }) {
+  const name = escXml(assetName);
   const renderMethod = opts.renderMethod || "ccl-color-threshold";
   const sourceBounds = opts.sourceBounds || boundsAttr(rects);
-  const cssHref = opts.cssHref || `${assetName}-svg-css.css`;
+  const cssHref = escXml(opts.cssHref || `${assetName}-svg-css.css`);
   const lines = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   lines.push(`<?xml-stylesheet type="text/css" href="${cssHref}"?>`);
@@ -104,7 +110,7 @@ function serializeSvg({ assetName, viewBox, states, orderedIds, resolved, rects,
       // seams between every row. Matches tools/emit-svg-css.ps1's shape-rendering: crispEdges.
       `shape-rendering="crispEdges" role="img" aria-labelledby="title desc">`
   );
-  lines.push(`  <title id="title">${assetName} Manual Part SVG</title>`);
+  lines.push(`  <title id="title">${name} Manual Part SVG</title>`);
   lines.push(`  <desc id="desc">Rig-editor export: semantic rig parts for SVG and CSS animation.</desc>`);
   lines.push(`  <g id="rig-root">`);
   for (const id of orderedIds) {

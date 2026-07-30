@@ -139,6 +139,14 @@ function safePath(p) {
   return r;
 }
 
+// Every write goes through here. safePath confines a DIRECTORY, but the output filename interpolates
+// assetName, and a joined path is a new path: `join(safeDir, "../../x")` resolves right back out. So the
+// FINAL path is re-validated immediately before the write, where it cannot be forgotten by the next
+// caller that builds a filename. Deliberately not a ".." string filter — encodings walk around those.
+function writeSafe(file, contents) {
+  writeFileSync(safePath(file), contents);
+}
+
 function decodePng(buf) {
   const png = PNG.sync.read(buf);
   return { rgba: png.data, w: png.width, h: png.height };
@@ -277,7 +285,7 @@ export function forgePropose({ session, outDir } = {}) {
   let preview;
   if (outDir) {
     const dir = safePath(outDir); mkdirSync(dir, { recursive: true });
-    const f = join(dir, "regions-preview.html"); writeFileSync(f, html);
+    const f = join(dir, "regions-preview.html"); writeSafe(f, html);
     preview = servedUrl(f); // a clickable link for the human checkpoint, matching forge_emit/forge_open_editor
   } else preview = html.length;
   const plan = planFor(s.model);
@@ -322,7 +330,7 @@ export function editorHandoff({ session, outDir } = {}) {
   lines.push("</svg>");
   const svg = lines.join("\n") + "\n";
   let written = null;
-  if (outDir) { const dir = safePath(outDir); mkdirSync(dir, { recursive: true }); written = join(dir, "rig-handoff.svg"); writeFileSync(written, svg); }
+  if (outDir) { const dir = safePath(outDir); mkdirSync(dir, { recursive: true }); written = join(dir, "rig-handoff.svg"); writeSafe(written, svg); }
   // `open` is the EDITOR url with ?rig= (auto-loads the handoff), not the raw svg path.
   const open = written ? `http://localhost:${SERVE_PORT}/tools/rig-editor/index.html?rig=${repoRel(written)}` : null;
   return { svg, written, editor: "tools/rig-editor/index.html", open };
@@ -370,7 +378,7 @@ export function forgeEmit({ session, assetName = "mascot", outDir, target = "svg
       const rdir = join(dir, "react-gsap"); mkdirSync(rdir, { recursive: true });
       for (const [name, contents] of Object.entries(reactFiles)) files.push([join(rdir, name), contents]);
     }
-    for (const [f, c] of files) writeFileSync(f, c);
+    for (const [f, c] of files) writeSafe(f, c);
     const res = { ok: true, validation: v, ...advisory, written: files.map(([f]) => f) };
     if (wantSvgCss) res.open = servedUrl(join(dir, `${assetName}-mascot-demo.html`));
     return res;
