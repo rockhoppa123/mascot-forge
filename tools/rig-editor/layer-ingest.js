@@ -120,6 +120,124 @@ export function stripNonRendered(text) {
 // either — stripping the whole comment span up front removes the stray `<g` before anything counts it.
 const COMMENT_RE = /<!--[\s\S]*?-->/g;
 
+// --- attribute allowlist + paint resolution ------------------------------------------------------
+// Captured markup is written verbatim into every emit target (exporter.js), and an emitted mascot is
+// meant to be pasted into someone else's page. So the element's attributes are rebuilt from an
+// ALLOWLIST — geometry, paint, id/class — and everything else is dropped. Deny by default, not an
+// `on*` denylist: a denylist is only ever as complete as the day it was written, and this tokenizer
+// (EL_RE) captures the OPENING TAG of seven shape elements and nothing else — no children, no <use>,
+// no SMIL — so the set of things worth keeping is small, closed, and knowable.
+const GEOM_ATTRS = ["x", "y", "width", "height", "rx", "ry", "d", "cx", "cy", "r",
+  "x1", "y1", "x2", "y2", "points", "pathLength"];
+const PAINT_PROPS = ["fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
+  "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset",
+  "opacity", "clip-rule", "paint-order", "vector-effect", "color"];
+const ALLOWED_ATTRS = new Set([...GEOM_ATTRS, ...PAINT_PROPS, "id", "class"]);
+const PAINT_SET = new Set(PAINT_PROPS);
+// `transform` is deliberately absent: parseLayered refuses any transform by layer name before it
+// could ever be captured, so allowlisting it would only describe an unreachable state.
+const ATTR_RE = /([A-Za-z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+// Only `"`/`<`/`>` are escaped — those are what could end the attribute or open a tag. `&` is left
+// alone on purpose: it cannot break out of an attribute value, and escaping it would double-encode
+// any entity the source already wrote (`&amp;` -> `&amp;amp;`), silently corrupting the art.
+const escAttr = (v) => String(v).replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function parseAttrs(aStr) {
+  const out = [];
+  ATTR_RE.lastIndex = 0;
+  let m;
+  while ((m = ATTR_RE.exec(aStr)) !== null) out.push([m[1], m[2] !== undefined ? m[2] : m[3]]);
+  return out;
+}
+
+// `fill:#fff; stroke:none !important` -> { fill: "#fff", stroke: "none" }. Non-paint declarations are
+// dropped with everything else — this runs on both a `style` attribute and a stylesheet rule body.
+function paintDecls(css) {
+  const out = {};
+  for (const decl of String(css || "").split(";")) {
+    const i = decl.indexOf(":");
+    if (i < 0) continue;
+    const prop = decl.slice(0, i).trim().toLowerCase();
+    if (!PAINT_SET.has(prop)) continue;
+    const value = decl.slice(i + 1).replace(/!important\s*$/i, "").trim();
+    if (value) out[prop] = value;
+  }
+  return out;
+}
+
+// Remove @media/@supports/@import spans. Without this a conditional rule's BODY would be read as a
+// top-level rule and applied unconditionally — an @media (prefers-color-scheme: dark) block would
+// repaint every shape in a colour the source never showed.
+function stripAtRules(css) {
+  let out = "", i = 0;
+  while (i < css.length) {
+    const at = css.indexOf("@", i);
+    if (at < 0) return out + css.slice(i);
+    out += css.slice(i, at);
+    const open = css.indexOf("{", at), semi = css.indexOf(";", at);
+    if (semi >= 0 && (open < 0 || semi < open)) { i = semi + 1; continue; }   // statement at-rule (@import …;)
+    if (open < 0) return out;                                                 // unterminated — drop the rest
+    let depth = 1, j = open + 1;
+    for (; j < css.length && depth > 0; j++) { if (css[j] === "{") depth++; else if (css[j] === "}") depth--; }
+    i = j;
+  }
+  return out;
+}
+
+const STYLE_BLOCK_RE = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+// Plain single-class selectors only (`.cls-1`, `.a, .b`). Everything else — pseudo-classes, element
+// and descendant selectors, anything with specificity we would have to model — is skipped rather than
+// guessed at. Read from the ORIGINAL text: stripNonRendered correctly deletes <defs>, which is exactly
+// where Adobe and Illustrator put this stylesheet, so by the time the layer scan runs it is gone.
+const CLASS_SEL_RE = /^\.[A-Za-z_-][\w-]*(?:\s*,\s*\.[A-Za-z_-][\w-]*)*$/;
+
+// Comments are stripped HERE rather than at the callers: a comment that merely mentions `<style>`
+// (a doc block describing the file's own shape — the e2e fixture does exactly this) opens the block
+// match early, so the first real rule is read as part of one giant selector and silently lost. Doing
+// it inside means the browser path cannot forget, the way it did the first time.
+export function classPaintRules(svgText) {
+  const rules = [];
+  STYLE_BLOCK_RE.lastIndex = 0;
+  for (const block of svgText.replace(COMMENT_RE, "").matchAll(STYLE_BLOCK_RE)) {
+    const css = stripAtRules(block[1].replace(/\/\*[\s\S]*?\*\//g, ""));
+    for (const rule of css.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+      const sel = rule[1].trim();
+      if (!CLASS_SEL_RE.test(sel)) continue;
+      const decls = paintDecls(rule[2]);
+      if (!Object.keys(decls).length) continue;
+      for (const one of sel.split(",")) rules.push([one.trim().slice(1), decls]);
+    }
+  }
+  return rules;
+}
+
+// Rebuild one element from its allowlisted attributes, with class/style paint resolved and inlined as
+// PRESENTATION attributes. Not a carried <style> block and not a style attribute: the emitted CSS
+// animates transform, never paint, so the lowest specificity is safe — and showcase.html mounts two
+// mascots in one document, where two Adobe exports both using `cls-1` would otherwise collide.
+// Cascade order is the real one: style attribute > class rule > presentation attribute.
+export function sanitizeElement(tag, aStr, rules = []) {
+  const kept = [];
+  const seen = new Set();
+  let classes = [], styleAttr = "";
+  for (const [name, value] of parseAttrs(aStr)) {
+    if (name === "style") { styleAttr = value; continue; }
+    if (name === "class") classes = value.split(/\s+/).filter(Boolean);
+    if (!ALLOWED_ATTRS.has(name) || seen.has(name)) continue;
+    seen.add(name);
+    kept.push([name, value]);
+  }
+  const paint = {};
+  for (const [cls, decls] of rules) if (classes.includes(cls)) Object.assign(paint, decls);
+  Object.assign(paint, paintDecls(styleAttr));
+  for (const [prop, value] of Object.entries(paint)) {
+    const at = kept.findIndex(([n]) => n === prop);
+    if (at >= 0) kept[at] = [prop, value]; else kept.push([prop, value]);
+  }
+  return `<${tag}${kept.map(([n, v]) => ` ${n}="${escAttr(v)}"`).join("")}/>`;
+}
+
 // A layer name -> a valid, unique part id ("Left Arm" -> "part-left-arm"). Dedupes with -2, -3 …
 export function sanitizeId(name, used = new Set()) {
   let base = String(name == null ? "" : name).trim().toLowerCase()
@@ -149,7 +267,12 @@ export function parseLayered(svgText) {
   // from INSIDE a chosen layer's inner text too, so a second, per-layer pass would just repeat work
   // already done. It also means a root-level <defs>/<clipPath> can never be selected as a layer, since
   // topLevelGroups never sees it.
-  const scanText = stripNonRendered(svgText.replace(COMMENT_RE, ""));
+  const noComments = svgText.replace(COMMENT_RE, "");
+  // Paint rules come from the text BEFORE the strip — the stylesheet lives in <defs>, which the strip
+  // (correctly) deletes, so reading it afterwards finds nothing. After comment removal, though: a
+  // commented-out <style> must not paint anything, for the same reason a commented-out <g> is not a layer.
+  const paintRules = classPaintRules(noComments);
+  const scanText = stripNonRendered(noComments);
 
   // Read the root attrs from the STRIPPED text, not the raw source: a comment preceding the root
   // element may itself contain an `<svg …>` fragment (a commented-out wrapper, a banner quoting one),
@@ -200,7 +323,7 @@ export function parseLayered(svgText) {
       // defer to the browser's getBBox.
       const d = attr(aStr, "d");
       const bbox = tag === "rect" ? rectBBox(aStr) : (tag === "path" && d ? pathBBox(d) : null);
-      elements.push({ id: `e${eid++}`, part, markup: m[0], bbox });
+      elements.push({ id: `e${eid++}`, part, markup: sanitizeElement(tag, aStr, paintRules), bbox });
     }
   }
   return { viewBox, elements, parts: partsMeta, states };

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Shaped like an Adobe Illustrator export: the colours live in a <style> inside <defs>, and the
+       shapes reference them by class. The hostile attributes on the last rect are deliberate — the
+       ingest allowlist must drop them. Hand-authored on purpose: a genuine third-party export cannot
+       be committed to a public MIT repo (see the 2026-07-30 playtest, item 4). -->
+  <defs>
+    <style>
+      .cls-1 { fill: #d7e8fb; }
+      .cls-2 { fill: #079d76; stroke: #123456; stroke-width: 2; }
+      .cls-2:hover { fill: #ff0000; }
+      @media (prefers-color-scheme: dark) { .cls-1 { fill: #000000; } }
+    </style>
+  </defs>
+  <g id="Body">
+    <rect class="cls-1" x="20" y="20" width="60" height="50" rx="6"/>
+    <path class="cls-2" d="M30 30 L70 30 L70 60 L30 60 Z"/>
+  </g>
+  <g id="Arm">
+    <rect class="cls-1" onload="window.__pwned = 1" onclick="window.__pwned = 2" x="5" y="30" width="10" height="30"/>
+  </g>
+</svg>

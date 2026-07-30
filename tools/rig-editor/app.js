@@ -14,7 +14,7 @@ import { exportRig } from "./exporter.js";
 import { rectsInMarquee } from "./select.js";
 import { vectorizeRaster } from "./vectorize.js";
 import { segment } from "./segment.js";
-import { sanitizeId, toModel, transformErrorMessage } from "./layer-ingest.js";
+import { sanitizeId, toModel, transformErrorMessage, classPaintRules, sanitizeElement } from "./layer-ingest.js";
 import { emitCss, emitAnimatedSvg, emitDemoHtml } from "./emit.js";
 
 const $ = (id) => document.getElementById(id);
@@ -205,6 +205,9 @@ function loadLayeredSvg(svgText, name) {
   document.body.appendChild(wrap);
 
   const DRAW = "rect,path,circle,ellipse,polygon,polyline,line";
+  // Read from the SOURCE TEXT, not the parsed doc: the same rules the node path resolves, so a file
+  // rigged in the editor and the same file rigged over MCP emit the same colours.
+  const paintRules = classPaintRules(svgText);
   // self-describing handoff rig: root data-states + per-group role/bone/pivot/preset-* rebuild a live,
   // ANIMATED model. A plain layered SVG (Figma/Inkscape) lacks these attrs → partsMeta stays empty → same
   // geometry-only behaviour as before.
@@ -252,7 +255,12 @@ function loadLayeredSvg(svgText, name) {
     for (const el of g.querySelectorAll(DRAW)) {
       if (!isArt(el)) continue;   // a clip shape is not art — it would export as a phantom element
       let bb; try { bb = el.getBBox(); } catch { bb = { x: 0, y: 0, width: 0, height: 0 }; }
-      elements.push({ id: `e${eid++}`, part, markup: el.outerHTML, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
+      // Same allowlist + class-to-paint inlining as the node path, for the same two reasons: outerHTML
+      // carries whatever the source wrote (including `on*`) verbatim into the export, and a class-styled
+      // source loses its colours because the <style> block does not travel with the element.
+      const attrs = el.getAttributeNames().map((n) => ` ${n}="${el.getAttribute(n).replace(/"/g, "&quot;")}"`).join("");
+      const markup = sanitizeElement(el.tagName.toLowerCase(), attrs, paintRules);
+      elements.push({ id: `e${eid++}`, part, markup, bbox: { x: bb.x, y: bb.y, w: bb.width, h: bb.height } });
     }
   }
   document.body.removeChild(wrap);

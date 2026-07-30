@@ -1,7 +1,7 @@
 // Self-check for layered-SVG ingest (ADR-0011). No framework — node:assert, mirrors model.test.mjs.
 // Run: `node tools/rig-editor/layer-ingest.test.mjs`.
 import assert from "node:assert/strict";
-import { sanitizeId, parseLayered, toModel } from "./layer-ingest.js";
+import { sanitizeId, parseLayered, toModel, classPaintRules } from "./layer-ingest.js";
 import { recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
 import { exportRig } from "./exporter.js";
@@ -356,6 +356,136 @@ const LAYERED = `<?xml version="1.0"?>
 {
   const { parts } = parseLayered('<svg viewBox="0 0 10 10" data-states="idle,phase-2"><g id="p" data-role="core" data-preset-phase-2="breathe"><rect x="0" y="0" width="5" height="5" fill="#c"/></g></svg>');
   assert.equal(parts["part-p"].presets["phase-2"], "breathe", "hyphen/digit state preset captured");
+}
+
+// --- ATTRIBUTE ALLOWLIST + CLASS-TO-PAINT INLINING ----------------------------------------------
+// Captured markup used to be the raw source opening tag, so (a) an Illustrator/Adobe export whose
+// colours live in a <style> block emitted pure-black silhouettes — stripNonRendered correctly deletes
+// <defs>, which is where that stylesheet lives — and (b) any attribute the source carried rode
+// verbatim into every emit target, including `on*` handlers. Both land here.
+
+const fillOf = (markup) => (markup.match(/\bfill="([^"]*)"/) || [])[1];
+const attrOf = (markup, n) => (markup.match(new RegExp(`\\b${n}="([^"]*)"`)) || [])[1];
+
+// A <style> in <defs> resolves onto the elements as PRESENTATION attributes (not a carried <style>
+// block: showcase.html mounts two mascots in one document, and two Adobe exports both using `cls-1`
+// would collide). This is the measured A3 symptom: 38 shapes, 5 undefined cls-* refs, zero fills.
+{
+  const CLASSED = '<svg viewBox="0 0 100 100">'
+    + '<defs><style>.cls-1 { fill: #d7e8fb; } .cls-2 { fill: #079d76; stroke: #000; stroke-width: 2; }</style></defs>'
+    + '<g id="Head"><path class="cls-1" d="M10 10 L30 30"/><rect class="cls-2" x="1" y="1" width="5" height="5"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(CLASSED);
+  assert.equal(elements.length, 2, "both shapes ingest");
+  assert.equal(fillOf(elements[0].markup), "#d7e8fb", "the class's fill is inlined onto the path");
+  assert.equal(fillOf(elements[1].markup), "#079d76", "…and onto the rect");
+  assert.equal(attrOf(elements[1].markup, "stroke"), "#000", "every paint property carries, not just fill");
+  assert.equal(attrOf(elements[1].markup, "stroke-width"), "2");
+  assert.ok(!/<style/i.test(elements.map((e) => e.markup).join("")), "no <style> block is carried through");
+}
+
+// Inkscape (and Bambu Studio, which exports through it) puts paint in a `style` ATTRIBUTE. The
+// attribute itself is not allowlisted — it can carry anything — but its paint declarations must
+// survive, or the allowlist would turn every Inkscape export black.
+{
+  const STYLED = '<svg viewBox="0 0 100 100"><g id="Head">'
+    + '<rect style="fill:#ff0000;stroke:#b5bfc2;stroke-width:0.3;stroke-dasharray:none" x="1" y="1" width="5" height="5"/>'
+    + '</g></svg>';
+  const [el] = parseLayered(STYLED).elements;
+  assert.equal(fillOf(el.markup), "#ff0000", "paint from a style attribute is inlined");
+  assert.equal(attrOf(el.markup, "stroke"), "#b5bfc2");
+  assert.equal(attrOf(el.markup, "stroke-width"), "0.3");
+  assert.ok(!/\bstyle="/.test(el.markup), "the raw style attribute itself does not survive");
+}
+
+// CSS cascade order: a style attribute beats a class rule, which beats a presentation attribute.
+{
+  const CASCADE = '<svg viewBox="0 0 100 100">'
+    + '<defs><style>.c { fill: #00ff00; }</style></defs>'
+    + '<g id="Head">'
+    +   '<rect class="c" fill="#111111" x="1" y="1" width="5" height="5"/>'
+    +   '<rect class="c" fill="#111111" style="fill:#0000ff" x="2" y="2" width="5" height="5"/>'
+    + '</g></svg>';
+  const [a, b] = parseLayered(CASCADE).elements;
+  assert.equal(fillOf(a.markup), "#00ff00", "a class rule outranks a presentation attribute");
+  assert.equal(fillOf(b.markup), "#0000ff", "a style attribute outranks both");
+  assert.equal((a.markup.match(/\bfill=/g) || []).length, 1, "the overridden fill is replaced, not duplicated");
+}
+
+// DENY BY DEFAULT. Anything not on the geometry/paint/id/class allowlist is dropped — no `on*`
+// denylist, which would only ever be as complete as the day it was written.
+{
+  const HOSTILE = '<svg viewBox="0 0 100 100"><g id="Head">'
+    + '<rect onload="alert(1)" onclick="alert(2)" href="javascript:alert(3)" xlink:href="#x" '
+    +   'style="fill:#abcdef" id="r1" class="k" x="1" y="2" width="5" height="6" rx="1" opacity="0.5"/>'
+    + '<path d="M1 1 L9 9" onmouseover="alert(4)" stroke="#123456" stroke-linecap="round"/>'
+    + '</g></svg>';
+  const [rect, path] = parseLayered(HOSTILE).elements;
+  const all = rect.markup + path.markup;
+  assert.ok(!/\son[a-z]+=/i.test(all), `no event handler attribute survives ingest: ${all}`);
+  assert.ok(!/href/i.test(all), "href / xlink:href are not allowlisted");
+  assert.equal(attrOf(rect.markup, "x"), "1", "geometry survives");
+  assert.equal(attrOf(rect.markup, "rx"), "1");
+  assert.equal(attrOf(rect.markup, "opacity"), "0.5", "paint survives");
+  assert.equal(attrOf(rect.markup, "id"), "r1", "id and class survive");
+  assert.equal(attrOf(rect.markup, "class"), "k");
+  assert.equal(fillOf(rect.markup), "#abcdef", "paint is still recovered from the dropped style attribute");
+  assert.equal(attrOf(path.markup, "d"), "M1 1 L9 9", "path data survives");
+  assert.equal(attrOf(path.markup, "stroke-linecap"), "round");
+}
+
+// Conditional and state-dependent rules are SKIPPED, never applied unconditionally: an @media block
+// or a :hover rule that leaked through would paint every shape with a colour the source never showed.
+{
+  const CONDITIONAL = '<svg viewBox="0 0 100 100">'
+    + '<defs><style>'
+    +   '.c { fill: #00ff00; }'
+    +   '.c:hover { fill: #ff0000; }'
+    +   '@media (prefers-color-scheme: dark) { .c { fill: #000000; } }'
+    +   '#Head .c { fill: #ffff00; }'
+    + '</style></defs>'
+    + '<g id="Head"><rect class="c" x="1" y="1" width="5" height="5"/></g></svg>';
+  const [el] = parseLayered(CONDITIONAL).elements;
+  assert.equal(fillOf(el.markup), "#00ff00", "only the plain single-class rule applies");
+}
+
+// A COMMENTED-OUT stylesheet paints nothing, and a comment that merely MENTIONS <style> must not be
+// mistaken for one — the same rule the layer scan already follows (a commented-out <g> is not a layer).
+// Found by the e2e fixture, whose comment describes the Adobe shape it imitates: the scan opened at the
+// `<style>` inside the comment and read the whole preamble as one selector, silently losing the first
+// real rule. Every entry point must be safe, so the strip lives inside classPaintRules, not at a caller.
+{
+  const COMMENTED_STYLE = '<svg viewBox="0 0 100 100">'
+    + '<!-- the colours live in a <style> inside <defs>, referenced by class -->'
+    + '<defs><style>.a { fill: #00ff00; } .b { fill: #0000ff; }</style></defs>'
+    + '<g id="Head"><rect class="a" x="1" y="1" width="5" height="5"/><rect class="b" x="2" y="2" width="5" height="5"/></g></svg>';
+  const [first, second] = parseLayered(COMMENTED_STYLE).elements;
+  assert.equal(fillOf(first.markup), "#00ff00", "the FIRST real rule is not swallowed by a comment mentioning <style>");
+  assert.equal(fillOf(second.markup), "#0000ff");
+  assert.deepEqual(classPaintRules(COMMENTED_STYLE), [["a", { fill: "#00ff00" }], ["b", { fill: "#0000ff" }]],
+    "classPaintRules strips comments itself, so no caller can forget to");
+}
+
+// A resolved value can never break out of the attribute it is written into.
+{
+  const QUOTED = '<svg viewBox="0 0 100 100">'
+    + '<defs><style>.c { fill: red" onload="alert(1); }</style></defs>'
+    + '<g id="Head"><rect class="c" x="1" y="1" width="5" height="5"/></g></svg>';
+  const [el] = parseLayered(QUOTED).elements;
+  assert.ok(!/["']\s*onload\s*=/i.test(el.markup),
+    `a quote in a CSS value must not close fill= and open a new attribute: ${el.markup}`);
+  assert.equal(fillOf(el.markup), "red&quot; onload=&quot;alert(1)", "the quote is escaped, so it stays part of the value");
+}
+
+// End to end: the emitted file is self-contained — real colours, no undefined class references.
+{
+  const svg = '<svg viewBox="0 0 100 100">'
+    + '<defs><style>.cls-1 { fill: #d7e8fb; }</style></defs>'
+    + '<g id="Head" data-role="core" data-preset-idle="breathe"><rect class="cls-1" x="1" y="1" width="5" height="5"/></g>'
+    + '</svg>';
+  const out = exportRig(toModel(parseLayered(svg)), { assetName: "classed", recipeFor });
+  assert.ok(out.manualSvg.includes('fill="#d7e8fb"'), "the emitted mascot carries the resolved colour");
+  assert.ok(!/<style/i.test(out.manualSvg), "and carries no <style> block that could collide across mascots");
 }
 
 console.log("layer-ingest.test.mjs: all assertions passed.");

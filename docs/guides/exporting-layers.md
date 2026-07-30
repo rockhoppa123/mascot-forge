@@ -61,6 +61,19 @@ Anything inside `<defs>`, `<clipPath>`, `<mask>`, `<symbol>`, or `<marker>` is s
 are even selected. These subtrees define reusable art, they don't draw anything themselves, so they
 never turn into a phantom part and never trigger the transform check above.
 
+### 7. Styling survives, but only as paint — everything else is dropped
+
+Colours reach the emitted mascot whichever way your tool writes them: a `fill`/`stroke` attribute, a
+`style="fill:…"` attribute (Inkscape's default), or a `<style>` block of single-class rules inside
+`<defs>` (Illustrator's and Adobe's default — `.cls-1 { fill: #d7e8fb; }`). All three are resolved at
+ingest and written onto each shape as plain presentation attributes, so the exported file is genuinely
+self-contained and two mascots can share one page without their class names colliding.
+
+What does **not** survive: conditional rules (`@media`) and state rules (`:hover`) are skipped rather
+than applied unconditionally, and every attribute outside the geometry/paint/`id`/`class` set is
+dropped — including `style` itself, `href`, and any `on*` event handler. That is an allowlist, so an
+attribute you invented will not appear in the output either.
+
 ## What a good export looks like
 
 ```xml
