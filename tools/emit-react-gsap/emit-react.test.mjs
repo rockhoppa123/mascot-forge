@@ -24,6 +24,30 @@ for (const name of ["Mascot.tsx", "mascotRig.ts", "mascotMarkup.ts", "README.md"
 assert.deepEqual(Object.keys(files).sort(), ["Mascot.tsx", "README.md", "mascotMarkup.ts", "mascotRig.ts"],
   "the core emits exactly the four generated artifacts");
 
+// The input SVG's own line-ending convention must not leak into the output. manualSvg is embedded
+// VERBATIM into mascotMarkup.ts via JSON.stringify (line 168), so a `\r\n` in the source becomes the
+// literal two-character escape sequence in the generated TEXT, not a real control byte — norm()'s
+// byte-level `\r\n` replace above never sees it, because JSON.stringify already turned it into text.
+// This is exactly how gate-linux broke silently for weeks: the four committed goldens were generated
+// from a Windows checkout (`core.autocrlf=true` converts the checked-out working copy to CRLF even
+// though the git BLOB itself is LF), baking `\r\n` escapes into the committed .ts files; a plain
+// Linux checkout (no conversion) reads the same LF blob as LF, so the freshly generated output has
+// plain `\n` and mismatches the stale golden. Every local/CI run before this one used the SAME
+// checked-out manualSvg to both generate and compare, so nothing ever caught it.
+{
+  // manualSvg's own line endings depend on how THIS test's working tree was checked out (CRLF on
+  // Windows, LF on Linux) — normalize to a clean LF baseline first so the CRLF variant built from it
+  // has exactly one \r per line, not a doubled \r\r\n on whichever platform runs this.
+  const lfSvg = manualSvg.replace(/\r\n/g, "\n");
+  const crlfSvg = lfSvg.replace(/\n/g, "\r\n");
+  const fromCrlf = emitReactGsap({ riggedJson, manualSvg: crlfSvg });
+  const fromLf = emitReactGsap({ riggedJson, manualSvg: lfSvg });
+  for (const name of ["Mascot.tsx", "mascotRig.ts", "mascotMarkup.ts", "README.md"]) {
+    assert.equal(fromCrlf[name], fromLf[name],
+      `${name}: output must be identical whether the input SVG uses CRLF or LF line endings`);
+  }
+}
+
 // Structural purity: the core has NO imports, no `process`/env access, no `require`, no dynamic
 // `import()`. This is what actually guarantees it can't touch the filesystem, read env, or pull a
 // dependency — the determinism check below can't see any of that. Also pins the project's "no new

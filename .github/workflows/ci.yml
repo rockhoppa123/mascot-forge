@@ -28,7 +28,7 @@ jobs:
       - name: Install MCP dependencies
         working-directory: mcp
         run: npm ci
-      - name: Full pipeline gate (P1-P7)
+      - name: Full pipeline gate (P1-P8)
         run: node tools/gate/check-all.mjs
 
   gate-windows-shim:

@@ -134,7 +134,12 @@ export function emitReactGsap({
   // Derive id namespace from rig so new part taxonomies need no tool edits (ADR-0010).
   const PART_IDS = [...rig.parts.map((p) => p.id), "mascot", "rig-root", "title", "desc"];
 
-  const rawSvg = manualSvg;
+  // manualSvg is embedded VERBATIM into the generated output (JSON.stringify below), so its own
+  // line-ending convention becomes part of the emitted TEXT. A CRLF-checked-out caller (Windows,
+  // core.autocrlf=true) and an LF-checked-out one (Linux) must still emit byte-identical output —
+  // normalizing here, once, at the boundary, is what actually guarantees that, rather than hoping
+  // every caller's checkout happens to agree.
+  const rawSvg = manualSvg.replace(/\r\n/g, "\n");
   const bboxes = computeBBoxes(rawSvg, rig.parts.map((p) => p.id));
 
   // Canonical pivot -> GSAP svgOrigin (absolute user-space "x y"); also validate agreement.
