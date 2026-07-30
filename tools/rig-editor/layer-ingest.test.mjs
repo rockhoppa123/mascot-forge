@@ -1,6 +1,9 @@
 // Self-check for layered-SVG ingest (ADR-0011). No framework — node:assert, mirrors model.test.mjs.
 // Run: `node tools/rig-editor/layer-ingest.test.mjs`.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { sanitizeId, parseLayered, toModel, classPaintRules } from "./layer-ingest.js";
 import { recipeFor } from "./presets.js";
 import { validate } from "./validator.js";
@@ -486,6 +489,48 @@ const attrOf = (markup, n) => (markup.match(new RegExp(`\\b${n}="([^"]*)"`)) || 
   const out = exportRig(toModel(parseLayered(svg)), { assetName: "classed", recipeFor });
   assert.ok(out.manualSvg.includes('fill="#d7e8fb"'), "the emitted mascot carries the resolved colour");
   assert.ok(!/<style/i.test(out.manualSvg), "and carries no <style> block that could collide across mascots");
+}
+
+// --- A GENUINE THIRD-PARTY EXPORT, AGAINST RECORDED BROWSER TRUTH -------------------------------
+// Until now every layered fixture in this repo was hand-authored, and that is precisely what let the
+// relative-path-data defect ship: the one fixture used absolute coordinates, so it matched truth 7/7
+// while real Figma/Illustrator exports landed parts hundreds of units off-canvas with ok=true.
+//
+// assets/real-export/gopher-73.svg is an unmodified CC0 file exported by Affinity Designer (it still
+// carries the xmlns:serif namespace). Its curves are entirely RELATIVE — 165 relative commands to 27
+// absolute moveto's — which is the exact input shape the defect was blind to. The expected boxes in
+// gopher-73.bbox.json were recorded from Chromium's real getBBox, so the node gate can assert against
+// browser truth while staying zero-dependency; tests/e2e/real-export.spec.mjs re-measures the same
+// file live, which is what stops the recording itself from silently going stale.
+{
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets", "real-export");
+  const svg = readFileSync(join(dir, "gopher-73.svg"), "utf8");
+  const truth = JSON.parse(readFileSync(join(dir, "gopher-73.bbox.json"), "utf8")).boxes;
+  const { viewBox, elements } = parseLayered(svg);
+
+  assert.equal(viewBox, "0 0 600 600", "the real export's own coordinate system is read");
+  assert.equal(elements.length, truth.length, "parser and browser find the same drawables, in the same order");
+
+  // pathBBox is a documented SUPERSET: bezier control points are included as-is, so the box can be
+  // larger than the rendered ink but must never be smaller or displaced. Containment is the assertion
+  // that fails when geometry is misread; 0.01 absorbs the float32-ish precision of DOM getBBox values.
+  const EPS = 0.01;
+  let worstOversize = 0, measured = 0, deferred = 0;
+  for (let i = 0; i < truth.length; i++) {
+    const t = truth[i], p = elements[i].bbox;
+    if (p === null) { deferred++; continue; }         // circle/ellipse — the browser fills these
+    measured++;
+    const over = [t.x - p.x, t.y - p.y, (p.x + p.w) - (t.x + t.w), (p.y + p.h) - (t.y + t.h)];
+    assert.ok(over.every((d) => d >= -EPS),
+      `element ${i} (${t.tag}): parser box must contain the real one — parser ${JSON.stringify(p)} vs truth ${JSON.stringify(t)}`);
+    worstOversize = Math.max(worstOversize, ...over);
+  }
+  assert.equal(measured, 26, "26 rect/path elements are measured in node");
+  assert.equal(deferred, 2, "the 2 circles defer to the browser's getBBox — the documented v1 ceiling");
+  // Measured worst on this file is 20.07 user units on a 600x600 canvas (3.3%), all of it the bezier
+  // superset. The bound is a regression guard on that superset growing, not a target to tune towards.
+  assert.ok(worstOversize < 25,
+    `the superset must stay bounded: worst oversize ${worstOversize.toFixed(2)} user units on a 600x600 canvas`);
 }
 
 console.log("layer-ingest.test.mjs: all assertions passed.");

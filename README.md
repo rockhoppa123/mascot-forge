@@ -3,7 +3,7 @@
 [![CI](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/rockhoppa123/mascot-forge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)
-![Gate: P1–P7 green](https://img.shields.io/badge/gate-P1%E2%80%93P7%20green-brightgreen)
+![Gate: P1–P8 green](https://img.shields.io/badge/gate-P1%E2%80%93P8%20green-brightgreen)
 
 **Hand your agent a layered SVG — the layers you already named in Figma become an animated web
 component you own, bound to your app's real data.** Each top-level layer becomes a named part — no
@@ -72,10 +72,12 @@ vehicle (Land Rover) — forged by the same engine with **zero engine edits** (s
 > Status: **v1 complete** (pre-1.0). Two entries feed one rig: a **layered SVG** goes straight to
 > rig → emit → orchestrate; a **raster image** first runs vectorize → segment as a fallback
 > preprocessing step. Both are verifiable with one command (`node tools/gate/check-all.mjs`). The raster path is
-> proven on two visually different assets end-to-end; the layered path is proven on parser correctness
-> plus one hand-authored example carried through the full editor/agent → export → emit loop — it has
-> not been through the same cold-start playtest that stress-tested raster (see
-> [`docs/research/landscape.md`](docs/research/landscape.md) §5). Scoped to the SVG+CSS / React+GSAP
+> proven on two visually different assets end-to-end; the layered path is proven on parser correctness,
+> one hand-authored example carried through the full editor/agent → export → emit loop, and a genuine
+> CC0 third-party export checked against real browser `getBBox` geometry. It has now also been through
+> the same cold-start playtest that stress-tested raster (see
+> [`docs/research/landscape.md`](docs/research/landscape.md) §5 and the
+> [playtest report](docs/superpowers/playtests/2026-07-30-final-playtest.md)). Scoped to the SVG+CSS / React+GSAP
 > Output Targets; broader automation is post-1.0. See the [Run / Quickstart](#run--quickstart) section
 > and [`docs/`](docs/).
 
@@ -265,14 +267,20 @@ tool chain is proven in CI by an agent-simulation test and an in-memory-transpor
 >    parsing coordinates from text.
 > 2. **The `mf.ps1` CLI has no layered entry at all.** Layered SVGs go through the browser editor or the
 >    MCP — never `mf.ps1 forge` / `mf.ps1 emit`.
-> 3. **`assets/example-layered/robot.svg` is hand-authored** to the ingest rules, not a captured
->    real-world Figma/Illustrator export — it proves the rules are internally consistent, not that a
->    real export from those tools comes out clean on the first try.
-> 4. **What's proven, precisely:** the layered parser is correct, and one hand-authored example has
->    gone through the full loop — browser editor and MCP agent path alike — to an exported, downloadable
->    mascot. That is *not* the adversarial cold-start playtest that discredited raster auto-segmentation
->    (3-for-3 failures on unseen assets, [`docs/research/landscape.md`](docs/research/landscape.md) §5);
->    layered hasn't been run through an equivalent test yet.
+> 3. **`assets/example-layered/robot.svg` is hand-authored** to the ingest rules. The gate no longer
+>    rests on it alone: `assets/real-export/gopher-73.svg` is an unmodified CC0 file exported by
+>    Affinity Designer, with entirely relative curve data, checked against recorded Chromium `getBBox`
+>    values in the node gate and re-measured live in a browser by `tests/e2e/real-export.spec.mjs`.
+>    That is one file from one tool — it is evidence, not coverage of every exporter.
+> 4. **What's proven, precisely:** layered has now been through the adversarial cold-start playtest
+>    that raster auto-segmentation failed (3-for-3 on unseen assets,
+>    [`docs/research/landscape.md`](docs/research/landscape.md) §5). Eight real third-party exports —
+>    Adobe, Bambu/Inkscape, Fusion 360, Valve, Power BI, Figma-derived — found three defects that
+>    contradicted published claims: wrong geometry on relative path data, phantom parts from nested
+>    `<defs>`, and class-styled sources emitting as black silhouettes. All three are fixed and
+>    measured; the full report, including the provenance caveat that the assets were sourced
+>    agent-side, is
+>    [`docs/superpowers/playtests/2026-07-30-final-playtest.md`](docs/superpowers/playtests/2026-07-30-final-playtest.md).
 >
 > On the raster fallback: the agent supplies the *semantics* (which box is a hand) — the MCP does not
 > guess anatomy on its own. The auto first-pass parts are a hint the agent re-segments by vision.
