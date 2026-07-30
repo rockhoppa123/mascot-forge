@@ -134,6 +134,29 @@ computed CSS through `javascript_tool`, and animation measurement — see below.
 - Tests use `node:assert/strict`, no framework. Gate must print `RESULT: PASS` after any change.
 - Commit bodies end with a `Co-Authored-By:` trailer. **Ask before pushing.**
 
+## Model assignment
+
+Judgement work goes to Opus; mechanical, well-specified work goes to Sonnet. This session's own
+whole-branch review found its Critical finding only because it ran on Opus — the ~14 Sonnet task
+reviews that preceded it all missed it.
+
+- **Playtest assessor, output/UI assessor, and any adjudication of a reviewer's findings** — **Opus**.
+  "Does this match the contract?" and "is this actually good?" are judgement calls, not pattern matches.
+- **Driving the tools, capturing transcripts, running the gate, the security/credentials sweep** —
+  **Sonnet** is sufficient and cheaper.
+
+## Subagent spend limits — plan around them
+
+Subagents hit the monthly spend limit twice in the session that produced this handoff, mid-task both
+times. The second time it left a 510-line file uncommitted, and the work had to be verified inline by
+the controller rather than by the dispatched reviewer. Expect this to happen again:
+
+- Checkpoint progress (commit, or at minimum write a report file) after each discrete unit of work, not
+  only at the end of a task.
+- If a subagent is cut off, do not assume its partial output is wrong or right — verify it yourself
+  before either discarding or accepting it.
+- If subagents become unavailable entirely, fall back to doing the work inline rather than blocking.
+
 ## Known-open items — confirm or close, don't rediscover
 
 - `docs/buildable-slice/generated-land-rover/*` is the one committed emitter output with **no freshness
