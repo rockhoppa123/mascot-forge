@@ -239,6 +239,40 @@ const LAYERED = `<?xml version="1.0"?>
   assert.equal(elements.length, 1, "only the real Head rect is art");
 }
 
+// SAME-TAG NESTING (<defs> inside <defs>). A non-greedy `<defs>…</defs>` ends the OUTER match at the
+// INNER close, so everything after the inner </defs> leaks into the layer scan as phantom art. Measured
+// on a real third-party export in the 2026-07-30 playtest: Valve's markers.svg (shipped inside Steam)
+// has ONE child of <svg> — a <defs> — so the browser reports 0 top-level layers and renders nothing,
+// while the node path produced 12 parts, accepted set_part on 12/12 and emitted a "mascot" from art
+// that never draws. exporting-layers.md rule 6 promises this unconditionally, so it must hold.
+{
+  const NESTED_DEFS = '<svg viewBox="0 0 192 192">'
+    + '<defs><defs><linearGradient id="grad"/></defs>'
+    + '<g id="death"><path d="M10 10 h10 v10 z" fill="#fff"/></g>'
+    + '</defs>'
+    + '<g id="Head"><rect x="10" y="10" width="20" height="20" fill="#0b0"/></g>'
+    + '</svg>';
+  const { elements } = parseLayered(NESTED_DEFS);
+  assert.deepEqual([...new Set(elements.map((e) => e.part))], ["part-head"],
+    'a <g> after a nested </defs> but still inside the OUTER <defs> must not become a layer');
+  assert.equal(elements.length, 1, "only the real Head rect is art (nested defs)");
+}
+
+// The markers.svg shape in full: every drawable lives inside one root <defs> that also nests a <defs>.
+// The browser reports 0 layers, so the node path must refuse rather than invent parts.
+{
+  const ALL_INSIDE_DEFS = '<svg viewBox="0 0 192 192">'
+    + '<defs><defs><linearGradient id="grad"/></defs>'
+    + '<g id="death"><path d="M10 10 h10 v10 z" fill="#fff"/></g>'
+    + '<g id="kill"><path d="M30 30 h10 v10 z" fill="#fff"/></g>'
+    + '</defs></svg>';
+  // parseLayered reports zero art; the MCP tool turns that into the user-facing refusal
+  // ("no drawable shapes found", mcp/tools.mjs:198), which is what the browser's 0 layers should mean.
+  const { elements } = parseLayered(ALL_INSIDE_DEFS);
+  assert.equal(elements.length, 0,
+    "a file whose only child is <defs> draws nothing, so ingest must find no art, not invent phantom parts");
+}
+
 // A transform confined to a root-level <defs>/<pattern> must not refuse ingest. Before the document-
 // level strip, this was the worst outcome on the branch: the MCP tool refused the whole file, naming a
 // phantom "layer-1" the user cannot find or flatten because it does not exist as a layer in their file.

@@ -74,9 +74,43 @@ const HAS_TRANSFORM = /(^|\s)transform\s*=/;   // anchored on a boundary so grad
 // close — so the outer tag's own trailing content (after the inner </mask>, before the outer </mask>)
 // is left unstripped and leaks into the node scan as real, phantom art; the browser (which never
 // renders mask/clipPath/etc. content at all, nesting or not) does not see it — the two paths disagree
-// on that input. No known exporter emits same-tag nesting, so this stays an honest, disclosed ceiling
-// rather than a depth-aware scanner built against a defect nobody has reproduced from a real export.
-const NON_RENDERED = /<(defs|clipPath|mask|symbol|pattern|marker)\b[^>]*?(?:\/>|>[\s\S]*?<\/\1>)/gi;
+// on that input. That was a disclosed ceiling until the 2026-07-30 cold-start playtest reproduced it
+// from a real third-party export (Valve's markers.svg, shipped inside Steam): the browser reported 0
+// top-level layers while the node path produced 12 parts and emitted a "mascot" from art that never
+// draws. exporting-layers.md rule 6 states the no-phantom-parts guarantee unconditionally, so the
+// scan is depth-aware now and the guarantee holds as written.
+const NON_RENDERED_TAG_RE = /<(\/?)(defs|clipPath|mask|symbol|pattern|marker)\b([^>]*)>/gi;
+
+// Remove every non-rendered subtree, tracking same-tag nesting DEPTH so only the OUTERMOST tag's
+// matching close ends a span. An unclosed tag strips nothing, matching the old behaviour on malformed
+// input rather than silently eating the rest of the document.
+export function stripNonRendered(text) {
+  let out = "", lastCut = 0, depth = 0, openTag = null, spanStart = 0, m;
+  NON_RENDERED_TAG_RE.lastIndex = 0;
+  while ((m = NON_RENDERED_TAG_RE.exec(text))) {
+    const closing = m[1] === "/";
+    const tag = m[2].toLowerCase();
+    const selfClosing = /\/\s*$/.test(m[3]);
+    if (depth === 0) {
+      if (closing) continue;                       // stray close tag with no opener: not a span
+      if (selfClosing) {                           // no partner of its own - consume it alone
+        out += text.slice(lastCut, m.index);
+        lastCut = m.index + m[0].length;
+        continue;
+      }
+      openTag = tag; depth = 1; spanStart = m.index;
+    } else if (tag === openTag) {
+      if (closing) {
+        if (--depth === 0) {
+          out += text.slice(lastCut, spanStart);
+          lastCut = m.index + m[0].length;
+          openTag = null;
+        }
+      } else if (!selfClosing) depth++;
+    }
+  }
+  return out + text.slice(lastCut);
+}
 
 // SVG comments must be gone before NON_RENDERED runs, and before topLevelGroups sees the text at all —
 // a comment can contain a `<g>`-shaped fragment (design notes, disabled markup) that the browser never
@@ -115,7 +149,7 @@ export function parseLayered(svgText) {
   // from INSIDE a chosen layer's inner text too, so a second, per-layer pass would just repeat work
   // already done. It also means a root-level <defs>/<clipPath> can never be selected as a layer, since
   // topLevelGroups never sees it.
-  const scanText = svgText.replace(COMMENT_RE, "").replace(NON_RENDERED, "");
+  const scanText = stripNonRendered(svgText.replace(COMMENT_RE, ""));
 
   // Read the root attrs from the STRIPPED text, not the raw source: a comment preceding the root
   // element may itself contain an `<svg …>` fragment (a commented-out wrapper, a banner quoting one),
