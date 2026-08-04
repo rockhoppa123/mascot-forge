@@ -26,3 +26,14 @@ Run the narrowest relevant local check. The full pipeline gate is:
 cd mcp && npm ci     # once per clone: P5 and P6 use these dependencies
 node tools/gate/check-all.mjs
 ```
+
+Recurring project traps:
+
+- Run documented commands from the state a new contributor would have; a
+  printed PASS without real assertions is not evidence.
+- Commit a regenerable artifact and its freshness gate together.
+- Keep hand-maintained duplicate lists guarded by a test that compares them.
+- Mutation-test custom checkers by breaking one expected property and requiring
+  the checker to fail.
+- Verify animation by seeking to known times and measuring geometry; do not rely
+  on timer sampling or a cached browser-pane screenshot.
